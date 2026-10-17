@@ -749,10 +749,10 @@ contact destinations, device credentials and internal jobs stay server-only.
 
 Realtime is not durable storage or a job queue. Fetch REST snapshots/history on
 initial load/reconnect and ignore older revisions. No anonymous operator access.
-Chace and Kiro jointly finalize subscriptions and DTOs.
+Chace and Emilia jointly finalize subscriptions and DTOs.
 
 Room records include a floor and static layout metadata (proposed x/y/width/height
-in shared facility-plan coordinates). The layout DTO and units require Kiro's
+in shared facility-plan coordinates). The layout DTO and units require Emilia's
 agreement. Add fictional patients and timestamped room assignments. These model
 configured room occupancy, not inferred physical position. Incidents remain
 room-centric; historical patient linkage must use assignment time, not silently
@@ -778,7 +778,8 @@ These entities and interfaces are planned, not existing tables or implemented AP
 
 ## 19. Operator Dashboard
 
-Primary owner: Kiro / Frontend Team. Paper is the required frontend design tool.
+Primary owner: Emilia. Use Paper to help design and implement the frontend.
+Paper is the required frontend design tool.
 Create and maintain the dashboard's screen/component designs in Paper before
 implementing or materially redesigning their corresponding React/Vite views in
 `apps/web`. The runnable website remains deployed on Vercel and connected to the
@@ -794,6 +795,18 @@ login/room/incident shell has verified synthetic integration, but remains a
 provisional interface. No Paper design artifact, design handoff or visual parity
 is evidenced yet; document access and screen references remain TBD. A successful
 deployment does not complete the Paper-designed frontend requirement.
+
+Emilia owns visual design, responsive layouts, reusable UI components and frontend
+implementation with Paper's assistance. Chace owns application/backend scaffolding
+and backend integration; Emilia and Chace agree API response bodies, shared
+contracts, room-layout coordinates and Realtime subscriptions before connecting
+the views. Chloe owns Model 1, training and edge inference; frontend development
+can proceed against clearly labeled synthetic fixtures while those components
+are in progress.
+
+Review the implemented UI against the Paper designs at desktop and mobile sizes
+and verify keyboard access and loading/error states. Paper's specific integration
+or export method remains to be verified.
 
 | View | Required content/actions |
 | --- | --- |
@@ -817,7 +830,7 @@ focus behavior. Multiple-room fixtures test layout without claiming multi-room
 sensing. Render incidents immediately while explanation state is `pending`, then update to `ready`
 or `fallback`. The browser never connects to QNX or Gemini. Patient-to-room
 assignment is explicit timestamped configuration, not inferred localization.
-Render a top-down facility view from static room geometry; Kiro finalizes its DTO.
+Render a top-down facility view from static room geometry; Emilia finalizes its DTO.
 The binary classifier cannot support detailed activity or physical-position claims.
 
 ## 20. Conversational Family Notifications: ElevenLabs and Photon
@@ -982,16 +995,16 @@ Assignments below are confirmed by the complete request, except explicit TBDs.
 
 | Person | Primary ownership | Deliverables / handoff |
 | --- | --- | --- |
-| Emilia | Hardware and CSI collection | Working TX/RX, reproducible configuration, timestamped serial stream, recordings and schema evidence to Chloe |
+| Emilia | Frontend with Paper; hardware and CSI collection | Working TX/RX, reproducible configuration, timestamped serial stream, recordings and schema evidence to Chloe |
 | Chloe | Model 1 and edge inference | Parsing/preprocessing, CNN training, evaluation, artifacts, QNX runtime, event-producing WSS client |
 | Chace | Model 2 and backend | Gemini explanations and durable jobs, Railway WSS/REST, Supabase persistence, demo notification approval |
-| Kiro / Frontend Team | Operator interface | Paper document/screen handoff and matching React/Vite UI, authenticated Vercel dashboard/detail, incident actions and Supabase Realtime/backend integration |
+| Emilia | Operator interface | Paper document/screen handoff and matching React/Vite UI, authenticated Vercel dashboard/detail, incident actions and Supabase Realtime/backend integration |
 | TBD | ElevenLabs/Photon provider integration | Agent and conversational LLM configuration, Photon SIP compatibility, signed evidence mapping, consented recipient and real-call test |
 | Entire team | Integration, testing and presentation | End-to-end evidence, honest limitations and demo rehearsal; integration lead TBD |
 
 Boundary leads: Emilia ensures serial output works; Chloe consumes it using the
 verified packet contract; Chace implements the receiving event service and API;
-Kiro consumes those APIs; Chace's Model 2 receives structured facts only. Chloe and
+Emilia consumes those APIs; Chace's Model 2 receives structured facts only. Chloe and
 Chace jointly review event contracts, with Chace leading backend acceptance. A
 shared task must have one named lead; “entire team” is not a substitute for assigning
 Photon or an integration coordinator.
@@ -1045,7 +1058,7 @@ Realtime publishes safe incident metadata with facility_id and revision. Authent
 clients filter by facility, then refetch the canonical REST DTO; RLS still protects
 clients who remove filters. The minimal frontend subscribes/refetches on changes
 and reconnect. This is not a durable notification queue.
-Chace finalizes response bodies and authenticated demo policies with Kiro before
+Chace finalizes response bodies and authenticated demo policies with Emilia before
 implementation. Existing REST paths are retained; `/operator/` is a domain label,
 not an alternative API namespace. Supabase Auth and facility membership protect
 all operator routes. Health/liveness is public; the planned provider webhook uses
@@ -1067,7 +1080,7 @@ provider-signature authentication instead of an operator JWT.
 | `GET /api/operator/stream` | Superseded proposal; use demo-scoped Supabase Realtime instead, not a second required stream |
 
 All contact/call/webhook routes above are planned. Finalize shared JSON Schemas
-with Chace/Kiro before implementation. Contact PUT must define intentional creation
+with Chace/Emilia before implementation. Contact PUT must define intentional creation
 with a client-generated ID or update semantics; never silently upsert an ID from a
 different facility. Call initiation references a server-validated reviewed snapshot
 and expected revision, with an idempotency key. Reusing a key with changed content
@@ -1087,7 +1100,7 @@ checks, audit and idempotency for mutations. Require a verified Supabase Auth JW
 Audit the account subject; do not claim individual staff identity for a shared login.
 A retry must not duplicate a note or notification. A successful incident response includes ID, room,
 status, revision, detection/receipt times, explanation status and allowed actions;
-final detailed response schemas remain proposed and require Chace/Kiro agreement.
+final detailed response schemas remain proposed and require Chace/Emilia agreement.
 
 Proposed error envelope:
 
@@ -1162,8 +1175,8 @@ implemented or partial merely because this specification describes it.
 | 7 | Temporal logic produces a grouped inference event with binary confidence scores | Chloe |
 | 8 | Pi sends the approved seven-field v2 event through authenticated WSS | Chloe + Chace; Chace leads ingestion validation |
 | 9 | Railway transactionally persists one event, incident and pending job in Supabase before ACK; retries deduplicate | Chace |
-| 10 | Public Vercel dashboard displays the incident after authorized login, without waiting for Gemini | Kiro |
-| 11 | Authorized operator acknowledges and resolves; responding/false-alarm/notes work | Kiro + Chace; Kiro leads UI validation |
+| 10 | Public Vercel dashboard displays the incident after authorized login, without waiting for Gemini | Emilia |
+| 11 | Authorized operator acknowledges and resolves; responding/false-alarm/notes work | Emilia + Chace; Emilia leads UI validation |
 | 12 | Railway worker calls Gemini with persisted facts, validates/persists the explanation and updates Realtime; failure gives deterministic fallback | Chace |
 | 13 | Authenticated operator configures a consented fictional-resident contact, reviews/authorizes frozen family-safe facts, opening and policy; a real ElevenLabs call through Photon connects and provider evidence shows the incident notification was spoken; Supabase stores and dashboard displays the evidence | Voice/Photon lead TBD |
 
@@ -1301,7 +1314,7 @@ required explanation and notification flow before claiming the complete MVP.
 4. Chace implements the confirmed seven-field event ingestion with authentication,
    durable transactional event/incident persistence in Supabase, incident lifecycle,
    health and agreed authenticated demo REST/Realtime interfaces on Railway.
-5. Kiro integrates the Paper-designed room/incident/contact UI; Chace and the named
+5. Emilia integrates the Paper-designed room/incident/contact UI; Chace and the named
    voice/Photon lead complete durable Gemini explanations and operator-authorized
    ElevenLabs/Photon calls with connected/notification-spoken evidence for
    end-to-end rehearsal on Vercel.
@@ -1359,14 +1372,14 @@ project uses fictional residents and two staged synthetic events, not live sensi
 | QNX image/BSP, USB driver, compiler/ABI, eligible catalog AI module and required operators | Chloe + QNX mentor |
 | LiteRT/TFLite versus ONNX and artifact host/checksum/configuration format | Chloe |
 | Separate optional Veri model/path compatibility, licenses, challenge rules and documented training/submission evidence | Chloe/Chace + Veri mentor |
-| Railway operational limits and failure behavior beyond the hosted synthetic check; remaining lifecycle/API/authorization interfaces | Chace + Kiro |
+| Railway operational limits and failure behavior beyond the hosted synthetic check; remaining lifecycle/API/authorization interfaces | Chace + Emilia |
 | Hosted worker rollout and broader load/failure measurements; local lease/retry/recovery behavior is implemented and tested | Chace |
 | Gemini hosted rollout, broader evaluation, provider limits and retention; initial model and constrained prompt recorded in docs/gemini-pipeline.md | Chace |
-| Paper document access/link and screen references, matching React/Vite implementation and visual comparison; full dashboard/workflow integration | Kiro + Chace |
-| Static room-layout DTO/coordinate units and historical patient-assignment presentation; no localization inferred | Kiro + Chace |
+| Paper document access/link and screen references, matching React/Vite implementation and visual comparison; full dashboard/workflow integration | Emilia + Chace |
+| Static room-layout DTO/coordinate units and historical patient-assignment presentation; no localization inferred | Emilia + Chace |
 | Voice/Photon lead, exact SIP product/trunk/number, ElevenLabs agent/LLM, runtime context limits and consented live test | Team assigns lead + Photon/ElevenLabs mentors |
 | Connected/notification-spoken provider evidence mapping, ambiguous-submit reconciliation, callback identity/replay and post-call data validation | Chace + provider lead |
-| Recipient-check wording, family-safe projection/policy schemas, private contact DTO and Paper contact/review/results views | Chace + Kiro |
+| Recipient-check wording, family-safe projection/policy schemas, private contact DTO and Paper contact/review/results views | Chace + Emilia |
 | Provider audio/transcript retention/deletion and consent settings; application retains minimal structured evidence | Provider lead + Chace |
 | Integration coordinator, deadlines, consented recipient, final demo retention and deletion process | Entire team; lead TBD |
 
@@ -1406,6 +1419,7 @@ documented evidence supports a decision.
 | ADR-026 / 2026-10-17 | Confirmed target: blissey-beacon.health website, planned api.blissey-beacon.health backend, provider-assigned Supabase project URL | User supplied domain; deployment manifests/env examples and setup handoff prepared; no DNS/TLS/production changes claimed |
 | ADR-027 / 2026-10-17 | Implementation: explicit Gemini 3.5 Flash-Lite, frozen minimal input, constrained schema/wording validation, 30-second leased jobs and atomic explanation/incident-revision publication; live model verified locally, hosted rollout pending | Preserves event/output contracts and single backend; opt-in explanation DTO supports independent frontend/backend rollout |
 | ADR-028 / 2026-10-17 | Approved: bounded conversational family notifications through ElevenLabs Agents and planned Photon SIP; operator approves frozen recipient/context/opening/policy, with one consented primary contact per fictional resident | Supersedes static-text-only authorization and configuration-time destination ban; preserves v2 ingestion, Gemini output/auth/lifecycle. Success is connected plus incident notification spoken, without recipient acknowledgment; provider integration/evidence mapping unverified |
+| ADR-029 / 2026-10-17 | User-directed: Emilia owns frontend design and implementation with Paper assistance; Chace owns application/backend scaffolding and backend/Model 2; Chloe retains Model 1/training/QNX | Supersedes Kiro frontend ownership in ADR-007 and the layout-owner reference in ADR-022; preserve React/Vite, Supabase Auth, API/Realtime boundaries and existing hardware ownership |
 
 The user explicitly approved this delta after reviewing the proposal. See
 [deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md](deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md)
@@ -1417,6 +1431,9 @@ The approved scaffold-review amendment is recorded in [deltas/2026-10-17T22-01-5
 
 The approved conversational-call delta and success-criterion clarification are recorded in
 [deltas/2026-10-18T01-47-18Z-conversational-family-calls.md](deltas/2026-10-18T01-47-18Z-conversational-family-calls.md).
+
+The user-directed Paper/frontend ownership amendment is recorded in
+[deltas/2026-10-17T22-30-10Z-paper-frontend-ownership.md](deltas/2026-10-17T22-30-10Z-paper-frontend-ownership.md).
 
 ## 32. How to Maintain This Specification
 
