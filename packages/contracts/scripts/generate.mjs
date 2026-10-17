@@ -10,6 +10,7 @@ const output = (
       compileFromFile(new URL(name, directory).pathname, {
         bannerComment: "",
         additionalProperties: false,
+        declareExternallyReferenced: false,
       }),
     ),
   )

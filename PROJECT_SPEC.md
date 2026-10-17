@@ -165,7 +165,7 @@ selected providers are not evidence of deployment or integration.
 | Monorepo | pnpm workspaces for TypeScript only | Two deployable apps; independent QNX/Python toolchains |
 | Operator identity | Supabase Auth | Shared demo account acceptable; explicit facility membership |
 | UI | React/Vite browser demo on Vercel, implemented from Paper designs | Minimal deployed shell: login, room/history and live incident verified; full design/workflows remain pending |
-| Model 2 | Hosted Google Gemini API | Selected; model/version/configuration TBD; unverified |
+| Model 2 | Hosted Google Gemini API, configured `gemini-3.5-flash-lite` | Live structured-output/local database-Realtime path verified; hosted worker rollout pending |
 | Optional sponsor effort | Veri Studio with a compatible open-source model | Separate from MVP Gemini inference; eligibility unverified |
 | Family contact | Photon calling or messaging API | Planned; exact product/API/capabilities TBD |
 
@@ -578,9 +578,10 @@ model readiness. Preserve faults in UI and diagnostics.
 
 Owner: Chace. Use Google's hosted Gemini API to transform persisted structured
 facts into human-readable incident explanations. It replaces the proposed
-open-source/self-hosted Model 2 for the MVP; Model 1 is unchanged. Exact Gemini
-model/version, API configuration and structured-output compatibility remain TBD.
-No Gemini call or deployment has been verified.
+open-source/self-hosted Model 2 for the MVP; Model 1 is unchanged. The initial configured model is
+`gemini-3.5-flash-lite`, verified with live structured output and local disposable
+PostgreSQL/Realtime on 2026-10-17. Hosted worker rollout remains unverified.
+See [docs/gemini-pipeline.md](docs/gemini-pipeline.md) for the exact evidence.
 
 Backend enriches persisted event facts with the room label, incident state,
 audience and verified context. Example dashboard input:
@@ -627,9 +628,19 @@ Gemini's key stays exclusively server-side. The browser and QNX never call Gemin
 Generation never initiates notifications or substitutes for explicit operator
 review/approval. Keep deterministic same-schema fallbacks and cautious wording.
 Explanation states are `pending | ready | fallback`; failures must not block
-incident publication, incident actions or notification review. Proposed timeout is
-five seconds with at most one transient retry; final settings require validation.
+incident publication, incident actions or notification review. The implementation uses
+a five-second timeout and at most one transient retry; broader provider limits
+remain to be measured.
 Durable processing and restart recovery are required by Section 18.
+
+The implemented MVP uses `grounded-phrasing-v1`: Gemini selects among exact factual
+wordings built from persisted input. Canonical schema, event identity and wording
+are independently validated before persistence. This constrains generation rather
+than relying on unrestricted prose or a keyword blocklist for factual grounding.
+Each provider call times out after five seconds; one transient retry is allowed.
+A database-backed retry delay is two seconds and each claim lease is 30 seconds.
+A missing API key disables the worker and retains pending work without blocking
+ingestion. Server-side key/model configuration and hosted rollout are explicit.
 
 ## 18. Backend and Database
 
@@ -638,7 +649,8 @@ Railway with logical modules for authenticated WSS ingestion, validation and
 deduplication, incident lifecycle, health monitoring, persistence, Gemini jobs,
 authenticated demo REST, Photon approvals/dispatch and audit/recovery. Do not introduce
 independent backend services without a demonstrated requirement. Railway is the
-selected MVP target; deployment feasibility and operational limits are unverified.
+selected MVP target; hosted synthetic WSS/REST was verified. Worker rollout and
+broader operational limits remain unverified.
 
 Supabase PostgreSQL is the durable source of truth. Backend/database credentials
 stay server-side; QNX neither connects directly to Supabase nor holds its secrets.
@@ -685,8 +697,11 @@ remains independent from incident state (Section 20).
    retry scheduling and generation state. Terminal failure stores a deterministic
    explanation and marks `fallback`. Retries/completion must be idempotent.
 
-Exact claim/lease SQL and retry configuration remain implementation decisions;
-one deployment may run WSS, REST and the worker together. A provider timeout may
+The implementation in apps/backend/src/explanations uses `SKIP LOCKED`, unique
+lease tokens, canonical frozen input snapshots, and conditional transactional
+completion/retry. Completion persists the explanation and advances the incident
+revision in one transaction, driving the existing Realtime refetch. One deployment
+runs WSS, REST and the worker together when configured. A provider timeout may
 cause a repeated API call, so do not promise exactly-once external generation.
 Database uniqueness and conditional writes must prevent duplicate persisted work
 or inconsistent explanations. Gemini outage cannot suppress incidents.
@@ -849,7 +864,8 @@ No current sponsor website rules or supported-model catalog were verified here.
 
 The following routes define the target API. Slice 2 implements room metadata,
 incident history/detail and device status reads. Other routes remain proposed;
-incident mutation, Gemini and Photon are not implemented. The shared incident DTO
+incident mutation and Photon are not implemented. Gemini explanation reads are
+implemented with the additive opt-in described below. The shared incident DTO
 is in packages/contracts/schemas/incident.json, with generated TypeScript and
 runtime validation for frontend handoff. No separate frontend-owner review is claimed.
 
@@ -857,8 +873,13 @@ History requires facility_id; limit defaults to 25 with a maximum of 100. A curs
 is the UUID of a prior incident in that facility, ordered by created_at/ID descending.
 Responses are `{ incidents, next_cursor }` and `{ incident }`. The DTO includes
 IDs/facility/room/device, status/revision, detection/receipt/create times, named
-scores, sensor status, explanation status and allowed_actions (empty in Slice 2).
-Unauthorized detail IDs return 404. New explanations remain pending.
+scores, sensor status, explanation status and allowed_actions (empty in this slice).
+`include_explanation=true` on history/detail additionally returns `explanation`,
+which is null while pending or the unchanged four-field explanation object for
+ready/fallback. Omitting the flag preserves the previous strict-client response
+shape. Body reads remain facility-authorized REST; only incident metadata/revision
+is published for Realtime invalidation.
+Unauthorized detail IDs return 404. New incidents begin with explanation status `pending`.
 
 Realtime publishes safe incident metadata with facility_id and revision. Authenticated
 clients filter by facility, then refetch the canonical REST DTO; RLS still protects
@@ -1110,7 +1131,8 @@ The previous dataset-access 404 observation has not been retested by this work.
 | [Dockerfile](Dockerfile), [compose.yaml](compose.yaml) | Node/pnpm toolchain and disposable PostgreSQL validation; no host Node needed |
 | [.github/workflows/ci.yml](.github/workflows/ci.yml) | Docker foundation workflow; writing it is not evidence of a remote CI run |
 | Firmware, dataset, training, QNX runtime/model | Not implemented/verified in this repository; no data downloaded or training started |
-| Gemini worker, generated explanations, incident actions, Photon | Later slices; no working integration claimed |
+| [apps/backend/src/explanations](apps/backend/src/explanations) | Durable leased worker, constrained Gemini output, retry/fallback and atomic publication; live model/local Realtime verified; hosted rollout pending |
+| Incident actions, Photon | Later slices; no working integration claimed |
 | [tools/simulator](tools/simulator) | Canonical-fixture synthetic device client with stable retry IDs and bounded retries; not QNX evidence |
 | [compose.realtime.yaml](compose.realtime.yaml) | Isolated PostgreSQL + official Supabase Realtime test service with synthetic signed identities; never production |
 | [apps/backend/Dockerfile](apps/backend/Dockerfile), [railway.json](railway.json), [vercel.json](vercel.json) | Deployment setup artifacts; build validation is not hosted deployment or DNS/TLS verification |
@@ -1125,7 +1147,8 @@ proves actual QNX networking, CNN capability or full hardware end-to-end accepta
 remains future full-system integration criteria. Local Slice 2 acceptance passed
 for simulator ingestion → one durable incident → authorized REST and actual
 Supabase Realtime delivery, with duplicate and no-membership exclusion checks.
-See docs/slice-2.md for local test scope and results, and
+See docs/gemini-pipeline.md for the later live-model/local database and Realtime
+verification and hosted rollout boundary. See docs/slice-2.md for local test scope and results, and
 docs/deployment-verification.md for the separate hosted evidence. The hosted
 project uses fictional residents and two staged synthetic events, not live sensing.
 
@@ -1139,8 +1162,8 @@ project uses fictional residents and two staged synthetic events, not live sensi
 | LiteRT/TFLite versus ONNX and artifact host/checksum/configuration format | Chloe |
 | Separate optional Veri model/path compatibility, licenses, challenge rules and documented training/submission evidence | Chloe/Chace + Veri mentor |
 | Railway operational limits and failure behavior beyond the hosted synthetic check; remaining lifecycle/API/authorization interfaces | Chace + Kiro |
-| Durable explanation claim/lease SQL, timeout/retry limits, recovery and idempotent completion | Chace |
-| Gemini model/version, structured-output/API configuration, privacy/retention, exact prompt and evaluation set | Chace |
+| Hosted worker rollout and broader load/failure measurements; local lease/retry/recovery behavior is implemented and tested | Chace |
+| Gemini hosted rollout, broader evaluation, provider limits and retention; initial model and constrained prompt recorded in docs/gemini-pipeline.md | Chace |
 | Paper document access/link and screen references, matching React/Vite implementation and visual comparison; full dashboard/workflow integration | Kiro + Chace |
 | Static room-layout DTO/coordinate units and historical patient-assignment presentation; no localization inferred | Kiro + Chace |
 | Photon lead, exact provider/API, calling/messaging/TTS, delivery evidence and idempotency | Team assigns lead + Photon mentor |
@@ -1180,6 +1203,7 @@ documented evidence supports a decision.
 | ADR-024 / 2026-10-17 | Approved: early actual Pi/QNX TLS WSS smoke milestone before CNN integration | Synthetic event tests networking independently; desktop simulator is not hardware evidence |
 | ADR-025 / 2026-10-17 | Approved: Docker Compose for Node/pnpm development and foundation validation | User requested Docker; disposable PostgreSQL tests, independent QNX/Python, no host Node requirement |
 | ADR-026 / 2026-10-17 | Confirmed target: blissey-beacon.health website, planned api.blissey-beacon.health backend, provider-assigned Supabase project URL | User supplied domain; deployment manifests/env examples and setup handoff prepared; no DNS/TLS/production changes claimed |
+| ADR-027 / 2026-10-17 | Implementation: explicit Gemini 3.5 Flash-Lite, frozen minimal input, constrained schema/wording validation, 30-second leased jobs and atomic explanation/incident-revision publication; live model verified locally, hosted rollout pending | Preserves event/output contracts and single backend; opt-in explanation DTO supports independent frontend/backend rollout |
 
 The user explicitly approved this delta after reviewing the proposal. See
 [deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md](deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md)

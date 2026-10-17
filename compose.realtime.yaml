@@ -48,6 +48,9 @@ services:
       file: compose.yaml
       service: toolchain
     environment:
+      LIVE_GEMINI_CHECK: ${LIVE_GEMINI_CHECK:-0}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-}
       REALTIME_DATABASE_URL: postgresql://postgres:synthetic-realtime-only@realtime-db:5432/postgres
       REALTIME_URL: ws://realtime-dev.supabase-realtime:4000/socket
     depends_on:

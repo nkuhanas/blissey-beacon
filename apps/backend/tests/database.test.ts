@@ -1,3 +1,4 @@
+import { runExplanationTests } from "./explanation-database.js";
 import { runIngestionTests } from "./ingestion.js";
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -136,7 +137,14 @@ test("migration, publication, scoped RLS and real multi-statement rollback", asy
         "utf8",
       ),
     );
+    await pool.query(
+      await readFile(
+        new URL("supabase/migrations/20261018001000_explanations.sql", root),
+        "utf8",
+      ),
+    );
     await runIngestionTests(t, pool);
+    await runExplanationTests(t, pool);
   } finally {
     await pool.end();
   }

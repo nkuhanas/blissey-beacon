@@ -16,7 +16,14 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
   const port = Number(env.PORT ?? 3001);
   if (!Number.isInteger(port) || port < 1 || port > 65535)
     throw new Error("Invalid PORT");
+  const apiKey = env.GEMINI_API_KEY;
+  const model = env.GEMINI_MODEL;
+  if (apiKey && (!model || !/^[a-zA-Z0-9._-]{1,120}$/.test(model)))
+    throw new Error(
+      "Set a valid GEMINI_MODEL when GEMINI_API_KEY is configured",
+    );
   return {
+    gemini: apiKey && model ? { apiKey, model } : null,
     databaseUrl: required("DATABASE_URL"),
     issuer: `${supabaseUrl.origin}/auth/v1`,
     audience: "authenticated",
