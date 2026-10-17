@@ -14,9 +14,10 @@ planned component should be interpreted as working software.
 Blissey Beacon explores camera-free possible-fall detection for senior living
 facilities. ESP32 Wi-Fi Channel State Information (CSI) feeds a supervised neural
 network running locally on a Raspberry Pi 5 with QNX. Structured events travel over
-WSS to a backend, where incidents appear on a caregiver dashboard, a second model
-produces grounded explanations, and staff can approve authorized family contact
-through Photon.
+WSS to a Railway Node.js/TypeScript backend backed by Supabase PostgreSQL. A public
+Vercel demo dashboard shows incidents; Gemini API generates grounded explanations
+asynchronously. Visitors explicitly review and approve Photon contact to
+preconfigured consented demo recipients. No operator login is required.
 
 The MVP uses one room and one person with controlled staged falls and normal
 movement. This is an experimental proof of concept, not a clinically validated
@@ -45,54 +46,67 @@ a cloud backend, an operator website, and one approved Photon notification flow.
 
 Excluded: person identification, full-body pose, heart-rate/breathing estimation,
 medical diagnosis, multiple-person tracking, validated cross-facility performance,
-and automatic family calls without staff review and authorization. Multi-room
+and automatic family calls without explicit visitor review and approval. Multi-room
 monitoring is stretch even though the UI should accommodate multiple room cards.
 
 ## 3. User Personas: Operators and Families
 
-| Persona | Needs | Access boundary |
-| --- | --- | --- |
-| Senior-home operator | Facility room overview, offline-device counts, incident oversight and access management | Authorized facility and rooms only |
-| Caregiver | Immediate possible-fall alert, room detail, acknowledgment, response, resolution and notes | Assigned rooms and staff permissions |
-| Authorized family contact | Approved relevant updates and verified staff response information | Contact-specific call/message; no full operator dashboard |
+The product models operator/caregiver workflows, but the MVP website is a public
+demo: any visitor can view demo rooms/history, acknowledge/respond/resolve
+incidents, mark false alarms, add notes and review/approve demo notifications
+without an operator account or staff role. All resident/room data is fictional.
 
-Operators may inspect experimental scores, sensor health and incident timelines.
-Families receive no raw CSI, technical fall scores, other residents' information,
-or unreviewed clinical claims. Acknowledgment means staff saw the alert; it does
-not establish injury, confirm a fall medically, or authorize a call.
+| Persona | Needs | Demo access boundary |
+| --- | --- | --- |
+| Visitor acting as operator/caregiver | Room overview, health, history and incident actions | Public demo data and actions; no login |
+| Consented demo family contact | Explicitly approved relevant updates | Preconfigured destination; private contact details never exposed |
+
+The dashboard may show experimental scores and sensor health. Notification
+payloads omit raw CSI, scores and unrelated information. Acknowledgment means a
+demo visitor saw the alert; it does not establish injury, confirm a fall medically,
+or approve a call. Public demo actions must not be described as verified staff
+identity or authorization. Family contacts may also visit the public website.
 
 ## 4. Final System Architecture
 
-The following transport and execution boundaries are **confirmed**.
+The following architecture is selected for the MVP, not implemented or verified.
 
 ```mermaid
 flowchart TD
-    TX[ESP32 transmitter] -->|Wi-Fi sensing signals| RX[ESP32 receiver]
-    RX -->|USB serial| SERIAL
-    subgraph PI["Raspberry Pi 5 — QNX"]
-        SERIAL[Serial CSI reader] --> PRE[Preprocessing]
-        PRE --> WIN[Sliding window buffer]
-        WIN --> CNN[Model 1 local CNN inference]
-        CNN --> EVENT[Threshold and event state machine]
+    TX[ESP32 transmitter] -->|Wi-Fi sensing| RX[ESP32 receiver]
+    RX -->|USB serial| PRE
+    subgraph PI["Raspberry Pi 5 / QNX"]
+        PRE[Preprocessing and windows] --> CNN[Local binary CNN]
+        CNN --> EVENT[Temporal event grouping and outbox]
     end
-    EVENT -->|Persistent WSS client: structured events and health| INGEST
-    subgraph CLOUD[Cloud backend]
-        INGEST[Authenticated WSS server] --> INCIDENT[Incident management]
-        INCIDENT --> DB[(Incident database)]
-        INCIDENT --> LLM[Model 2 structured-fact explanation]
-        AUTH[Authorization and RBAC] --> INCIDENT
-        INCIDENT --> REVIEW[Staff approval and notification workflow]
-        AUTH --> REVIEW
+    EVENT -->|Authenticated persistent WSS: events and health| INGEST
+    subgraph BACKEND["Railway / Node.js / TypeScript"]
+        INGEST[Validation and deduplication] --> INCIDENT[Incident manager and REST API]
+        WORKER[Logical Gemini worker]
+        REVIEW[Explicit visitor review and Photon adapter]
     end
-    INCIDENT -->|REST history and live updates| UI[Operator dashboard designed in Paper]
-    UI -->|Authenticated staff actions| INCIDENT
-    REVIEW -->|Authorized API request| PHOTON[Photon]
-    PHOTON --> FAMILY[Authorized demo family contact]
+    INCIDENT -->|Transactional event, incident and pending work| DB[(Supabase PostgreSQL)]
+    DB -->|Claim pending work with lease| WORKER
+    WORKER -->|Persisted structured facts| GEMINI[Gemini API]
+    GEMINI -->|Structured JSON response| WORKER
+    WORKER -->|Validate and persist explanation/status| DB
+    DB -->|Demo snapshots/history| INCIDENT
+    DB --> RT[Supabase Realtime]
+    RT --> UI[Public demo dashboard on Vercel]
+    UI -->|REST snapshots and demo actions| INCIDENT
+    UI -->|Review and approve| REVIEW
+    REVIEW -->|Consented demo recipient only| PHOTON[Photon]
+    PHOTON --> FAMILY[Demo family contact]
+    REVIEW -->|Approval and delivery history| DB
 ```
 
-Model 1 detects CSI patterns; the QNX service groups predictions into events;
-the backend manages incidents; Model 2 explains facts. These are separate
-responsibilities. The ESP32 receiver does not run Model 1 for the MVP.
+The Gemini worker is a logical module within the single Railway backend, not an
+independent microservice. The ESP32 receiver does not run Model 1. Model 1 and
+temporal grouping stay on QNX. Only structured
+inference events and device health travel to the backend; QNX has no direct
+database access. No MacBook intermediary, developer laptop, home GPU node or
+self-hosted generative inference is required at runtime. Railway deployment
+feasibility and operational compatibility still require verification.
 
 ## 5. Hardware and Network Architecture
 
@@ -103,9 +117,9 @@ Owner: Emilia for sensing and serial output; Chloe for Pi/QNX consumption.
 | ESP32 TX → ESP32 RX | Wireless Wi-Fi radio signals for CSI sensing | Stable channel, firmware and reproducible placement |
 | ESP32 RX → Pi | Direct USB serial using existing receiver output; not WebSocket | Actual baud, framing, USB driver and QNX device access |
 | Pi → backend | Persistent secure WebSocket; Pi client, backend server | TLS, authentication, reconnects and durable event acknowledgments |
-| Backend → Model 2 | Internal call or model inference API with structured facts | Schema and provider compatibility |
-| Backend → frontend | REST history and authenticated real-time mechanism | Scoped subscriptions and reconnect recovery |
-| Backend → Photon | API integration following authorization and review | Actual provider capabilities and consented test recipient |
+| Backend → Model 2 | Server-side Gemini API call with persisted structured facts | Model/version, structured output, privacy and provider compatibility |
+| Backend → frontend | Public demo REST and Supabase Realtime | Demo-only access policies, snapshots and reconnect recovery |
+| Backend → Photon | API integration after explicit visitor review/approval | Actual provider capabilities and preconfigured consented demo recipient |
 
 Emilia must document board models, TX/RX roles, firmware revision, Wi-Fi channel,
 CSI encoding, measured packet rate, serial baud, placement, height, participant
@@ -120,8 +134,8 @@ Do not silently replace USB serial, QNX, or local inference.
 
 ## 6. Technology Stack
 
-No installed stack is evidenced. The training stack below is selected by the team;
-other choices remain open rather than overriding an existing implementation.
+No installed stack is evidenced. The following selections define the planned MVP;
+selected providers are not evidence of deployment or integration.
 
 | Layer | Decision | Status |
 | --- | --- | --- |
@@ -130,10 +144,12 @@ other choices remain open rather than overriding an existing implementation.
 | Model 1 training | Google Colab, Python, NumPy, TensorFlow/Keras, Scikit-learn | Confirmed; versions TBD |
 | Model 1 baseline | Custom lightweight 1D CNN, random initialization | Confirmed; no pretrained checkpoint |
 | Edge inference format | LiteRT/TensorFlow Lite if supported; ONNX alternative | Candidates; QNX runtime/operator support not yet verified |
-| Cloud/backend/database | Existing stack if selected by team; none found in repository | TBD; no framework, database or host imposed |
-| UI | Browser application to be implemented from Paper designs | Paper design role confirmed; frontend framework TBD |
-| Model 2 | Small open-source instruction model; candidate `Qwen/Qwen2.5-0.5B-Instruct` | Proposed; Veri availability and serving compatibility TBD |
-| Fine-tuning | Veri Studio, final path TBD | Planned; support and eligibility not yet verified |
+| Backend hosting/runtime | Railway, Node.js / TypeScript; single deployment | Selected; deployment feasibility unverified |
+| Database | Supabase PostgreSQL | Selected; schema/transactions unimplemented |
+| Realtime | Supabase Realtime | Selected; demo-only policies/subscriptions unverified |
+| UI | Public browser demo on Vercel, implemented from Paper designs | Hosting selected; framework TBD; no operator login |
+| Model 2 | Hosted Google Gemini API | Selected; model/version/configuration TBD; unverified |
+| Optional sponsor effort | Veri Studio with a compatible open-source model | Separate from MVP Gemini inference; eligibility unverified |
 | Family contact | Photon calling or messaging API | Planned; exact product/API/capabilities TBD |
 
 Dependency versions, setup commands and deployment instructions must be added when
@@ -199,7 +215,7 @@ There is no initial pretrained checkpoint.
 | Temporal block 2 | Conv1D, 64 filters, kernel 3 → ReLU → MaxPooling1D |
 | Aggregation | GlobalAveragePooling1D |
 | Hidden layer | Dense 32, ReLU |
-| Output | Dense 1, sigmoid → `fall_score` |
+| Output | Dense 1, sigmoid → `p`; adapter publishes `confidence_scores` as in Section 15 |
 
 `T` depends on verified resampling rate and window duration; `C` depends on the
 valid amplitude feature mask. Padding and pooling parameters remain configurable
@@ -362,32 +378,23 @@ host and access policy are TBD. Never commit dataset credentials or Colab tokens
 
 ## 13. Veri Training/Fine-Tuning Integration
 
-Sponsor challenge supplied by the team: **Best Use of an Open-sourced Model**,
-requiring Veri post-training or fine-tuning of an open-source model. Actual current
-eligibility and submission terms are **Not yet verified** with the sponsor.
+The previous proposed open-source Model 2, candidate
+`Qwen/Qwen2.5-0.5B-Instruct`, optional Veri SFT and self-hosted/external serving
+path are **superseded for MVP inference** by Gemini API. Gemini usage does not
+establish participation in or eligibility for Veri's open-source fine-tuning
+challenge. No Veri integration, training job or eligibility is verified.
 
-The baseline CNN is trained from scratch in Colab. A custom CNN job is not inherently
-post-training or fine-tuning a pretrained open-source model and must not be claimed
-to satisfy the challenge automatically.
+The team may separately investigate Veri with a compatible open-source model.
+Require current mentor-confirmed rules, model/license compatibility, documented
+post-training/fine-tuning evidence, separated training/evaluation examples and a
+base-versus-trained comparison. Keep this effort outside the required Gemini
+runtime path and do not silently change Model 1 or the QNX contract to pursue it.
 
-| Path | Investigation and acceptance evidence | Owner |
-| --- | --- | --- |
-| A: direct Model 1 integration | Verify custom PyTorch/TensorFlow scripts, non-LLM time-series support, from-scratch versus fine-tuning support, pretrained open-source time-series availability, CSI dataset support, checkpoint export and QNX compatibility | Chloe, with mentor confirmation |
-| B: Model 2 SFT, recommended fallback | Verify an available open-source instruction model, training format, export/serving access and sponsor eligibility; compare base and fine-tuned model | Chace, with mentor confirmation |
-
-Candidate for Path B: `Qwen/Qwen2.5-0.5B-Instruct`, subject to Veri availability,
-license and compatibility verification. Use supervised fine-tuning examples pairing
-structured possible-fall events with concise operator explanations, uncertainty,
-approved notification wording, disconnected sensors, and negative/ambiguous events.
-Do not teach the LLM to classify raw CSI.
-
-Keep training and evaluation examples separate, including distinct incident
-scenarios/templates. Compare base versus fine-tuned factual consistency,
-unsupported medical claims, JSON validity, uncertainty language, clarity and
-operator usefulness. Record model ID/revision, training settings, data provenance,
-license, job evidence and evaluation. Approved wording in training data does not
-authorize dispatch at runtime. **Final Veri path: TBD until compatibility and sponsor
-requirements are verified.**
+The binary CNN remains trained from scratch in Colab; this alone is not evidence
+of pretrained open-source fine-tuning. Preserve unrelated QNX, Espressif, Paper
+and Photon sponsor requirements. Any separate Veri work must document model
+ID/revision, provenance, settings, job evidence, factual/JSON evaluation and
+submission status; approved training wording never authorizes notifications.
 
 ## 14. QNX Model Deployment and Inference
 
@@ -414,28 +421,32 @@ or substitute Linux without an explicit team architecture decision.
 
 ## 15. Model 1 Output Schema
 
-The neural network prediction interface contains one numerical score:
+The underlying Model 1 remains a binary sigmoid classifier. Its published
+prediction schema uses generic named confidence scores:
 
 ```json
-{"fall_score": 0.91}
+{"confidence_scores": {"fall": 0.91, "non_fall": 0.09}}
 ```
 
-| Field | Contract |
-| --- | --- |
-| `fall_score` | Finite number in `[0, 1]`; sigmoid score, not assumed calibrated probability |
+For the current binary model, derive `fall = p` and `non_fall = 1 - p` from the
+single sigmoid output. Each value must be finite and within `[0, 1]`; require the
+pair to sum to one within a documented floating-point tolerance. These are
+uncalibrated scores, not established probabilities or additional activity classes.
+Thresholding still uses the `fall` score. Changing the published vocabulary does
+not change training targets, binary loss or classifier capability.
 
 The QNX service owns thresholds, persistence, grouping, event IDs, timestamps,
 device metadata, health and transport. A score alone is not an incident.
 
-### Confirmed QNX → backend event schema v1
+### Approved QNX → backend event schema v2
 
 ```json
 {
   "event_id": "evt_102",
   "room_id": "room_102",
   "device_id": "pi_102",
-  "event_type": "possible_fall",
-  "fall_score": 0.91,
+  "event_type": "inference_result",
+  "confidence_scores": {"fall": 0.91, "non_fall": 0.09},
   "detected_at": "2026-10-17T14:32:06-07:00",
   "sensor_status": "connected"
 }
@@ -446,20 +457,26 @@ device metadata, health and transport. A score alone is not an incident.
 | `event_id` | Unique nonempty string, stable across retries; no UUID-only requirement |
 | `room_id` | Configured room ID, separate from device ID |
 | `device_id` | Raspberry Pi ID, checked against authenticated connection |
-| `event_type` | Initially exactly `possible_fall` |
-| `fall_score` | Finite numeric value from 0 to 1 |
+| `event_type` | Exactly `inference_result` for the current contract |
+| `confidence_scores` | Object containing the validated binary score pair above |
 | `detected_at` | ISO 8601 detection-trigger timestamp with timezone; offsets and `Z` accepted |
 | `sensor_status` | Sensor health string; `connected` for a valid detection; proposed other health states are `degraded` and `disconnected` |
 
-`detected_at` is the confirmation trigger, not necessarily physical fall time.
-Backend records a separate receipt time. Clock synchronization quality must be
-operationally monitored; do not promise precise onset when the clock is uncertain.
+This explicitly supersedes v1's `event_type: possible_fall` and scalar
+`fall_score`; it is a breaking schema revision, not unchanged v1. There are still
+seven required top-level fields, with no mandatory version/envelope/window fields.
+No deployed producer or consumer is evidenced; coordinate Chloe/Chace on the new
+contract before implementation. Do not silently interpret a legacy payload as v2.
+The existing proposed `/api/devices/v1/stream` route is retained for endpoint
+compatibility; that route name does not imply acceptance of the superseded schema.
+Any legacy acceptance or future route migration requires an explicit agreement.
 
-Future optional fields are `estimated_fall_at`, `post_event_motion`, `model_version`,
-`sensor_quality`, and `inference_latency_ms`. None is a required v1 field. No extra
-`type`, `schema_version`, UUID, boot ID, window timestamps, or model version is
-required for accepting a conforming seven-field v1 event. Negotiate future breaking
-schema revisions explicitly rather than changing the contract silently.
+`detected_at` is the temporal confirmation trigger, not necessarily physical fall
+time. Backend records receipt time and monitors clock quality. QNX transmits
+one event per grouped episode, not continuous score streaming. Optional future
+fields remain `estimated_fall_at`, `post_event_motion`, `model_version`,
+`sensor_quality`, and `inference_latency_ms`; none is required. Additional classes
+require new evidence and an explicit model/schema decision.
 
 ## 16. WebSocket Protocol and Backend Ingestion
 
@@ -469,7 +486,7 @@ below are proposed implementation details for their agreement.
 
 | Concern | Proposed policy |
 | --- | --- |
-| Endpoint/version | `wss://<backend>/api/devices/v1/stream`; version selected by route, no additional required event fields |
+| Endpoint/version | `wss://<backend>/api/devices/v1/stream`; route retained; approved payload schema v2 per Section 15; no extra version field |
 | Authentication | Scoped revocable device credential in handshake authorization header; verify TLS certificates; never put credentials in URLs |
 | Room mapping | Server maps credential to device and room; reject a mismatched payload identity |
 | Retry | Full-jitter exponential backoff from 1 to 30 seconds; credential rejection needs reprovisioning rather than a retry loop |
@@ -477,13 +494,13 @@ below are proposed implementation details for their agreement.
 | Bounds | Proposed 16 KiB message maximum and bounded parsing/logging |
 | Event delivery | Persist local outbox before send, remove only after durable backend ACK; at-least-once delivery with deduplication |
 | Outbox | Proposed bounds: 1,000 events or 24 hours; expiration/overflow visibly increments loss counters; QNX persistence must be verified |
-| Backend commit | Atomically store event and incident before ACK; duplicate same payload returns same incident; conflicting ID reuse is rejected |
+| Backend commit | Atomically store event, incident and pending explanation job before ACK; duplicate same payload returns same incident; conflicting ID reuse is rejected |
 
 Deduplicate using globally unique `event_id`, also recording authenticated device
 ownership. Reject an event ID reused by another device or with changed facts.
 Do not create repeated incidents or notifications on retransmission. Retain
 observed detection and receipt timestamps for delayed/out-of-order events; delayed
-incidents still require fresh staff review.
+incidents still require fresh visitor review before any demo notification.
 
 Proposed ACK (a separate backend response, not an added inference-event requirement):
 
@@ -497,7 +514,8 @@ Duplicate ACK uses `status: "duplicate"`. Proposed rejection:
 {"type":"error","event_id":"evt_102","code":"invalid_payload","retryable":false}
 ```
 
-Validate required fields, lengths, timestamp parsing, finite scores and identity.
+Validate required fields, lengths, timestamp parsing, finite named confidence
+scores and identity. The Railway backend persists to Supabase PostgreSQL.
 Retry transient storage/availability errors; do not endlessly retry malformed
 payloads. Lost ACKs cause retransmission of the same event ID. A database failure
 must not produce a successful ACK. After a backend restart, durable deduplication
@@ -520,112 +538,154 @@ Proposed distinct health message, distinguishable from events by `type`:
 }
 ```
 
-This health schema is proposed and independent of event v1. `last_valid_frame_at`
+This health schema is proposed and independent of the detection-event payload schema. `last_valid_frame_at`
 is nullable before valid input. Proposed model states: `loading|ready|error`.
 Use ping/pong for transport liveness, but do not equate a live socket with working
 sensing. Backend derives room monitoring state from receipt age, serial health and
 model readiness. Preserve faults in UI and diagnostics.
 
-## 17. Model 2: Base Model, Training, Input/Output
+## 17. Model 2: Gemini API and Input/Output
 
-Owner: Chace. Model 2 transforms structured facts into human-readable incident
-interpretation; it never sees raw CSI. Proposed open-source base model:
-`Qwen/Qwen2.5-0.5B-Instruct`, contingent on Veri and deployment compatibility.
-Serving location/API and final model choice are TBD. Optional Veri SFT follows
-Section 13. Text generation and speech synthesis are separate components.
+Owner: Chace. Use Google's hosted Gemini API to transform persisted structured
+facts into human-readable incident explanations. It replaces the proposed
+open-source/self-hosted Model 2 for the MVP; Model 1 is unchanged. Exact Gemini
+model/version, API configuration and structured-output compatibility remain TBD.
+No Gemini call or deployment has been verified.
 
-Backend enriches the event with the database room label, incident status, audience
-and other authorized verified context. Operator input example:
+Backend enriches persisted event facts with the room label, incident state,
+audience and verified context. Example dashboard input:
 
 ```json
 {
   "event_id": "evt_102",
-  "event_type": "possible_fall",
+  "event_type": "inference_result",
   "room_label": "Room 102",
   "detected_at": "2026-10-17T14:32:06-07:00",
-  "fall_score": 0.91,
+  "confidence_scores": {"fall": 0.91, "non_fall": 0.09},
   "sensor_status": "connected",
   "audience": "operator"
 }
 ```
 
-Stable output contract:
+Preserve the four-field output shape; illustrative text may describe an uncertain
+possible fall based on persisted binary scores, never a confirmed physical event:
 
 ```json
 {
   "event_id": "evt_102",
   "title": "Possible Fall Detected",
-  "description": "A possible fall was detected in Room 102 at 2:32 PM.",
+  "description": "The sensor reported a possible fall in Room 102.",
   "recommended_action": "Check on the resident in Room 102."
 }
 ```
 
-| Field | Validation responsibility |
+| Field | Backend validation responsibility |
 | --- | --- |
-| Input event ID and facts | Backend supplies stored validated facts, not arbitrary client text |
-| `audience` | `operator` or `family`; backend applies audience-specific allowlist |
-| Output `event_id` | Must match the input |
+| Input | Stored validated facts and minimal relevant context; never raw CSI |
+| `audience` | `operator` or `family`; allowlist controls notification content, not website login |
+| Output `event_id` | Must match the persisted input event |
 | `title`, `description`, `recommended_action` | Required bounded strings; proposed limits 120/800/300 characters |
-| Clinical and response claims | Reject unsupported injury, diagnosis, confirmed-fall or invented staff-response assertions |
+| Factual grounding | Reject reclassification, invented activities/positions, injury/diagnosis, confirmed-fall or invented staff/emergency-response assertions |
 
-For family generation omit the technical score and use only approved authorized
-context. Do not include phone numbers, other residents, credentials, or unnecessary
-personal data in model inputs. Staff notes are data, not prompt instructions.
-Store model/prompt version and input hash alongside output for traceability.
+Use structured JSON output where supported, then independently validate fields,
+identity, lengths and grounding before persistence. Do not send credentials, phone
+numbers, unnecessary resident data or unverified descriptions. For family content,
+omit scores and include only reviewed verified facts. Notes are data, not prompt
+instructions. Record model/prompt version and input hash for traceability.
 
-Proposed execution: asynchronous generation after incident persistence, five-second
-timeout, at most one transient retry, schema/fact checks, then deterministic text.
-Fallback uses the same four-field output shape and cautious wording. Show incident
-immediately with explanation status `pending|ready|fallback`; generation failure
-must not block alerting, acknowledgment, resolution, or required staff review.
-No generated text independently authorizes dispatch or confirms a medical state.
+Gemini's key stays exclusively server-side. The browser and QNX never call Gemini.
+Generation never initiates notifications or substitutes for explicit visitor
+review/approval. Keep deterministic same-schema fallbacks and cautious wording.
+Explanation states are `pending | ready | fallback`; failures must not block
+incident publication, incident actions or notification review. Proposed timeout is
+five seconds with at most one transient retry; final settings require validation.
+Durable processing and restart recovery are required by Section 18.
 
 ## 18. Backend and Database
 
-Owner: Chace / Backend Team; Chace is the lead. Framework, database and host are
-TBD because no implementation or selected stack was found. Use an existing team
-selection if one is confirmed; do not introduce a competing stack.
+Owner: Chace / Backend Team. Deploy a single Node.js/TypeScript application on
+Railway with logical modules for authenticated WSS ingestion, validation and
+deduplication, incident lifecycle, health monitoring, persistence, Gemini jobs,
+public demo REST, Photon approvals/dispatch and audit/recovery. Do not introduce
+independent backend services without a demonstrated requirement. Railway is the
+selected MVP target; deployment feasibility and operational limits are unverified.
 
-Backend owns authenticated WSS ingestion, schema validation, deduplication,
-persistence, room/device mappings, lifecycle, Model 2 orchestration, scoped REST
-and live updates, reviewed Photon jobs and audits.
+Supabase PostgreSQL is the durable source of truth. Backend/database credentials
+stay server-side; QNX neither connects directly to Supabase nor holds its secrets.
 
 | Logical entity | Minimum information/invariant |
 | --- | --- |
-| Facility / Room | Separate IDs, facility membership and display labels |
-| Device | Separate device ID, configured room assignment, credential reference, last health |
-| User / staff scope | Auth subject, role and facility/room membership |
+| Facility / Room | Separate IDs, facility membership and fictional display labels |
+| Device | Device ID, configured room, credential reference, connectivity and sensing health |
+| User / staff scope | Reserved logical entity for future authenticated use; no required MVP login; do not fabricate staff identity |
 | InferenceEvent | Unique event ID, device ownership, validated payload/hash, detection and receipt times |
-| Incident | Incident ID, event reference, room, status, revision, lifecycle actors/timestamps, disposition and notes |
-| Explanation | Incident, output, generation status, model/prompt version and input hash |
-| FamilyContact / consent | Authorized relationship, private destination, scope, grant/revocation evidence |
-| Notification | Incident/contact, approval, exact approved text, idempotency key, provider ID/status |
-| Audit | Actor/device, action, scoped target, timestamp and outcome without secrets |
+| Incident | ID, event reference, room, status, revision, lifecycle actors/timestamps, disposition and notes |
+| Explanation | Incident, output, persistent generation status, model/prompt version and input hash |
+| ExplanationJob | Durable pending work, unique work identity, attempts, next retry, claim/lease and terminal outcome |
+| FamilyContact / consent | Preconfigured consented demo relationship, private destination and grant/revocation evidence |
+| Notification | Incident/contact, explicit approval, exact approved text, idempotency key, provider ID/status |
+| Audit | Device or unverified demo actor, action, target, timestamp and outcome without secrets |
 
-Proposed incident lifecycle: `pending -> acknowledged -> responding -> resolved`.
-Each transition records actor/time and validates current revision. Staff can mark
-false alarm as a separate resolution outcome, not as a synonym for acknowledgment.
-Proposed outcomes: `reported_fall`, `false_alarm`, `unknown`; a staff report is not
-clinical validation. Define any skipped-state transitions explicitly before API
-implementation; default proposal rejects skipping states. Notes are bounded and
-audited. Resolved incidents remain in history; reopening is TBD, not implicit.
+Proposed incident lifecycle remains `pending -> acknowledged -> responding -> resolved`.
+Validate revision and allowed transitions, record action/time and bounded notes.
+False alarm is a separate resolution outcome. Proposed outcomes remain
+`reported_fall`, `false_alarm`, `unknown`; no clinical validation is implied.
+Default proposal rejects skipped states; reopening remains TBD. Resolved incidents
+remain in history. Demo actors are not authenticated staff. Notification state
+remains independent from incident state (Section 20).
 
-Persist incidents before explanation generation and publish live updates only
-after commit. Use transactional state changes and durable uniqueness for retries.
-Notification state remains independent from incident state (Section 20).
+### Durable asynchronous explanation processing
+
+1. Authenticate the device and validate its event/room identity and payload.
+2. Transactionally persist the event, associated incident and pending explanation
+   job with durable uniqueness. An identical retry returns the original incident;
+   conflicting reuse is rejected and does not enqueue duplicate work.
+3. ACK QNX only after that transaction commits. Incidents become available through
+   REST/Realtime after commit, without waiting for Gemini. Independent network
+   delivery means the browser may observe the commit before QNX receives its ACK.
+4. The logical backend worker claims pending work using an atomic database
+   claim/lease. Claim identity, lease expiry and conditional completion prevent
+   competing workers or stale workers from publishing duplicate results.
+5. Load persisted structured facts, call Gemini with timeout/bounded retries,
+   validate the response, and transactionally persist the explanation and completed
+   work status. Realtime makes the committed update visible to the dashboard.
+6. Recover expired claims and unfinished work after restart. Persist retry counts,
+   retry scheduling and generation state. Terminal failure stores a deterministic
+   explanation and marks `fallback`. Retries/completion must be idempotent.
+
+Exact claim/lease SQL and retry configuration remain implementation decisions;
+one deployment may run WSS, REST and the worker together. A provider timeout may
+cause a repeated API call, so do not promise exactly-once external generation.
+Database uniqueness and conditional writes must prevent duplicate persisted work
+or inconsistent explanations. Gemini outage cannot suppress incidents.
+
+### Realtime and public demo data
+
+Supabase Realtime carries database changes, not durable jobs or the source of
+truth. Fetch current state/history via demo REST on initial load and reconnect;
+ignore older entity revisions. Do not rely on replay of missed change messages.
+
+Chace and Kiro must finalize the demo access configuration together. No operator
+login is required. Preserve facility/room relationships and restrict all public
+interfaces/subscriptions to the designated fictional demo dataset. Use row-level
+security on directly accessible tables/subscriptions; backend-proxied operations
+must enforce equivalent demo-only boundaries. Keep contact destinations, secrets,
+internal jobs and private audit metadata out of public projections. Public incident
+actions use validated backend APIs. Never expose privileged Supabase keys.
 
 ## 19. Operator Dashboard
 
 Primary owner: Kiro / Frontend Team. Paper is the design tool; the actual frontend
-must be implemented and connected to backend APIs. No Paper design artifact or
-application is evidenced yet. Record the design link and implementation handoff
+must be implemented on Vercel and connected to backend APIs and Supabase Realtime.
+The demo is usable by every visitor without operator authentication. No Paper
+design artifact or application is evidenced yet. Record the design link and implementation handoff
 when available.
 
 | View | Required content/actions |
 | --- | --- |
-| Facility overview | All authorized monitored rooms, room identifier, monitoring and active incident state, connection health, last data time, acknowledgment, attention-room and offline-device counts |
-| Room detail | Room label/ID, assigned device ID, connection and monitoring state, possible-fall detections, detection timestamp, experimental score, verified recent activity, timeline, acknowledgment, resolution and history |
-| Incident actions | Acknowledge, mark responding, resolve, mark false alarm, add notes and approve authorized family notification |
+| Facility overview | All fictional demo rooms, room identifier, monitoring and active incident state, connection health, last data time, acknowledgment, attention-room and offline-device counts |
+| Room detail | Room label/ID, assigned device ID, connection and monitoring state, grouped inference events, detection timestamp, named experimental confidence scores, verified recent activity, timeline, acknowledgment, resolution and history |
+| Incident actions | Acknowledge, mark responding, resolve, mark false alarm, add notes and explicitly approve a demo notification |
 | Optional technical view | Reduced CSI visualization, quality/packet diagnostics and inference latency only if available |
 
 “Recent activity” must use observed events/health, not invented activity recognition.
@@ -637,31 +697,38 @@ visualization does not authorize full raw CSI cloud streaming.
 Include loading, empty, error, stale/offline, degraded sensing, generation fallback,
 concurrent-edit and notification-failure states. Display stale data until refetch
 succeeds after reconnect. Use accessible text/icons as well as color and accessible
-focus behavior. Multiple-room fixtures test layout without claiming multi-room sensing.
+focus behavior. Multiple-room fixtures test layout without claiming multi-room
+sensing. Render incidents immediately while explanation state is `pending`, then update to `ready`
+or `fallback`. The browser never connects to QNX or Gemini. Patient-to-room
+assignment remains a team schema question, not an implemented localization feature.
+The binary classifier cannot support detailed activity or physical-position claims.
 
 ## 20. Family Notifications and Photon
 
-Photon integration owner: **TBD**. Chace owns backend authorization/orchestration;
+Photon integration owner: **TBD**. Chace owns backend approval/orchestration;
 a named Photon lead must own provider integration and authorized live testing.
 Exact Photon product, calling, messaging, TTS, webhook and status capabilities
 are **Not yet verified**. Do not document them as working.
 
-Confirmed flow: detection → operator alert → caregiver review → staff approves
-contact → backend generates approved message → Photon call/message → status stored.
+Confirmed demo flow: detection → persisted incident → visitor review → explicit
+approval of recipient and final text → durable notification job → Photon → stored
+delivery status. Visitors need no operator login; this explicitly supersedes the
+previous authenticated staff-approval requirement for the demo.
 Never call family for every positive window or model prediction.
 
 Proposed concrete workflow:
 
-1. Staff selects an authorized contact and reviews relevant incident/response facts.
-2. Backend generates a draft from approved context; staff reviews exact recipient
+1. A visitor selects a preconfigured consented demo contact and reviews persisted
+   incident/response facts. Arbitrary destination entry is not supported.
+2. Backend generates a draft from reviewed context; the visitor reviews the recipient
    and final wording before dispatch. New text or recipient changes require review.
-3. Backend verifies staff scope, active contact authorization/consent, current
-   incident revision and approval. Verified follow-up updates after resolution may
-   be eligible; resolution alone never authorizes or forbids contact.
+3. Backend verifies demo-dataset membership, active contact authorization/consent,
+   current incident revision and explicit approval of the exact recipient/text.
+   Verified follow-up updates after resolution may be eligible; resolution alone never authorizes or forbids contact.
 4. Atomically store approval and a durable notification job; recheck consent and
    approval freshness immediately before submitting to Photon.
 5. Submit using server-held credentials and an idempotency key if supported. Persist
-   provider ID/status and show failure or uncertainty to staff.
+   provider ID/status and show failure or uncertainty on the demo dashboard.
 6. Verify webhook signatures and deduplicate callbacks if the provider supports
    them; otherwise use its verified status mechanism. Never invent delivery evidence.
 
@@ -672,10 +739,13 @@ evidence supports it. On ambiguous submission, reconcile status or flag `unknown
 do not blindly retry a call that may already have happened. Consent revocation
 cancels unsent work. Already submitted work may not be retractable; record that fact.
 
-Family payload contains approved incident updates, verified staff response and
+Family payload contains approved incident updates, verified or explicitly staged
+response facts (never claimed to be authenticated staff actions) and
 authorized follow-up only. Exclude scores, raw CSI, other residents and unsupported
-clinical claims. Use fictional residents and consented demo contacts. Photon outage
-preserves approved payload and status for staff; a mock never proves a real call.
+clinical claims. Public responses redact private destinations. Audit the approver
+as an unverified demo actor rather than a verified staff member. Use fictional
+residents and preconfigured consented demo contacts. Photon outage
+preserves approved payload and status for review; a mock never proves a real call.
 
 ## 21. Team Roles and Component Ownership
 
@@ -685,8 +755,8 @@ Assignments below are confirmed by the complete request, except explicit TBDs.
 | --- | --- | --- |
 | Emilia | Hardware and CSI collection | Working TX/RX, reproducible configuration, timestamped serial stream, recordings and schema evidence to Chloe |
 | Chloe | Model 1 and edge inference | Parsing/preprocessing, CNN training, evaluation, artifacts, QNX runtime, event-producing WSS client |
-| Chace | Model 2 and backend | Grounded explanations, optional Veri SFT, authenticated WSS server, persistence, APIs and notification authorization |
-| Kiro / Frontend Team | Operator interface | Paper design, implemented room dashboard/detail, incident actions and backend integration |
+| Chace | Model 2 and backend | Gemini explanations and durable jobs, Railway WSS/REST, Supabase persistence, demo notification approval |
+| Kiro / Frontend Team | Operator interface | Paper design, public Vercel dashboard/detail, incident actions and Supabase Realtime/backend integration |
 | TBD | Photon provider integration | Exact API/capability verification, consented recipient, dispatch/status adapter and live test |
 | Entire team | Integration, testing and presentation | End-to-end evidence, honest limitations and demo rehearsal; integration lead TBD |
 
@@ -710,7 +780,7 @@ every row. Tool use alone does not establish prize eligibility.
 | Applied Intelligence | Caregiver monitoring and response workflow | Integrated product demonstration and limitations |
 | Espressif | ESP32 as core sensing hardware | Board/firmware evidence and live CSI collection |
 | QNX | Pi/QNX inference using an eligible open-source AI module | Catalog/module eligibility confirmation and actual QNX inference logs |
-| Veri Studio | Post-training/fine-tuning through a compatible verified path | Mentor-approved path, open-source base/license, Veri job and comparative evaluation |
+| Veri Studio | Separate optional open-source fine-tuning effort; previous Model 2 path superseded for MVP | Compatible open-source model/license, mentor-approved path, Veri training evidence and comparison; Gemini alone does not qualify |
 | Paper | Operator dashboard design | Paper artifact and corresponding implemented UI |
 | Photon | Reviewed authorized family contact | API verification and real consented call/message status |
 
@@ -722,19 +792,20 @@ No current sponsor website rules or supported-model catalog were verified here.
 ## 23. API Contracts
 
 The following routes are the team's **proposed API**, not implemented endpoints.
-Chace finalizes bodies/auth with Kiro before implementation. Avoid competing route
-names from the earlier partial draft.
+Chace finalizes response bodies and public demo policies with Kiro before
+implementation. Existing REST paths are retained; `/operator/` is a domain label,
+not a login requirement. Only fictional demo data/actions are publicly exposed.
 
 | Method/path | Behavior |
 | --- | --- |
-| `GET /api/operator/rooms` | Authorized room summaries, health, incident and attention counts |
-| `GET /api/operator/rooms/:id` | Scoped room/device detail and recent incident references |
-| `GET /api/operator/incidents` | Filtered scoped history; proposed cursor pagination, default 25/max 100 |
+| `GET /api/operator/rooms` | Public demo room summaries, health, incident and attention counts |
+| `GET /api/operator/rooms/:id` | Demo room/device detail and recent incident references |
+| `GET /api/operator/incidents` | Filtered demo history; proposed cursor pagination, default 25/max 100 |
 | `GET /api/operator/incidents/:id` | Facts, lifecycle, explanation, notes and allowed notification history |
-| `PATCH /api/operator/incidents/:id` | Validated staff state transition, disposition or note |
-| `GET /api/devices/status` | Authorized staff device/serial/model/network health |
-| `POST /api/operator/incidents/:id/notifications` | Proposed extension for final reviewed dispatch |
-| `GET /api/operator/stream` | Proposed authenticated WebSocket upgrade for live updates |
+| `PATCH /api/operator/incidents/:id` | Validated visitor demo state transition, disposition or note |
+| `GET /api/devices/status` | Public demo device/serial/model/network health; no secrets |
+| `POST /api/operator/incidents/:id/notifications` | Explicit visitor-approved dispatch to preconfigured consented demo recipients |
+| `GET /api/operator/stream` | Superseded proposal; use demo-scoped Supabase Realtime instead, not a second required stream |
 
 Proposed mutation example:
 
@@ -742,9 +813,10 @@ Proposed mutation example:
 {"expected_revision":2,"status":"responding","note":"Caregiver heading to room."}
 ```
 
-Require authenticated staff, scoped object access, allowed state transition,
-optimistic revision check, audit and idempotency for mutations. A retry must not
-duplicate a note or notification. A successful incident response includes ID, room,
+Require demo-only object access, allowed state transitions, optimistic revision
+checks, audit and idempotency for mutations. No visitor login or staff permission
+is required; an audit actor must not be represented as authenticated staff.
+A retry must not duplicate a note or notification. A successful incident response includes ID, room,
 status, revision, detection/receipt times, explanation status and allowed actions;
 final detailed response schemas remain proposed and require Chace/Kiro agreement.
 
@@ -754,27 +826,41 @@ Proposed error envelope:
 {"error":{"code":"state_conflict","message":"Incident changed; refresh before retrying.","request_id":"opaque-id"}}
 ```
 
-Use `400` invalid payload, `401` unauthenticated, `403` forbidden, `404` absent or
-concealed cross-scope object, `409` revision/state conflict, `429` rate limit and
+Use `400` invalid payload, `401` invalid/missing device credentials where
+authentication is required, `403` forbidden operation, `404` absent or non-demo
+object, `409` revision/state conflict, `429` rate limit and
 `503` transient outage. Never expose credentials or private contact destinations
 in errors. Proposed live updates carry update ID, entity ID, type and revision
-following commit; browser ignores older revisions. Reconnect refetches REST
+following commit via Supabase Realtime; exact update metadata remains to be
+finalized. The browser ignores older revisions. Reconnect refetches REST
 snapshots/history; durable live-message replay is not promised for MVP.
 
 ## 24. Privacy, Safety and Security
 
-| Principal | Proposed enforced permissions |
-| --- | --- |
-| Device | Submit its own events/health; receive its own acknowledgments |
-| Caregiver | Assigned rooms, incident actions and approved contact workflow |
-| Operator/admin | Facility-scoped device/room/staff/contact configuration and audit |
-| Family | Receive authorized approved contact only; no operator dashboard access |
+The MVP website is public and has no operator authentication. This approval
+supersedes the earlier staff RBAC and family exclusion from dashboard access.
 
-Enforce scope on every REST object and live subscription on the server, never only
-in the UI. Protect user sessions and CSRF-sensitive cookie mutations. Use WSS/TLS,
-revocable device credentials and deployment secret storage; redact tokens/contact
-numbers from logs. Persist incident and notification approval trails. CSI remains
-sensitive movement data even without cameras.
+| Principal | Required boundary |
+| --- | --- |
+| Device | Authenticated; submit its own events/health and receive its own ACKs |
+| Any demo visitor | View fictional demo data; perform incident actions and explicitly approve consented demo notifications |
+| Backend/worker | Hold service credentials; access persistence, Gemini and Photon; validate all operations |
+| Notification recipient | Preconfigured consented demo contact; private destination not exposed through public interfaces |
+
+Keep facility/room relationships and enforce the demo-dataset boundary on every
+REST object, public projection and subscription. Supabase RLS is required for
+directly accessible tables/subscriptions; proxied operations enforce equivalent
+server-side restrictions. Public access is not unrestricted access to internal
+tables, credentials, recipient destinations or deployment configuration. Do not
+introduce an operator-login gate. Preserve validation, revision checks, mutation
+idempotency, rate limits and explicit notification approval. Audit visitor actions
+as unverified demo actors. Final anonymous-access/RLS policy details require
+Chace/Kiro agreement and verification.
+
+Use WSS/TLS, revocable device credentials and server-side environment secrets for
+Railway, Supabase, Gemini and Photon. Never put privileged Supabase credentials in
+Vercel browser bundles or on QNX. Redact tokens/contact numbers from logs and
+persist approval trails. CSI remains sensitive movement data even without cameras.
 
 Demo uses staged events and fictional residents/rooms, never actual resident data.
 Use verified consented demo contacts. Separate family and operator DTOs; family
@@ -805,16 +891,21 @@ implemented or partial merely because this specification describes it.
 | 4 | Raspberry Pi demonstrably runs QNX | Chloe |
 | 5 | QNX preprocesses live CSI identically to training | Chloe |
 | 6 | Model 1 performs local inference | Chloe |
-| 7 | Temporal logic produces a possible-fall event | Chloe |
-| 8 | Pi sends confirmed v1 event through WSS | Chloe + Chace; Chace leads ingestion validation |
-| 9 | Backend durably persists the incident exactly once | Chace |
-| 10 | Dashboard displays the incident | Kiro |
-| 11 | Operator acknowledges and resolves; responding/false-alarm actions work | Kiro + Chace; Kiro leads UI validation |
-| 12 | Model 2 produces a grounded explanation with safe fallback | Chace |
-| 13 | Staff-approved Photon contact succeeds to an authorized demo recipient | Photon lead TBD |
+| 7 | Temporal logic produces a grouped inference event with binary confidence scores | Chloe |
+| 8 | Pi sends the approved seven-field v2 event through authenticated WSS | Chloe + Chace; Chace leads ingestion validation |
+| 9 | Railway transactionally persists one event, incident and pending job in Supabase before ACK; retries deduplicate | Chace |
+| 10 | Public Vercel dashboard displays the incident without login or waiting for Gemini | Kiro |
+| 11 | Any visitor acknowledges and resolves; responding/false-alarm/notes work without login | Kiro + Chace; Kiro leads UI validation |
+| 12 | Railway worker calls Gemini with persisted facts, validates/persists the explanation and updates Realtime; failure gives deterministic fallback | Chace |
+| 13 | Explicit visitor-approved Photon contact succeeds to a preconfigured consented demo recipient | Photon lead TBD |
 
 P1 roadmap classification of explanations/Photon does not remove criteria 12–13
-from the complete MVP demonstration. Veri eligibility is tracked separately from
+from the complete MVP demonstration. Also verify pending jobs recover after
+backend restart, expired leases are reclaimed, competing workers cannot publish
+conflicting results, and duplicate delivery does not create duplicate incidents.
+Gemini outage must leave alerts and demo actions usable. Verify QNX reconnects,
+bounds its outbox and exposes losses; frontend reconnection restores state/history.
+Veri eligibility is tracked separately from
 core product functionality. A mock, replay or deterministic template must be
 labeled and cannot establish a live integration it replaces.
 
@@ -828,14 +919,14 @@ planned checks, not tests executed by this task.
 | Data/Model 1 | Held-out trials, difficult negatives, missing-event negative/unknown semantics, no split leakage, normalization/window parity, precision/recall/F1/confusion matrix, event recall, false alerts/hour and latency |
 | Hardware | TX/RX stability, packet integrity, measured sample rate, sustained capture, USB disconnect/reconnect and timestamp continuity |
 | QNX | Model load, operator compatibility, Keras/export/QNX output comparison, memory, inference time and sustained real-time windows |
-| Backend | Authenticated WSS, malformed messages, duplicate/conflicting IDs, lost ACKs, reconnect/restart, incident persistence, lifecycle concurrency, Model 2 outage and notification authorization |
-| Frontend | Multiple fixture room cards, detail navigation, live/stale/offline states, acknowledgment/responding/resolution, false alarm, notes and conflict recovery |
+| Backend | Authenticated WSS, malformed messages, duplicate/conflicting IDs, lost ACKs, reconnect/restart, incident persistence, lifecycle concurrency, transactional pending work, post-commit ACK, Gemini outage, bounded retries, lease expiry/stale worker, idempotent completion and restart recovery |
+| Frontend | Multiple fixture room cards, detail navigation, live/stale/offline states, acknowledgment/responding/resolution, false alarm, notes and conflict recovery, no-login use, immediate pending incidents and Realtime explanation updates/reconnect refetch |
 | Notifications | Unauthorized/revoked contact rejection, content re-review, idempotency, provider outage, ambiguous submit and duplicate callbacks if supported |
-| Security | Cross-room/facility REST and stream denial, device identity mismatch, family exclusion from staff actions, secret redaction |
+| Security | Public demo actions without login, non-demo/private-data denial in REST and Realtime/RLS, device identity mismatch, recipient allowlist enforcement and secret redaction |
 
 Full-system rehearsal: normal movement produces no alert in the tested trial;
 a controlled staged fall yields local QNX inference, WSS event, persisted incident,
-dashboard update, grounded explanation, staff review/approval and Photon delivery
+dashboard update, grounded explanation, explicit visitor review/approval and Photon delivery
 evidence. Record false alerts and misses from broader evaluation; one successful
 rehearsal is not an accuracy guarantee. Exercise serial/backend/LLM/Photon outages
 and recoveries, marking real hardware versus synthetic fixture evidence.
@@ -850,10 +941,14 @@ observed duration, hardware/software versions and limitations.
 | Risk | Explicit fallback and limit |
 | --- | --- |
 | Insufficient labeled CSI | Collect more controlled trials; temporary feature-based classifier for pipeline diagnosis, clearly labeled; it does not satisfy required neural-model MVP |
-| Veri cannot fine-tune/export CSI CNN | Keep Model 1 in Colab; investigate Model 2 SFT through Veri; eligibility remains unverified until confirmed |
+| Veri compatibility/eligibility unresolved | Separate optional effort; keep Model 1 in Colab and Gemini for MVP explanations; do not claim eligibility |
 | LiteRT/TFLite unsupported on QNX | Investigate supported ONNX runtime/export and operators; preserve input/task contract and verify output parity |
 | QNX USB driver unavailable | Diagnose support, then seek team-approved adapter/transport change; no silent architecture replacement |
-| Model 2 unavailable | Persist/show incidents immediately and use deterministic same-schema explanation; do not claim the LLM ran |
+| Gemini unavailable | Persist/show incidents immediately; bounded durable retries then deterministic same-schema fallback; do not claim Gemini ran |
+| Railway deployment incompatible | Verify WSS, worker lifecycle, restart/storage/network and operational limits early; any alternate host requires a documented decision, not a laptop dependency |
+| Supabase/Realtime unavailable | QNX bounded retry if persistence fails; no success ACK without commit; frontend refetches durable history when service returns |
+| Worker crash or multiple instances | Database-backed claims/leases and conditional idempotent completion recover unfinished work |
+| Public demo misuse | Enforce demo-only data, validated/revisioned actions, rate limits, private recipient allowlist and explicit notification approval; do not claim staff attribution |
 | Photon unavailable | Preserve approved payload and status, demonstrate review workflow, disclose no real call/message occurred |
 | Poor live performance | Report actual results and collect better data; use clearly labeled recorded replay for fallback presentation, never as live evidence |
 | Backend/network outage | Continue local inference and bounded outbox; reconnect/retry stable IDs; expose losses and stale monitoring |
@@ -874,10 +969,11 @@ required explanation and notification flow before claiming the complete MVP.
 | P0 | Reliable CSI capture and data pipeline | Verified source schema/labels, reproducible TX/RX/serial settings and clean windows |
 | P0 | CNN training and evaluation | Group-aware splits, baseline training, honest held-out report and versioned artifacts |
 | P0 | QNX inference | Verified eligible runtime, real USB windows and output parity on Pi/QNX |
-| P0 | WSS transport and incident backend | Auth, validation, deduplication, persistence, health and recovery |
-| P0 | Operator dashboard and acknowledgment | Room overview/detail and integrated incident lifecycle |
-| P1 | Veri fine-tuning | Compatible mentor-confirmed path with base/SFT comparison and sponsor evidence |
-| P1 | Model 2 and Photon | Grounded explanations plus authorized reviewed live notification |
+| P0 | Supabase schema and Railway Node.js/TypeScript backend | Provision services, authenticated QNX WSS, transactional event/incident persistence, health, REST and synthetic end-to-end event flow |
+| P0 | Public Vercel dashboard and Supabase Realtime | Demo-only access, room overview/detail, snapshot/reconnect recovery and incident lifecycle without login |
+| Optional / separate | Veri fine-tuning investigation | Compatible open-source model, documented training/comparison and mentor-confirmed sponsor evidence; not required for MVP inference |
+| P1 | Durable Gemini integration | Pending-work claims/leases, structured output validation/persistence, retries/fallback, restart recovery and frontend explanation updates |
+| P1 | Complete incident actions and Photon | Lifecycle correctness and explicitly reviewed/approved consented demo contact with delivery evidence |
 | P1 | Health/history product extensions | Basic health is required from P0; richer diagnostics and history follow |
 | P2 | Stretch | Multi-room sensing, personalized calibration, additional models, reviewed staff-feedback retraining and advanced activity interpretation |
 
@@ -890,9 +986,11 @@ required explanation and notification flow before claiming the complete MVP.
 3. Chloe trains/evaluates the configurable Colab baseline using group-aware splits
    and exports versioned model/configuration artifacts.
 4. Chace implements the confirmed seven-field event ingestion with authentication,
-   durable deduplication, incident lifecycle, health and agreed frontend APIs.
+   durable transactional event/incident persistence in Supabase, incident lifecycle,
+   health and agreed public demo REST/Realtime interfaces on Railway.
 5. Kiro integrates the Paper-designed room/incident UI; Chace and the named Photon
-   lead complete explanations and staff-reviewed contact for end-to-end rehearsal.
+   lead complete durable Gemini explanations and visitor-reviewed demo contact for
+   end-to-end rehearsal on Vercel.
 
 Synthetic contract fixtures can unblock backend/UI work while hardware/ML work
 progresses. Label all fixture/replay/live sources and validate the real path before
@@ -901,10 +999,11 @@ presentation. Assign Photon and integration leads immediately.
 ## 29. Current Repository Implementation Status
 
 Inspection baseline for application source: `8aa999b1047197c01b8813d917429e43ff66b860`.
-Prior specification commit: `b428a4d`. Current revision inspects the local
-`docs/project-spec` branch; no application source appeared after the baseline.
-The earlier connected GitHub main-branch read matched the baseline; this is not a
-claim of continuous remote synchronization.
+Prior specification commit: `b428a4d`. The earlier inspection concerned the local
+`docs/project-spec` branch. For this approved delta, main was pulled at `20ab349`;
+tracked files remain documentation only. This verifies repository contents, not
+external deployments, hardware, data access or provider integration. The earlier
+dataset-access observation below has not been retested.
 
 | Existing relative path | Observed evidence |
 | --- | --- |
@@ -926,8 +1025,8 @@ claim of continuous remote synchronization.
 | Dependency manifests, CI/build/test tooling | Not present; no application checks can be run |
 
 This task changes documentation only. It creates no feature code, training script,
-model, dataset, notification or deployment. Unrelated local `.DS_Store` remains
-excluded. No fabricated source paths are offered as implementation evidence.
+model, dataset, notification or deployment. No fabricated source paths are offered
+as implementation evidence.
 
 ## 30. Open Questions and Decisions
 
@@ -937,10 +1036,12 @@ excluded. No fabricated source paths are offered as implementation evidence.
 | Real sample rate/feature count, gap handling, labeling margins, split groups and final quality targets | Chloe |
 | QNX image/BSP, USB driver, compiler/ABI, eligible catalog AI module and required operators | Chloe + QNX mentor |
 | LiteRT/TFLite versus ONNX and artifact host/checksum/configuration format | Chloe |
-| Veri custom CNN compatibility or Model 2 SFT, candidate availability, licenses, challenge rules and submission evidence | Chloe/Chace + Veri mentor |
-| Backend framework/database/hosting/auth, API bodies, health policy and concurrency details | Chace + Kiro |
-| Model 2 serving/model revision, privacy/retention, exact prompt and evaluation set | Chace |
-| Paper design access/link and frontend framework | Kiro |
+| Separate optional Veri model/path compatibility, licenses, challenge rules and documented training/submission evidence | Chloe/Chace + Veri mentor |
+| Railway deployment feasibility/configuration, Supabase schema/transactions, public demo RLS/projections, API bodies, health and concurrency details | Chace + Kiro |
+| Durable explanation claim/lease SQL, timeout/retry limits, recovery and idempotent completion | Chace |
+| Gemini model/version, structured-output/API configuration, privacy/retention, exact prompt and evaluation set | Chace |
+| Paper design access/link, frontend framework, Vercel deployment and Realtime demo-access configuration | Kiro + Chace |
+| Patient-to-room assignment schema, if needed; no localization capability assumed | Team |
 | Photon lead, exact provider/API, calling/messaging/TTS, delivery evidence and idempotency | Team assigns lead + Photon mentor |
 | Integration coordinator, deadlines, consented recipient, final demo retention and deletion process | Entire team; lead TBD |
 
@@ -955,19 +1056,27 @@ documented evidence supports a decision.
 | ADR-001 / 2026-10-17 | Confirmed: RX → Pi direct USB serial; Pi/QNX local inference; Pi client → cloud server via WSS | Team architecture; raw CSI cloud streaming excluded from MVP |
 | ADR-002 / 2026-10-17 | Confirmed: Colab supervised binary Keras CNN from random weights, BCE loss, configurable starting hyperparameters | Complete request replaces partial draft's unspecified framework/training defaults; not pretrained fine-tuning |
 | ADR-003 / 2026-10-17 | Confirmed: missing event file can represent a verified negative; unknown labels excluded | Actual timing determines window labels; recording-level fall does not label every window positive |
-| ADR-004 / 2026-10-17 | Confirmed: seven-field event v1 in Section 15 | Supersedes partial draft's `p_fall`, `event_kind`, mandatory UUID/envelope/version/window fields; extensions remain optional |
+| ADR-004 / 2026-10-17 | Historical: seven-field event v1; superseded by ADR-017 | Supersedes partial draft's `p_fall`, `event_kind`, mandatory UUID/envelope/version/window fields; extensions remain optional |
 | ADR-005 / 2026-10-17 | Proposed: `pending → acknowledged → responding → resolved` and `/api/operator/...` routes | Complete request supersedes earlier proposed `open → acknowledged → resolved` and `/v1/...` REST routes; owners finalize bodies |
 | ADR-006 / 2026-10-17 | Confirmed Model 2 example contract: event ID, title, description, recommended action | Supersedes partial draft's proposed summary/limitations output; raw CSI never supplied |
 | ADR-007 / 2026-10-17 | Confirmed named owners: Emilia hardware, Chloe Model 1/QNX, Chace backend/Model 2, Kiro frontend; Photon TBD | Complete request replaces unassigned role placeholders |
-| ADR-008 / 2026-10-17 | Planned Veri Path A investigation; Path B Model 2 SFT fallback; final path TBD | Custom CNN training alone does not prove fine-tuning prize qualification |
-| ADR-009 / 2026-10-17 | Confirmed staff-reviewed authorized Photon contact and separate family/operator information | Scores/CSI remain operator-only; acknowledgement or generation never substitutes for approval |
+| ADR-008 / 2026-10-17 | Historical: Veri paths; superseded for MVP by ADR-013/016 | Custom CNN training alone does not prove fine-tuning prize qualification |
+| ADR-009 / 2026-10-17 | Historical: authenticated staff review superseded for public demo by ADR-018; consent/content boundaries retained | Scores/CSI remain operator-only; acknowledgement or generation never substitutes for approval |
 | ADR-010 / 2026-10-17 | Confirmed complete-request structure and P0/P1/P2 order; full MVP includes explanations and Photon despite P1 sequencing | Supersedes truncated-request caveat and earlier all-P0 extension classification; no completion claim |
+| ADR-011 / 2026-10-17 | Approved selection, not verified implementation: Select Railway for the single Node.js/TypeScript backend; deployment unverified | Resolves backend host/runtime; feasibility still requires evidence |
+| ADR-012 / 2026-10-17 | Approved selection, not verified implementation: Select Supabase PostgreSQL as durable source of truth and Supabase Realtime for changes | Transactional ingestion and reconnect snapshots; Realtime is neither storage nor a job queue |
+| ADR-013 / 2026-10-17 | Approved selection, not verified implementation: Replace proposed open-source/self-hosted Model 2 with Gemini API | Preserve grounded four-field output and fallbacks; model/version/configuration TBD |
+| ADR-014 / 2026-10-17 | Approved selection, not verified implementation: Remove MacBook/home GPU dependencies from runtime | Retain QNX local Model 1, structured WSS and no direct QNX database access |
+| ADR-015 / 2026-10-17 | Approved selection, not verified implementation: Require transactional pending work, leases, bounded retries and recovery | Incident publication and ACK do not wait for Gemini; prevent inconsistent duplicate completion |
+| ADR-016 / 2026-10-17 | Approved selection, not verified implementation: Supersede MVP Model 2 SFT; separate optional unverified open-source training effort | Gemini inference does not prove Veri eligibility; preserves unrelated sponsor work |
+| ADR-017 / 2026-10-17 | Approved selection, not verified implementation: Supersede ADR-004 v1 with seven-field v2 inference_result and confidence_scores | Approved schema change; binary classifier unchanged; retained v1 endpoint requires explicit payload agreement |
+| ADR-018 / 2026-10-17 | Approved selection, not verified implementation: No operator login; visitors can perform demo actions and explicitly approve consented demo notifications | Supersedes staff RBAC/dashboard exclusion in ADR-009 for demo; preserves device auth, consent, audit and idempotency |
 
-The complete user request explicitly authorizes this specification revision and
-supersedes conflicting earlier proposals. Only `PROJECT_SPEC.md` is changed in
-this revision, following its one-primary-file deliverable; this log records the
-previous/revised decisions and reasons within that file. It does not claim team
-acceptance of details still labeled proposed.
+The user explicitly approved this delta after reviewing the proposal. See
+[deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md](deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md)
+for previous/revised requirements, rationale and preserved contracts. Historical
+ADRs retain their original rationale; the superseding entries above govern the MVP.
+Approval of architecture is not evidence of provider integration or sponsor eligibility.
 
 ## 32. How to Maintain This Specification
 
@@ -986,7 +1095,7 @@ workflow. Update last-updated date and steward/owner information with changes.
    approval, update the spec, delta and architecture decision log together.
 4. Have boundary owners agree interfaces before dependent implementation. Record
    changed schema versions and migration/compatibility decisions; do not silently
-   add required event v1 fields.
+   add required event fields. The approved v2 supersession is recorded in ADR-017.
 5. Update repository/acceptance status only with evidence: source paths, dataset
    commit, hardware/runtime versions, training/evaluation reports or verified live
    integration records. Never claim success merely from a plan or mock.
