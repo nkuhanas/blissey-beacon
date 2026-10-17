@@ -1,0 +1,16 @@
+name: Foundation
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose build toolchain
+      - run: docker compose run --rm verify
+      - if: always()
+        run: docker compose down --volumes

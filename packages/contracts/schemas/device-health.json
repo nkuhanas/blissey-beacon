@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DeviceHealth",
+  "type": "object",
+  "properties": {
+    "type": {
+      "const": "device_health"
+    },
+    "device_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "room_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sensor_status": {
+      "enum": [
+        "connected",
+        "degraded",
+        "disconnected"
+      ]
+    },
+    "model_status": {
+      "enum": [
+        "loading",
+        "ready",
+        "error"
+      ]
+    },
+    "last_valid_frame_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "outbox_depth": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "dropped_event_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "clock_synced": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "type",
+    "device_id",
+    "room_id",
+    "sent_at",
+    "sensor_status",
+    "model_status",
+    "last_valid_frame_at",
+    "outbox_depth",
+    "dropped_event_count",
+    "clock_synced"
+  ],
+  "additionalProperties": false
+}

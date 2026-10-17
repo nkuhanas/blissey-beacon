@@ -27,3 +27,12 @@ shells. Later ingestion/worker/notification modules grow with later slices.
 Open: Kiro's final layout contract/units, provider deployment configuration,
 Supabase account provisioning, actual QNX/native parity, Gemini/Photon integration.
 Any selected scaffold layout DTO is provisional; no live deployment is claimed.
+
+## Approved Docker follow-up
+
+The user explicitly requested Docker during implementation and asked to include it
+in the spec. Section 28 and ADR-025 now select Docker Compose for Node/pnpm
+development, app shells and automated validation, with disposable PostgreSQL
+migration/RLS tests. No host Node/pnpm installation is required. QNX/Python retain
+independent tooling. Container checks are not live Supabase or Pi/QNX evidence,
+and local development containers do not add a production middleware dependency.

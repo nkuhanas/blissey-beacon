@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "InferenceEvent",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "room_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "device_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "event_type": {
+      "const": "inference_result"
+    },
+    "confidence_scores": {
+      "type": "object",
+      "properties": {
+        "fall": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "non_fall": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "fall",
+        "non_fall"
+      ],
+      "additionalProperties": false
+    },
+    "detected_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sensor_status": {
+      "const": "connected"
+    }
+  },
+  "required": [
+    "event_id",
+    "room_id",
+    "device_id",
+    "event_type",
+    "confidence_scores",
+    "detected_at",
+    "sensor_status"
+  ],
+  "additionalProperties": false
+}

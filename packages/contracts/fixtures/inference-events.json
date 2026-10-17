@@ -1,0 +1,114 @@
+[
+  {
+    "name": "valid-event",
+    "valid": true,
+    "payload": {
+      "event_id": "synthetic_evt_102",
+      "room_id": "room_102",
+      "device_id": "pi_102",
+      "event_type": "inference_result",
+      "confidence_scores": {
+        "fall": 0.91,
+        "non_fall": 0.09
+      },
+      "detected_at": "2026-10-17T14:32:06-07:00",
+      "sensor_status": "connected"
+    }
+  },
+  {
+    "name": "legacy",
+    "valid": false,
+    "payload": {
+      "event_id": "synthetic_evt_102",
+      "room_id": "room_102",
+      "device_id": "pi_102",
+      "event_type": "possible_fall",
+      "confidence_scores": {
+        "fall": 0.91,
+        "non_fall": 0.09
+      },
+      "detected_at": "2026-10-17T14:32:06-07:00",
+      "sensor_status": "connected"
+    }
+  },
+  {
+    "name": "missing-room",
+    "valid": false,
+    "payload": {
+      "event_id": "synthetic_evt_102",
+      "device_id": "pi_102",
+      "event_type": "inference_result",
+      "confidence_scores": {
+        "fall": 0.91,
+        "non_fall": 0.09
+      },
+      "detected_at": "2026-10-17T14:32:06-07:00",
+      "sensor_status": "connected"
+    }
+  },
+  {
+    "name": "bad-score",
+    "valid": false,
+    "payload": {
+      "event_id": "synthetic_evt_102",
+      "room_id": "room_102",
+      "device_id": "pi_102",
+      "event_type": "inference_result",
+      "confidence_scores": {
+        "fall": 1.1,
+        "non_fall": -0.1
+      },
+      "detected_at": "2026-10-17T14:32:06-07:00",
+      "sensor_status": "connected"
+    }
+  },
+  {
+    "name": "bad-sum",
+    "valid": false,
+    "payload": {
+      "event_id": "synthetic_evt_102",
+      "room_id": "room_102",
+      "device_id": "pi_102",
+      "event_type": "inference_result",
+      "confidence_scores": {
+        "fall": 0.9,
+        "non_fall": 0.9
+      },
+      "detected_at": "2026-10-17T14:32:06-07:00",
+      "sensor_status": "connected"
+    }
+  },
+  {
+    "name": "timestamp",
+    "valid": false,
+    "payload": {
+      "event_id": "synthetic_evt_102",
+      "room_id": "room_102",
+      "device_id": "pi_102",
+      "event_type": "inference_result",
+      "confidence_scores": {
+        "fall": 0.91,
+        "non_fall": 0.09
+      },
+      "detected_at": "yesterday",
+      "sensor_status": "connected"
+    }
+  },
+  {
+    "name": "extra-field",
+    "valid": false,
+    "payload": {
+      "event_id": "synthetic_evt_102",
+      "room_id": "room_102",
+      "device_id": "pi_102",
+      "event_type": "inference_result",
+      "confidence_scores": {
+        "fall": 0.91,
+        "non_fall": 0.09
+      },
+      "detected_at": "2026-10-17T14:32:06-07:00",
+      "sensor_status": "connected",
+      "schema_version": 2
+    }
+  }
+]

@@ -2,7 +2,7 @@
 
 Event: LA Hacks 2026. Last updated: 2026-10-17.
 Document steward: Chloe (proposed); component owners review their contracts.
-Status: authoritative implementation specification; application remains unimplemented.
+Status: authoritative implementation specification; Slice 1 foundation present; integrated application unverified.
 
 **Confirmed** means selected in the complete team request, not proven operational.
 **Proposed** means an implementation detail awaiting owner agreement. **TBD / Not
@@ -24,9 +24,10 @@ movement. This is an experimental proof of concept, not a clinically validated
 fall detector, medical diagnosis tool, or emergency response device. It is not
 suitable for unsupervised medical safety monitoring.
 
-The application repository was inspected before this revision. It contains
-project documentation only; no trained model, implementation, or successful sponsor
-integration is evidenced. Section 29 records the exact inspection limits.
+The repository now contains a Slice 1 application foundation and local Docker
+validation, not an integrated sensing system. No trained model, hosted deployment
+or successful sponsor integration is evidenced. Section 29 records source paths
+and exact verification limits.
 
 ## 2. Product Goals and Non-Goals
 
@@ -66,7 +67,8 @@ content excludes raw CSI, experimental scores and unsupported clinical claims.
 
 ## 4. Final System Architecture
 
-The following architecture is selected for the MVP, not implemented or verified.
+The following architecture is selected for the MVP; its end-to-end deployment
+and hardware/provider integrations remain unverified.
 
 ```mermaid
 flowchart TD
@@ -142,7 +144,7 @@ selected providers are not evidence of deployment or integration.
 | Model 1 baseline | Custom lightweight 1D CNN, random initialization | Confirmed; no pretrained checkpoint |
 | Edge inference format | LiteRT/TensorFlow Lite if supported; ONNX alternative | Candidates; QNX runtime/operator support not yet verified |
 | Backend hosting/runtime | Railway, Node.js / TypeScript, Fastify + `@fastify/websocket`; single deployment | Selected; deployment feasibility unverified |
-| Database | Supabase PostgreSQL | Selected; schema/transactions unimplemented |
+| Database | Supabase PostgreSQL | Selected; foundation schema/transaction helper present; ingestion unimplemented |
 | Realtime | Supabase Realtime with operator JWT and facility RLS | Selected; publication and policies required; live deployment unverified |
 | Persistence | Direct PostgreSQL via `pg` | Same checked-out client for BEGIN/COMMIT/ROLLBACK; database uniqueness |
 | Monorepo | pnpm workspaces for TypeScript only | Two deployable apps; independent QNX/Python toolchains |
@@ -152,8 +154,9 @@ selected providers are not evidence of deployment or integration.
 | Optional sponsor effort | Veri Studio with a compatible open-source model | Separate from MVP Gemini inference; eligibility unverified |
 | Family contact | Photon calling or messaging API | Planned; exact product/API/capabilities TBD |
 
-Dependency versions, setup commands and deployment instructions must be added when
-implementation selects actual tooling. Do not invent install/build commands now.
+TypeScript dependency versions are pinned in pnpm-lock.yaml and the Docker
+toolchain. Setup/check commands are documented in docs/development.md. Training,
+QNX and hosted deployment versions/configuration remain to be verified.
 
 ## 7. Dataset Format and Collection
 
@@ -691,9 +694,9 @@ relabel old incidents from the current room occupant.
 
 Primary owner: Kiro / Frontend Team. Paper is the design tool; the actual frontend
 must be implemented on Vercel and connected to backend APIs and Supabase Realtime.
-The demo requires Supabase Auth and assigned facility membership. No Paper
-design artifact or application is evidenced yet. Record the design link and implementation handoff
-when available.
+The demo requires Supabase Auth and assigned facility membership. A scaffold
+login/room shell exists, but no Paper design artifact or design integration is
+evidenced. Record the design link and implementation handoff when available.
 
 | View | Required content/actions |
 | --- | --- |
@@ -806,7 +809,9 @@ No current sponsor website rules or supported-model catalog were verified here.
 
 ## 23. API Contracts
 
-The following routes are the team's **proposed API**, not implemented endpoints.
+The following routes define the target API. The scaffold implements only the
+rooms route, currently returning static room metadata; health, incidents and
+attention counts arrive in later slices. Other routes remain proposed.
 Chace finalizes response bodies and authenticated demo policies with Kiro before
 implementation. Existing REST paths are retained; `/operator/` is a domain label,
 not an alternative API namespace. Supabase Auth and facility membership protect
@@ -883,7 +888,8 @@ stale data, outbox loss and uncertain delivery must remain visible.
 
 ## 25. MVP Acceptance Criteria
 
-All criteria below are **Unverified**; no implementation evidence exists. Dataset
+All full-system criteria below are **Unverified**; the local foundation checks
+in Section 29 do not establish these integrations. Dataset
 inspection is **Blocked** by the observed access failure. No criterion is marked
 implemented or partial merely because this specification describes it.
 
@@ -964,6 +970,19 @@ contact. No fallback justifies unsupported medical or sponsor-success claims.
 
 ## 28. Implementation Roadmap
 
+### Docker development and validation
+
+Use Docker Compose for the Node/pnpm toolchain, app development and automated
+foundation checks; no host Node/pnpm installation is required. Commit the Dockerfile,
+Compose configuration and pinned lockfile. PostgreSQL migration/RLS checks run in
+an isolated disposable database with a clearly labeled test-only Supabase auth
+bootstrap. They do not establish live Supabase Auth, Realtime or provider deployment.
+QNX and Python keep independent toolchains; Docker tests never replace actual
+Pi/QNX TLS networking, native schema parity or inference validation. Local developer
+containers are not production runtime intermediaries.
+
+
+
 ### Monorepo implementation slices
 
 1. Foundation: pnpm workspace, authoritative schemas/generated contracts/fixtures,
@@ -1022,35 +1041,29 @@ presentation. Assign Photon and integration leads immediately.
 
 ## 29. Current Repository Implementation Status
 
-Inspection baseline for application source: `8aa999b1047197c01b8813d917429e43ff66b860`.
-Prior specification commit: `b428a4d`. The earlier inspection concerned the local
-`docs/project-spec` branch. For this approved delta, main was pulled at `20ab349`;
-tracked files remain documentation only. This verifies repository contents, not
-external deployments, hardware, data access or provider integration. The earlier
-dataset-access observation below has not been retested.
+The repository was pulled at `cc6da98` before the foundation work. Earlier source
+baselines (`8aa999b`, `b428a4d`, `20ab349`) describe documentation-only history.
+The current scaffold adds source and local checks; it is not deployment evidence.
+The previous dataset-access 404 observation has not been retested by this work.
 
-| Existing relative path | Observed evidence |
+| Component / source | Current boundary |
 | --- | --- |
-| [README.md](README.md) | Project overview, setup placeholders and spec-change process |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Branch/PR workflow, Conventional Commits and validation expectations |
-| [AGENTS.md](AGENTS.md) | Repository working instructions |
-| [SPEC.md](SPEC.md) | Compatibility pointer to this canonical specification |
-| [PROJECT_SPEC.md](PROJECT_SPEC.md) | This architecture/planning document; not implementation evidence |
+| [packages/contracts](packages/contracts) | Authoritative JSON Schemas, generated TS, Ajv validators and synthetic event fixtures; native QNX parity unverified |
+| [apps/backend/src](apps/backend/src) | Fastify liveness and scoped room API, JWT verification and pg transaction helper; no WSS ingestion/ACK yet |
+| [apps/web/src](apps/web/src) | React/Vite setup/login/room shell; Supabase client and room subscription; no live provider evidence |
+| [supabase/migrations](supabase/migrations) | Foundation tables, database constraints, operator facility RLS and rooms/incidents publication membership |
+| [supabase/tests](supabase/tests) | Plain PostgreSQL test-only Supabase role/auth bootstrap; not live Auth/Realtime validation |
+| [Dockerfile](Dockerfile), [compose.yaml](compose.yaml) | Node/pnpm toolchain and disposable PostgreSQL validation; no host Node needed |
+| [.github/workflows/ci.yml](.github/workflows/ci.yml) | Docker foundation workflow; writing it is not evidence of a remote CI run |
+| Firmware, dataset, training, QNX runtime/model | Not implemented/verified in this repository; no data downloaded or training started |
+| Gemini worker, explanations, incident actions, Photon | Later slices; no working integration claimed |
+| Railway/Vercel/hosted Supabase | Not provisioned or verified by scaffold work |
 
-| Component | Status from repository evidence |
-| --- | --- |
-| Firmware, CSI parser, collection code | Not implemented in this repository; external hardware work not yet verified |
-| Dataset schema/content | Blocked from inspection: GitHub contents returned 404; no clone/download |
-| Training notebooks/scripts, checkpoints, evaluation | Not present; no training/evaluation claimed |
-| QNX service, runtime module, exported model | Not present; compatibility and deployment not yet verified |
-| WSS/REST backend, database, auth, Model 2 | Not present |
-| Paper artifact and integrated frontend | Not present |
-| Veri job, Photon adapter/live delivery | Not present; not yet verified externally |
-| Dependency manifests, CI/build/test tooling | Not present; no application checks can be run |
-
-This task changes documentation only. It creates no feature code, training script,
-model, dataset, notification or deployment. No fabricated source paths are offered
-as implementation evidence.
+Validation commands and exact limits are recorded in [docs/development.md](docs/development.md).
+The isolated database check emulates only role/auth contracts and never proves
+live Supabase JWT issuance or Realtime delivery. A desktop synthetic event never
+proves actual QNX networking, CNN capability or end-to-end acceptance. Section 25
+remains future integration criteria; local foundation results are separate.
 
 ## 30. Open Questions and Decisions
 
@@ -1095,13 +1108,13 @@ documented evidence supports a decision.
 | ADR-016 / 2026-10-17 | Approved selection, not verified implementation: Supersede MVP Model 2 SFT; separate optional unverified open-source training effort | Gemini inference does not prove Veri eligibility; preserves unrelated sponsor work |
 | ADR-017 / 2026-10-17 | Approved selection, not verified implementation: Supersede ADR-004 v1 with seven-field v2 inference_result and confidence_scores | Approved schema change; binary classifier unchanged; retained v1 endpoint requires explicit payload agreement |
 | ADR-018 / 2026-10-17 | Historical; superseded by ADR-021: No operator login; visitors can perform demo actions and explicitly approve consented demo notifications | Supersedes staff RBAC/dashboard exclusion in ADR-009 for demo; preserves device auth, consent, audit and idempotency |
-
 | ADR-019 / 2026-10-17 | Approved: pnpm TypeScript workspaces, React/Vite frontend, Fastify + @fastify/websocket backend | Two deployable apps; worker stays in backend; QNX/Python independent; grow incrementally |
 | ADR-020 / 2026-10-17 | Approved: direct PostgreSQL via pg with single-client explicit transactions | Atomic event/incident/job persistence, database uniqueness and payload comparison on retry |
 | ADR-021 / 2026-10-17 | Approved: Supabase Auth operator JWT, Railway facility authorization and Realtime RLS/publication | Supersedes ADR-018 public access; shared demo account acceptable, not individual staff identity |
 | ADR-022 / 2026-10-17 | Approved: fictional patients, timestamped room assignments and static room geometry | Supports top-down room view; Kiro finalizes DTO/units; no inferred patient localization |
 | ADR-023 / 2026-10-17 | Approved: authoritative JSON Schema, generated TypeScript types and shared native-consumable fixtures | Preserve seven-field v2 from ADR-017; review's v1 reference is stale; native parity requires actual QNX tests |
 | ADR-024 / 2026-10-17 | Approved: early actual Pi/QNX TLS WSS smoke milestone before CNN integration | Synthetic event tests networking independently; desktop simulator is not hardware evidence |
+| ADR-025 / 2026-10-17 | Approved: Docker Compose for Node/pnpm development and foundation validation | User requested Docker; disposable PostgreSQL tests, independent QNX/Python, no host Node requirement |
 
 The user explicitly approved this delta after reviewing the proposal. See
 [deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md](deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md)

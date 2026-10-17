@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Room",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "facility_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "floor": {
+      "type": "integer"
+    },
+    "layout": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            },
+            "width": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "height": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          },
+          "required": [
+            "x",
+            "y",
+            "width",
+            "height"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "id",
+    "facility_id",
+    "label",
+    "floor",
+    "layout"
+  ],
+  "additionalProperties": false
+}

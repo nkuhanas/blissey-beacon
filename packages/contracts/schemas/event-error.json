@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "EventError",
+  "type": "object",
+  "properties": {
+    "type": {
+      "const": "error"
+    },
+    "event_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "code": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "retryable": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "type",
+    "event_id",
+    "code",
+    "retryable"
+  ],
+  "additionalProperties": false
+}
