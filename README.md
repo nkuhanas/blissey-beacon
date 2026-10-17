@@ -12,14 +12,21 @@ preconfigured consented demo recipient. No developer laptop is required at runti
 This repository implements **Slice 2**: authenticated device WebSocket ingestion,
 transactional event/incident/job persistence, durable deduplication, device health,
 operator incident reads, a canonical-fixture simulator and minimal incident
-Realtime subscriptions. Gemini and Photon remain unimplemented. Hosted deployments
-and actual QNX integration remain unverified. See [PROJECT_SPEC.md](PROJECT_SPEC.md)
+Realtime subscriptions. Gemini and Photon remain unimplemented. Hosted synthetic
+integration and dashboard sign-in/live updates were verified on 2026-10-17;
+actual QNX integration remains unverified. See the
+[deployment verification record](docs/deployment-verification.md), [PROJECT_SPEC.md](PROJECT_SPEC.md)
 and the [Slice 2 handoff](docs/slice-2.md) for scope and verification boundaries.
 This is a proof of concept, not a clinically validated detector or emergency device.
 
-Planned site: **https://blissey-beacon.health**. For Vercel, Railway, Supabase,
+Frontend design work must use **Paper**, with linked screen references implemented
+in `apps/web` and deployed to Vercel. The current dashboard is a provisional
+integration shell; the Paper artifact/handoff and design parity remain unverified.
+
+Demo site: **https://blissey-beacon.health**. For Vercel, Railway, Supabase,
 DNS and per-provider variables, follow [docs/deployment.md](docs/deployment.md) and
-[root .env.example](.env.example). Production has not been modified.
+[root .env.example](.env.example). The user approved the previously provisioned
+Supabase project for fictional demo setup; isolated Docker tests still never use it.
 
 ## Getting started
 
