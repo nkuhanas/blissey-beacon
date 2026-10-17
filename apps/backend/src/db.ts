@@ -1,3 +1,4 @@
+import { createIncidentStore } from "./incidents/store.js";
 import type { Pool, PoolClient } from "pg";
 import type { Room } from "@blissey/contracts";
 // All statements in the callback share this checked-out client. Never use pool.query inside it.
@@ -27,6 +28,7 @@ export async function withTransaction<T>(
 }
 export function createStore(pool: Pool) {
   return {
+    ...createIncidentStore(pool),
     async isMember(subject: string, facilityId: string) {
       const result = await pool.query(
         "SELECT 1 FROM public.facility_memberships WHERE user_id = $1 AND facility_id = $2",

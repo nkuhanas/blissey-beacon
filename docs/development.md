@@ -38,7 +38,8 @@ auth.users/auth.uid and the publication; it does not run Supabase Auth or Realti
 The test applies the actual migration and fictional seed, exercises authenticated
 RLS and missing-membership/anonymous denial, checks publication membership, tests
 real transaction rollback after event/incident/job writes and database uniqueness.
-This is not yet a full ingestion/deduplication or post-commit ACK integration test.
+Slice 2 extends it with real WebSocket ingestion, durable deduplication and
+post-commit ACK/rollback tests; see docs/slice-2.md.
 
 ## Configure and start the apps
 
@@ -72,7 +73,7 @@ Web: http://localhost:5173. Backend process liveness: http://localhost:3001/heal
 The backend requires configured environment values; liveness does not verify any
 provider. Browser login uses Supabase Auth; room reads send the session JWT to
 Railway. Rooms Realtime subscribes with the same session and RLS. Publication
-includes rooms/incidents; no explanation worker or incident ingestion exists yet.
+includes rooms/incidents; incident ingestion and pending jobs are implemented; no explanation worker exists.
 Initial load, subscription establishment and reconnect trigger REST room refetch.
 
 A missing web configuration shows a setup state. Login and room loading need a
@@ -91,7 +92,7 @@ Fictional patients and timestamped assignments express configured occupancy,
 not inferred within-room position. Historical incident assignment must be resolved
 at event time. Do not silently use the current occupant for older incidents.
 
-Slice 2 adds actual transactional ingestion, payload comparison on duplicate IDs,
+Slice 2 implements actual transactional ingestion, payload comparison on duplicate IDs,
 health and authorized live incident UI. Register @fastify/websocket before routes
 and attach message listeners synchronously. As soon as that basic endpoint exists,
 Chloe must send one synthetic event from the actual Pi running QNX over authenticated
@@ -113,3 +114,12 @@ rollback after event/incident/job writes. JWT tests use generated local keys;
 Supabase Auth issuance and hosted Realtime have not been tested. Browser rendering
 QA was unavailable; a web build is not visual verification. The Docker Vite HTTP
 entrypoint smoke check passed.
+
+## Slice 2 integration
+
+See [slice-2.md](slice-2.md) and [tools/simulator/README.md](../tools/simulator/README.md).
+Apply the new 20261017230000 migration after the foundation migration in a dedicated
+development database before running the backend. No production migration is applied
+by the verification scripts. `sh scripts/verify-realtime.sh` provisions only an
+isolated database and actual Realtime engine with synthetic identities; it never
+reads production credentials or starts a hosted deployment.

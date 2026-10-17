@@ -1,3 +1,4 @@
+import { createDeviceStore } from "./ingestion/store.js";
 import { Pool } from "pg";
 import { loadConfig } from "./config.js";
 import { createOperatorVerifier } from "./auth.js";
@@ -9,6 +10,7 @@ const app = await createApp({
   verifyOperator: createOperatorVerifier(config.issuer, config.audience),
   store: createStore(pool),
   webOrigin: config.webOrigin,
+  devices: createDeviceStore(pool),
 });
 app.addHook("onClose", async () => {
   await pool.end();

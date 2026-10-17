@@ -1,0 +1,109 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Incident",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "event_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "room_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "facility_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "device_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "status": {
+      "enum": [
+        "pending",
+        "acknowledged",
+        "responding",
+        "resolved"
+      ]
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "detected_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "confidence_scores": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fall": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "non_fall": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "fall",
+        "non_fall"
+      ]
+    },
+    "sensor_status": {
+      "const": "connected"
+    },
+    "explanation_status": {
+      "enum": [
+        "pending",
+        "ready",
+        "fallback"
+      ]
+    },
+    "allowed_actions": {
+      "type": "array",
+      "maxItems": 0,
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "id",
+    "event_id",
+    "room_id",
+    "facility_id",
+    "device_id",
+    "status",
+    "revision",
+    "detected_at",
+    "received_at",
+    "created_at",
+    "confidence_scores",
+    "sensor_status",
+    "explanation_status",
+    "allowed_actions"
+  ]
+}

@@ -14,3 +14,22 @@ jobs:
       - run: docker compose run --rm verify
       - if: always()
         run: docker compose down --volumes
+
+  realtime:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sh scripts/verify-realtime.sh
+  backend-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f apps/backend/Dockerfile -t blissey-beacon-backend:ci .
+      - name: Production image process smoke (no external network)
+        run: >-
+          docker run --rm --network none
+          -e DATABASE_URL=postgresql://unused:unused@127.0.0.1/unused
+          -e SUPABASE_URL=https://synthetic.supabase.test
+          -e WEB_ORIGIN=https://blissey-beacon.health
+          blissey-beacon-backend:ci node --input-type=module -e
+          'await import("./dist/server.js"); const r=await fetch("http://127.0.0.1:3001/healthz"); if(r.status!==200)throw new Error("Runtime health failed"); process.kill(process.pid,"SIGTERM");'

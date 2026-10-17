@@ -1,9 +1,12 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
+import { registerDeviceRoutes } from "./ingestion/routes.js";
+import type { DeviceStore } from "./ingestion/store.js";
+import type { createIncidentStore } from "./incidents/store.js";
 import type { Room } from "@blissey/contracts";
 import type { VerifyOperator } from "./auth.js";
-export interface Store {
+export interface Store extends ReturnType<typeof createIncidentStore> {
   isMember(subject: string, facilityId: string): Promise<boolean>;
   listRooms(facilityId: string): Promise<Room[]>;
 }
@@ -11,6 +14,7 @@ export async function createApp(options: {
   verifyOperator: VerifyOperator;
   store: Store;
   webOrigin: string;
+  devices?: DeviceStore;
 }) {
   const app = Fastify({ logger: { redact: ["req.headers.authorization"] } });
   await app.register(cors, { origin: options.webOrigin });
@@ -40,5 +44,91 @@ export async function createApp(options: {
       return { rooms: await options.store.listRooms(facilityId) };
     },
   );
+  if (options.devices) registerDeviceRoutes(app, options.devices);
+  const uuid =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  app.register(async (operator) => {
+    const subjects = new WeakMap<object, string>();
+    operator.addHook("preHandler", async (request, reply) => {
+      const token = /^Bearer (\S+)$/.exec(
+        request.headers.authorization ?? "",
+      )?.[1];
+      if (!token) return reply.code(401).send({ error: "unauthorized" });
+      try {
+        subjects.set(request, await options.verifyOperator(token));
+      } catch {
+        return reply.code(401).send({ error: "unauthorized" });
+      }
+    });
+    async function facility(subject: string, value: unknown) {
+      if (typeof value !== "string" || value.length === 0 || value.length > 128)
+        return null;
+      return (await options.store.isMember(subject, value)) ? value : false;
+    }
+    operator.get<{
+      Querystring: { facility_id?: string; limit?: string; cursor?: string };
+    }>("/api/operator/incidents", async (request, reply) => {
+      const subject = subjects.get(request)!;
+      const id = await facility(subject, request.query.facility_id);
+      if (id === null)
+        return reply.code(400).send({ error: "facility_id_required" });
+      if (id === false) return reply.code(403).send({ error: "forbidden" });
+      const raw = request.query.limit;
+      const limit =
+        raw === undefined
+          ? 25
+          : typeof raw === "string" && /^\d+$/.test(raw)
+            ? Number(raw)
+            : NaN;
+      const cursor = request.query.cursor ?? null;
+      if (
+        !Number.isInteger(limit) ||
+        limit < 1 ||
+        limit > 100 ||
+        (cursor !== null && (typeof cursor !== "string" || !uuid.test(cursor)))
+      )
+        return reply.code(400).send({ error: "invalid_pagination" });
+      return options.store.listIncidents(subject, id, limit, cursor);
+    });
+    operator.get<{ Params: { id: string } }>(
+      "/api/operator/incidents/:id",
+      async (request, reply) => {
+        if (!uuid.test(request.params.id))
+          return reply.code(400).send({ error: "invalid_incident_id" });
+        const incident = await options.store.getIncident(
+          subjects.get(request)!,
+          request.params.id,
+        );
+        if (!incident) return reply.code(404).send({ error: "not_found" });
+        return { incident };
+      },
+    );
+    operator.get<{ Querystring: { facility_id?: string } }>(
+      "/api/devices/status",
+      async (request, reply) => {
+        const subject = subjects.get(request)!;
+        const id = await facility(subject, request.query.facility_id);
+        if (id === null)
+          return reply.code(400).send({ error: "facility_id_required" });
+        if (id === false) return reply.code(403).send({ error: "forbidden" });
+        return { devices: await options.store.listDeviceStatus(subject, id) };
+      },
+    );
+  });
+  app.setErrorHandler((error, request, reply) => {
+    request.log.error({ err: error }, "Request failed");
+    const status =
+      error &&
+      typeof error === "object" &&
+      "statusCode" in error &&
+      typeof error.statusCode === "number" &&
+      error.statusCode >= 400 &&
+      error.statusCode < 500
+        ? error.statusCode
+        : 503;
+    reply.code(status).send({
+      error: status === 503 ? "service_unavailable" : "invalid_request",
+    });
+  });
   return app;
 }

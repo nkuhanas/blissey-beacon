@@ -30,6 +30,9 @@ test("signature and claims are verified; identity alone does not grant facility 
     verifyOperator: createOperatorVerifier(issuer, "authenticated", publicKey),
     store: {
       isMember: async (_sub, facility) => facility === "assigned",
+      listIncidents: async () => ({ incidents: [], next_cursor: null }),
+      getIncident: async () => null,
+      listDeviceStatus: async () => [],
       listRooms: async () => {
         reads++;
         return [];

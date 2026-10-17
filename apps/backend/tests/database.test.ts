@@ -1,3 +1,4 @@
+import { runIngestionTests } from "./ingestion.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -12,7 +13,7 @@ if (!url)
 const pool = new Pool({ connectionString: url });
 const root = new URL("../../../", import.meta.url);
 const user = "11111111-1111-4111-8111-111111111111";
-test("migration, publication, scoped RLS and real multi-statement rollback", async () => {
+test("migration, publication, scoped RLS and real multi-statement rollback", async (t) => {
   try {
     await pool.query(
       await readFile(new URL("supabase/tests/bootstrap.sql", root), "utf8"),
@@ -126,6 +127,16 @@ test("migration, publication, scoped RLS and real multi-statement rollback", asy
         1,
       );
     assert.equal(await createStore(pool).isMember(user, "other"), false);
+    await pool.query(
+      await readFile(
+        new URL(
+          "supabase/migrations/20261017230000_slice2_ingestion.sql",
+          root,
+        ),
+        "utf8",
+      ),
+    );
+    await runIngestionTests(t, pool);
   } finally {
     await pool.end();
   }

@@ -1,0 +1,63 @@
+# Isolated local acceptance stack: PostgreSQL + actual Supabase Realtime, no production services.
+services:
+  realtime-db:
+    build: supabase/tests/realtime
+    environment:
+      POSTGRES_PASSWORD: synthetic-realtime-only
+      POSTGRES_DB: postgres
+    command: postgres -c wal_level=logical -c max_replication_slots=10 -c output_plugin_libraries=wal2json,pgoutput
+    tmpfs:
+      - /var/lib/postgresql/data
+    volumes:
+      - ./supabase/tests/realtime/bootstrap.sql:/docker-entrypoint-initdb.d/bootstrap.sql:ro
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U postgres -d postgres]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+  realtime:
+    image: supabase/realtime:v2.143.3
+    hostname: realtime-dev.supabase-realtime
+    depends_on:
+      realtime-db:
+        condition: service_healthy
+    environment:
+      PORT: "4000"
+      DB_HOST: realtime-db
+      DB_PORT: "5432"
+      DB_USER: postgres
+      DB_PASSWORD: synthetic-realtime-only
+      DB_NAME: postgres
+      DB_AFTER_CONNECT_QUERY: SET search_path TO _realtime
+      DB_ENC_KEY: supabaserealtime
+      METRICS_JWT_SECRET: synthetic-local-metrics-secret-at-least-32-characters
+      API_JWT_SECRET: synthetic-local-secret-at-least-32-characters
+      API_JWT_JWKS: ${REALTIME_TEST_JWKS:-}
+      SECRET_KEY_BASE: synthetic-local-secret-key-base-of-at-least-sixty-four-characters-123456789
+      ERL_AFLAGS: -proto_dist inet_tcp
+      DNS_NODES: "''"
+      APP_NAME: realtime
+      SEED_SELF_HOST: "true"
+      RUN_JANITOR: "true"
+      DISABLE_HEALTHCHECK_LOGGING: "true"
+    networks:
+      default:
+        aliases: [realtime-dev.supabase-realtime]
+  realtime-check:
+    extends:
+      file: compose.yaml
+      service: toolchain
+    environment:
+      REALTIME_DATABASE_URL: postgresql://postgres:synthetic-realtime-only@realtime-db:5432/postgres
+      REALTIME_URL: ws://realtime-dev.supabase-realtime:4000/socket
+    depends_on:
+      realtime:
+        condition: service_started
+    command: sh -c "pnpm install --frozen-lockfile --store-dir /pnpm/store && pnpm -r build && pnpm --filter @blissey/backend test:realtime"
+volumes:
+  dependencies:
+  backend_dependencies:
+  web_dependencies:
+  contracts_dependencies:
+  simulator_dependencies:
+  pnpm_store:

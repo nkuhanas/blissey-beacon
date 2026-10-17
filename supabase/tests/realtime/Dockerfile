@@ -1,0 +1,2 @@
+FROM postgres:17-bookworm
+RUN apt-get update && apt-get install -y --no-install-recommends postgresql-17-wal2json && rm -rf /var/lib/apt/lists/*
