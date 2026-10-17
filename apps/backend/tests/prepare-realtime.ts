@@ -1,12 +1,13 @@
-import { generateKeyPair, exportJWK } from "jose";
-import { mkdir, writeFile } from "node:fs/promises";
-const { privateKey, publicKey } = await generateKeyPair("ES256", {
-  extractable: true,
+// Deliberately uses only Node built-ins: CI calls this before workspace installation.
+import { generateKeyPairSync } from "node:crypto";
+import { mkdir, writeFile, chmod } from "node:fs/promises";
+const { privateKey, publicKey } = generateKeyPairSync("ec", {
+  namedCurve: "prime256v1",
 });
 const keys = {
-  private: { ...(await exportJWK(privateKey)), kid: "synthetic-local" },
+  private: { ...privateKey.export({ format: "jwk" }), kid: "synthetic-local" },
   public: {
-    ...(await exportJWK(publicKey)),
+    ...publicKey.export({ format: "jwk" }),
     kid: "synthetic-local",
     alg: "ES256",
     use: "sig",
@@ -19,11 +20,14 @@ await writeFile(
   JSON.stringify(keys),
   { mode: 0o600 },
 );
+const publicEnvironment = new URL(".env.realtime", root);
 await writeFile(
-  new URL(".env.realtime", root),
+  publicEnvironment,
   `REALTIME_TEST_JWKS='${JSON.stringify({ keys: [keys.public] })}'\n`,
-  { mode: 0o600 },
 );
+// Compose runs on the host in Linux CI and must read this PUBLIC JWKS.
+// The private test key remains mode 0600 and is read only inside test containers.
+await chmod(publicEnvironment, 0o644);
 console.log(
   "Generated ephemeral local test keys; no production credentials used.",
 );

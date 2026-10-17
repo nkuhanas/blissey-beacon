@@ -11,7 +11,7 @@
     "test": "tsx --test tests/auth.test.ts",
     "test:db": "tsx --test tests/database.test.ts",
     "provision:device": "tsx --env-file-if-exists=.env src/provision-device.ts",
-    "realtime:prepare": "tsx tests/prepare-realtime.ts",
+    "realtime:prepare": "node tests/prepare-realtime.ts",
     "test:realtime": "tsx --test tests/realtime.test.ts"
   },
   "dependencies": {
