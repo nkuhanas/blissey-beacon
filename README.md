@@ -9,12 +9,17 @@ Supabase Auth and facility membership protect operator data/actions. A shared de
 operator account is acceptable. Notifications require explicit review and a
 preconfigured consented demo recipient. No developer laptop is required at runtime.
 
-This repository contains a **Slice 1 foundation**, not an integrated monitoring
-system: shared schemas/fixtures, generated TypeScript contracts, Fastify auth/room
-API shell, React sign-in shell, PostgreSQL migration/RLS and Docker checks. Live
-Railway, Vercel, Supabase Auth/Realtime, QNX, Gemini and Photon integration remain
-unverified. See [PROJECT_SPEC.md](PROJECT_SPEC.md) for architecture and status.
+This repository implements **Slice 2**: authenticated device WebSocket ingestion,
+transactional event/incident/job persistence, durable deduplication, device health,
+operator incident reads, a canonical-fixture simulator and minimal incident
+Realtime subscriptions. Gemini and Photon remain unimplemented. Hosted deployments
+and actual QNX integration remain unverified. See [PROJECT_SPEC.md](PROJECT_SPEC.md)
+and the [Slice 2 handoff](docs/slice-2.md) for scope and verification boundaries.
 This is a proof of concept, not a clinically validated detector or emergency device.
+
+Planned site: **https://blissey-beacon.health**. For Vercel, Railway, Supabase,
+DNS and per-provider variables, follow [docs/deployment.md](docs/deployment.md) and
+[root .env.example](.env.example). Production has not been modified.
 
 ## Getting started
 
@@ -34,7 +39,9 @@ docker compose down
 
 The database test requires a fresh database. `docker compose down` removes its
 container and tmpfs data; dependency volumes are retained. No hosted database is
-used by this check. See [docs/development.md](docs/development.md) for app startup,
+used by this check. For actual local Supabase Realtime acceptance, run
+`sh scripts/verify-realtime.sh`; this uses isolated synthetic identities and never
+connects to production. See [docs/development.md](docs/development.md) for app startup,
 operator provisioning, schema generation and verification boundaries.
 
 ## Development

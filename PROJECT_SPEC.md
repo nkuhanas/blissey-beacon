@@ -2,7 +2,7 @@
 
 Event: LA Hacks 2026. Last updated: 2026-10-17.
 Document steward: Chloe (proposed); component owners review their contracts.
-Status: authoritative implementation specification; Slice 1 foundation present; integrated application unverified.
+Status: authoritative implementation specification; Slice 2 source present; hosted/hardware integration unverified.
 
 **Confirmed** means selected in the complete team request, not proven operational.
 **Proposed** means an implementation detail awaiting owner agreement. **TBD / Not
@@ -24,8 +24,8 @@ movement. This is an experimental proof of concept, not a clinically validated
 fall detector, medical diagnosis tool, or emergency response device. It is not
 suitable for unsupervised medical safety monitoring.
 
-The repository now contains a Slice 1 application foundation and local Docker
-validation, not an integrated sensing system. No trained model, hosted deployment
+The repository now contains Slice 2 ingestion, incident reads, simulator and local
+Docker verification. This is not evidence of a deployed hardware sensing system. No trained model, hosted deployment
 or successful sponsor integration is evidenced. Section 29 records source paths
 and exact verification limits.
 
@@ -108,6 +108,18 @@ self-hosted generative inference is required at runtime. Railway deployment
 feasibility and operational compatibility still require verification.
 
 ## 5. Hardware and Network Architecture
+
+### Public domains and deployment targets
+
+The website domain is **blissey-beacon.health**, targeting Vercel. The planned
+Railway API subdomain is **api.blissey-beacon.health**, with secure device endpoint
+`wss://api.blissey-beacon.health/api/devices/v1/stream`. Supabase uses its assigned
+project URL for Auth/Realtime/database connectivity. DNS, certificates and provider
+configuration remain unverified until deployment evidence exists. Root `.env.example`,
+`vercel.json`, `railway.json`, the production backend Dockerfile and
+[docs/deployment.md](docs/deployment.md) provide the setup handoff. The provisioned
+Supabase production project is not modified by local verification.
+
 
 Owner: Emilia for sensing and serial output; Chloe for Pi/QNX consumption.
 
@@ -483,6 +495,17 @@ require new evidence and an explicit model/schema decision.
 
 ## 16. WebSocket Protocol and Backend Ingestion
 
+Slice 2 implements the retained endpoint with opaque bearer credentials stored as
+SHA-256 digests in private device_credentials rows. Upgrade auth and per-message
+transaction checks validate active credentials/device/room. Credential revocation
+is honored on established streams. Event schema v2 in Section 15 is unchanged.
+The existing pg transaction helper persists event, incident and pending job before
+socket ACK. Identical JSONB payloads deduplicate across retries/restarts/concurrent
+connections; changed facts or cross-device ID reuse reject. Separate health messages
+persist monitoring state; no health event_ack or inferred incident is fabricated.
+Details and error/queue policies are in [docs/slice-2.md](docs/slice-2.md).
+
+
 Owners: Chloe (client), Chace (server). Required: persistent WSS, device
 authentication, validation, event-ID deduplication and periodic health. The policies
 below are proposed implementation details for their agreement.
@@ -809,9 +832,23 @@ No current sponsor website rules or supported-model catalog were verified here.
 
 ## 23. API Contracts
 
-The following routes define the target API. The scaffold implements only the
-rooms route, currently returning static room metadata; health, incidents and
-attention counts arrive in later slices. Other routes remain proposed.
+The following routes define the target API. Slice 2 implements room metadata,
+incident history/detail and device status reads. Other routes remain proposed;
+incident mutation, Gemini and Photon are not implemented. The shared incident DTO
+is in packages/contracts/schemas/incident.json, with generated TypeScript and
+runtime validation for frontend handoff. No separate frontend-owner review is claimed.
+
+History requires facility_id; limit defaults to 25 with a maximum of 100. A cursor
+is the UUID of a prior incident in that facility, ordered by created_at/ID descending.
+Responses are `{ incidents, next_cursor }` and `{ incident }`. The DTO includes
+IDs/facility/room/device, status/revision, detection/receipt/create times, named
+scores, sensor status, explanation status and allowed_actions (empty in Slice 2).
+Unauthorized detail IDs return 404. New explanations remain pending.
+
+Realtime publishes safe incident metadata with facility_id and revision. Authenticated
+clients filter by facility, then refetch the canonical REST DTO; RLS still protects
+clients who remove filters. The minimal frontend subscribes/refetches on changes
+and reconnect. This is not a durable notification queue.
 Chace finalizes response bodies and authenticated demo policies with Kiro before
 implementation. Existing REST paths are retained; `/operator/` is a domain label,
 not an alternative API namespace. Supabase Auth and facility membership protect
@@ -1041,7 +1078,8 @@ presentation. Assign Photon and integration leads immediately.
 
 ## 29. Current Repository Implementation Status
 
-The repository was pulled at `cc6da98` before the foundation work. Earlier source
+Slice 2 was implemented against current main `96efb9b`; the foundation work
+started from `cc6da98`. Earlier source
 baselines (`8aa999b`, `b428a4d`, `20ab349`) describe documentation-only history.
 The current scaffold adds source and local checks; it is not deployment evidence.
 The previous dataset-access 404 observation has not been retested by this work.
@@ -1049,21 +1087,29 @@ The previous dataset-access 404 observation has not been retested by this work.
 | Component / source | Current boundary |
 | --- | --- |
 | [packages/contracts](packages/contracts) | Authoritative JSON Schemas, generated TS, Ajv validators and synthetic event fixtures; native QNX parity unverified |
-| [apps/backend/src](apps/backend/src) | Fastify liveness and scoped room API, JWT verification and pg transaction helper; no WSS ingestion/ACK yet |
-| [apps/web/src](apps/web/src) | React/Vite setup/login/room shell; Supabase client and room subscription; no live provider evidence |
-| [supabase/migrations](supabase/migrations) | Foundation tables, database constraints, operator facility RLS and rooms/incidents publication membership |
+| [apps/backend/src](apps/backend/src) | Authenticated device stream, transactional event/incident/job persistence, post-commit ACK/deduplication, health and authorized incident/status read APIs |
+| [apps/web/src](apps/web/src) | Existing login/room shell plus minimal shared-DTO incident list/subscription/refetch; no hosted frontend verification |
+| [supabase/migrations](supabase/migrations) | Foundation plus Slice 2 credentials/health and incident facility metadata; existing operator RLS/publication retained |
 | [supabase/tests](supabase/tests) | Plain PostgreSQL test-only Supabase role/auth bootstrap; not live Auth/Realtime validation |
 | [Dockerfile](Dockerfile), [compose.yaml](compose.yaml) | Node/pnpm toolchain and disposable PostgreSQL validation; no host Node needed |
 | [.github/workflows/ci.yml](.github/workflows/ci.yml) | Docker foundation workflow; writing it is not evidence of a remote CI run |
 | Firmware, dataset, training, QNX runtime/model | Not implemented/verified in this repository; no data downloaded or training started |
-| Gemini worker, explanations, incident actions, Photon | Later slices; no working integration claimed |
-| Railway/Vercel/hosted Supabase | Not provisioned or verified by scaffold work |
+| Gemini worker, generated explanations, incident actions, Photon | Later slices; no working integration claimed |
+| [tools/simulator](tools/simulator) | Canonical-fixture synthetic device client with stable retry IDs and bounded retries; not QNX evidence |
+| [compose.realtime.yaml](compose.realtime.yaml) | Isolated PostgreSQL + official Supabase Realtime test service with synthetic signed identities; never production |
+| [apps/backend/Dockerfile](apps/backend/Dockerfile), [railway.json](railway.json), [vercel.json](vercel.json) | Deployment setup artifacts; build validation is not hosted deployment or DNS/TLS verification |
+| Railway/Vercel/hosted Supabase | Supabase production is user-reported provisioned, but was not inspected or modified; hosted integration/deployment remains unverified |
 
 Validation commands and exact limits are recorded in [docs/development.md](docs/development.md).
-The isolated database check emulates only role/auth contracts and never proves
-live Supabase JWT issuance or Realtime delivery. A desktop synthetic event never
+The ordinary isolated database check emulates only role/auth contracts. The separate
+local Realtime acceptance check runs the actual Realtime service and real logical
+replication with synthetic signed identities; it does not prove Supabase Auth JWT
+issuance, production configuration, or hosted integration. A desktop synthetic event never
 proves actual QNX networking, CNN capability or end-to-end acceptance. Section 25
-remains future integration criteria; local foundation results are separate.
+remains future full-system integration criteria. Local Slice 2 acceptance passed
+for simulator ingestion → one durable incident → authorized REST and actual
+Supabase Realtime delivery, with duplicate and no-membership exclusion checks.
+See docs/slice-2.md for the recorded test scope and results.
 
 ## 30. Open Questions and Decisions
 
@@ -1115,6 +1161,7 @@ documented evidence supports a decision.
 | ADR-023 / 2026-10-17 | Approved: authoritative JSON Schema, generated TypeScript types and shared native-consumable fixtures | Preserve seven-field v2 from ADR-017; review's v1 reference is stale; native parity requires actual QNX tests |
 | ADR-024 / 2026-10-17 | Approved: early actual Pi/QNX TLS WSS smoke milestone before CNN integration | Synthetic event tests networking independently; desktop simulator is not hardware evidence |
 | ADR-025 / 2026-10-17 | Approved: Docker Compose for Node/pnpm development and foundation validation | User requested Docker; disposable PostgreSQL tests, independent QNX/Python, no host Node requirement |
+| ADR-026 / 2026-10-17 | Confirmed target: blissey-beacon.health website, planned api.blissey-beacon.health backend, provider-assigned Supabase project URL | User supplied domain; deployment manifests/env examples and setup handoff prepared; no DNS/TLS/production changes claimed |
 
 The user explicitly approved this delta after reviewing the proposal. See
 [deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md](deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md)
