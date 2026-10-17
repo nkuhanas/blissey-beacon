@@ -14,6 +14,24 @@
 Do not commit secrets, credentials, local configuration, or generated artifacts
 unless the repository explicitly tracks them.
 
+## Branches and pull requests
+
+- Never force push to `main`, including with `--force-with-lease`.
+- Use a dedicated branch and a pull request targeting `main` for each change.
+  Do not commit or push directly to `main` unless the task explicitly authorizes
+  an exception to the branch and pull request workflow. Such an exception does
+  not permit force pushing to `main`.
+- Start branches from the latest `main` and use descriptive names, such as
+  `feat/session-metadata` or `docs/setup-instructions`.
+- Describe the change and its validation in the pull request.
+- Before merging, check compatibility with the latest target branch: confirm
+  the pull request is mergeable, resolve conflicts, review the final diff, and
+  verify that required checks and reviews pass. Run relevant build, test, and
+  lint checks against the combined changes where available.
+- Recheck compatibility and required checks if the pull request or target branch
+  changes before the merge. Do not merge while conflicts, failing required
+  checks, or required reviews remain unresolved.
+
 ## Conventional Commits
 
 Use this format:
