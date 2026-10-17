@@ -4,25 +4,44 @@ Blissey Beacon is an experimental, camera-free possible-fall monitoring project
 for LA Hacks 2026, intended for senior-home operators, caregivers, and authorized
 family members. ESP32 Wi-Fi CSI feeds local inference on a Raspberry Pi 5 running
 QNX, with a planned Railway Node.js/TypeScript backend, Supabase PostgreSQL and
-Realtime, Gemini API explanations, and a public Vercel demo dashboard. Visitors
-can perform demo incident actions without login and explicitly approve notifications
-to preconfigured consented demo recipients. No developer laptop is required at runtime.
+Realtime, Gemini API explanations, and an authenticated React/Vite demo dashboard.
+Supabase Auth and facility membership protect operator data/actions. A shared demo
+operator account is acceptable. Notifications require explicit review and a
+preconfigured consented demo recipient. No developer laptop is required at runtime.
 
-The repository currently contains documentation only. See
-[PROJECT_SPEC.md](PROJECT_SPEC.md) for scope, architecture, proposed interfaces,
-implementation priorities, and unresolved decisions. This is a proof of concept,
-not a clinically validated fall detector or emergency response device.
+This repository contains a **Slice 1 foundation**, not an integrated monitoring
+system: shared schemas/fixtures, generated TypeScript contracts, Fastify auth/room
+API shell, React sign-in shell, PostgreSQL migration/RLS and Docker checks. Live
+Railway, Vercel, Supabase Auth/Realtime, QNX, Gemini and Photon integration remain
+unverified. See [PROJECT_SPEC.md](PROJECT_SPEC.md) for architecture and status.
+This is a proof of concept, not a clinically validated detector or emergency device.
 
 ## Getting started
 
-TODO: Document prerequisites, installation, configuration, and how to run the project.
+Install Docker with Compose. Node and pnpm run inside the toolchain container.
+
+```sh
+docker compose build toolchain
+docker compose run --rm toolchain
+```
+
+Run migration/access/transaction checks against a disposable test database:
+
+```sh
+docker compose run --rm verify
+docker compose down
+```
+
+The database test requires a fresh database. `docker compose down` removes its
+container and tmpfs data; dependency volumes are retained. No hosted database is
+used by this check. See [docs/development.md](docs/development.md) for app startup,
+operator provisioning, schema generation and verification boundaries.
 
 ## Development
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and
-[PROJECT_SPEC.md](PROJECT_SPEC.md) for project requirements and design decisions.
-
-TODO: Add commands for building, testing, and linting as tooling is introduced.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) and the relevant sections of
+[PROJECT_SPEC.md](PROJECT_SPEC.md). `SPEC.md` remains the compatibility entrypoint.
+Grow modules with each slice; QNX and Python keep independent toolchains.
 
 ## Changes to the specification
 

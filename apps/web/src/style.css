@@ -1,0 +1,140 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700&display=swap");
+:root {
+  font-family: "DM Sans", sans-serif;
+  color: #163b35;
+  background: #f4f6ef;
+  font-synthesis: none;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+main {
+  max-width: 1080px;
+  margin: auto;
+  padding: 36px 28px;
+}
+header,
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.brand {
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  font-size: 14px;
+}
+.badge {
+  border: 1px solid #b4c5b6;
+  border-radius: 30px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+.intro {
+  padding: 64px 0 36px;
+  max-width: 700px;
+}
+.eyebrow {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #4e7266;
+}
+h1 {
+  font-family: Manrope, sans-serif;
+  font-size: clamp(36px, 6vw, 64px);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.045em;
+  margin: 20px 0;
+}
+h2 {
+  font-size: 22px;
+  margin: 0 0 14px;
+}
+h3 {
+  margin: 12px 0;
+}
+.muted,
+footer {
+  color: #5c6f65;
+  line-height: 1.6;
+}
+.panel {
+  padding: 30px;
+  background: #fff;
+  border: 1px solid #dbe3d8;
+  border-radius: 18px;
+}
+form.panel {
+  max-width: 440px;
+}
+label {
+  display: block;
+  margin: 20px 0;
+  font-size: 14px;
+}
+input {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  border: 1px solid #a5b8aa;
+  border-radius: 8px;
+  padding: 12px;
+  font: inherit;
+}
+button {
+  border: 0;
+  border-radius: 8px;
+  background: #225a49;
+  color: white;
+  padding: 12px 20px;
+  font: inherit;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid #a0c38d;
+  outline-offset: 3px;
+}
+.rooms {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+article {
+  padding: 20px;
+  border-radius: 12px;
+  background: #f4f6ef;
+}
+.error {
+  color: #8b2727;
+  background: #fff1ec;
+  padding: 16px;
+  border-radius: 8px;
+}
+footer {
+  font-size: 12px;
+  margin-top: 32px;
+}
+@media (max-width: 560px) {
+  header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .intro {
+    padding-top: 40px;
+  }
+  .panel {
+    padding: 22px;
+  }
+}

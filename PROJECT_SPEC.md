@@ -2,7 +2,7 @@
 
 Event: LA Hacks 2026. Last updated: 2026-10-17.
 Document steward: Chloe (proposed); component owners review their contracts.
-Status: authoritative implementation specification; application remains unimplemented.
+Status: authoritative implementation specification; Slice 1 foundation present; integrated application unverified.
 
 **Confirmed** means selected in the complete team request, not proven operational.
 **Proposed** means an implementation detail awaiting owner agreement. **TBD / Not
@@ -14,19 +14,20 @@ planned component should be interpreted as working software.
 Blissey Beacon explores camera-free possible-fall detection for senior living
 facilities. ESP32 Wi-Fi Channel State Information (CSI) feeds a supervised neural
 network running locally on a Raspberry Pi 5 with QNX. Structured events travel over
-WSS to a Railway Node.js/TypeScript backend backed by Supabase PostgreSQL. A public
+WSS to a Railway Node.js/TypeScript backend backed by Supabase PostgreSQL. An authenticated
 Vercel demo dashboard shows incidents; Gemini API generates grounded explanations
-asynchronously. Visitors explicitly review and approve Photon contact to
-preconfigured consented demo recipients. No operator login is required.
+asynchronously. Operators explicitly review and approve Photon contact to
+preconfigured consented demo recipients. Supabase Auth operator login and facility membership are required.
 
 The MVP uses one room and one person with controlled staged falls and normal
 movement. This is an experimental proof of concept, not a clinically validated
 fall detector, medical diagnosis tool, or emergency response device. It is not
 suitable for unsupervised medical safety monitoring.
 
-The application repository was inspected before this revision. It contains
-project documentation only; no trained model, implementation, or successful sponsor
-integration is evidenced. Section 29 records the exact inspection limits.
+The repository now contains a Slice 1 application foundation and local Docker
+validation, not an integrated sensing system. No trained model, hosted deployment
+or successful sponsor integration is evidenced. Section 29 records source paths
+and exact verification limits.
 
 ## 2. Product Goals and Non-Goals
 
@@ -46,30 +47,28 @@ a cloud backend, an operator website, and one approved Photon notification flow.
 
 Excluded: person identification, full-body pose, heart-rate/breathing estimation,
 medical diagnosis, multiple-person tracking, validated cross-facility performance,
-and automatic family calls without explicit visitor review and approval. Multi-room
+and automatic family calls without explicit operator review and approval. Multi-room
 monitoring is stretch even though the UI should accommodate multiple room cards.
 
 ## 3. User Personas: Operators and Families
 
-The product models operator/caregiver workflows, but the MVP website is a public
-demo: any visitor can view demo rooms/history, acknowledge/respond/resolve
-incidents, mark false alarms, add notes and review/approve demo notifications
-without an operator account or staff role. All resident/room data is fictional.
+The MVP uses fictional residents and staged incidents, with Supabase Auth for
+operator identity. A single shared demo operator account is acceptable; its actions
+identify the shared account, not an individual staff member. No anonymous operator
+data access or mutations are permitted. Accounts require explicit facility membership.
 
-| Persona | Needs | Demo access boundary |
+| Persona | Needs | Access boundary |
 | --- | --- | --- |
-| Visitor acting as operator/caregiver | Room overview, health, history and incident actions | Public demo data and actions; no login |
-| Consented demo family contact | Explicitly approved relevant updates | Preconfigured destination; private contact details never exposed |
+| Demo operator/caregiver | Room/facility view, health, history and incident actions | Supabase Auth identity plus assigned facility membership |
+| Consented family recipient | Explicitly reviewed relevant updates | Preconfigured consented contact; no operator access without membership |
 
-The dashboard may show experimental scores and sensor health. Notification
-payloads omit raw CSI, scores and unrelated information. Acknowledgment means a
-demo visitor saw the alert; it does not establish injury, confirm a fall medically,
-or approve a call. Public demo actions must not be described as verified staff
-identity or authorization. Family contacts may also visit the public website.
+Acknowledgment is not notification approval or confirmation of injury. Notification
+content excludes raw CSI, experimental scores and unsupported clinical claims.
 
 ## 4. Final System Architecture
 
-The following architecture is selected for the MVP, not implemented or verified.
+The following architecture is selected for the MVP; its end-to-end deployment
+and hardware/provider integrations remain unverified.
 
 ```mermaid
 flowchart TD
@@ -83,7 +82,7 @@ flowchart TD
     subgraph BACKEND["Railway / Node.js / TypeScript"]
         INGEST[Validation and deduplication] --> INCIDENT[Incident manager and REST API]
         WORKER[Logical Gemini worker]
-        REVIEW[Explicit visitor review and Photon adapter]
+        REVIEW[Explicit operator review and Photon adapter]
     end
     INCIDENT -->|Transactional event, incident and pending work| DB[(Supabase PostgreSQL)]
     DB -->|Claim pending work with lease| WORKER
@@ -92,7 +91,7 @@ flowchart TD
     WORKER -->|Validate and persist explanation/status| DB
     DB -->|Demo snapshots/history| INCIDENT
     DB --> RT[Supabase Realtime]
-    RT --> UI[Public demo dashboard on Vercel]
+    RT --> UI[Authenticated demo dashboard on Vercel]
     UI -->|REST snapshots and demo actions| INCIDENT
     UI -->|Review and approve| REVIEW
     REVIEW -->|Consented demo recipient only| PHOTON[Photon]
@@ -118,8 +117,8 @@ Owner: Emilia for sensing and serial output; Chloe for Pi/QNX consumption.
 | ESP32 RX → Pi | Direct USB serial using existing receiver output; not WebSocket | Actual baud, framing, USB driver and QNX device access |
 | Pi → backend | Persistent secure WebSocket; Pi client, backend server | TLS, authentication, reconnects and durable event acknowledgments |
 | Backend → Model 2 | Server-side Gemini API call with persisted structured facts | Model/version, structured output, privacy and provider compatibility |
-| Backend → frontend | Public demo REST and Supabase Realtime | Demo-only access policies, snapshots and reconnect recovery |
-| Backend → Photon | API integration after explicit visitor review/approval | Actual provider capabilities and preconfigured consented demo recipient |
+| Backend → frontend | Authenticated demo REST and Supabase Realtime | Demo-only access policies, snapshots and reconnect recovery |
+| Backend → Photon | API integration after explicit operator review/approval | Actual provider capabilities and preconfigured consented demo recipient |
 
 Emilia must document board models, TX/RX roles, firmware revision, Wi-Fi channel,
 CSI encoding, measured packet rate, serial baud, placement, height, participant
@@ -134,7 +133,7 @@ Do not silently replace USB serial, QNX, or local inference.
 
 ## 6. Technology Stack
 
-No installed stack is evidenced. The following selections define the planned MVP;
+The following selections define the planned MVP;
 selected providers are not evidence of deployment or integration.
 
 | Layer | Decision | Status |
@@ -144,16 +143,20 @@ selected providers are not evidence of deployment or integration.
 | Model 1 training | Google Colab, Python, NumPy, TensorFlow/Keras, Scikit-learn | Confirmed; versions TBD |
 | Model 1 baseline | Custom lightweight 1D CNN, random initialization | Confirmed; no pretrained checkpoint |
 | Edge inference format | LiteRT/TensorFlow Lite if supported; ONNX alternative | Candidates; QNX runtime/operator support not yet verified |
-| Backend hosting/runtime | Railway, Node.js / TypeScript; single deployment | Selected; deployment feasibility unverified |
-| Database | Supabase PostgreSQL | Selected; schema/transactions unimplemented |
-| Realtime | Supabase Realtime | Selected; demo-only policies/subscriptions unverified |
-| UI | Public browser demo on Vercel, implemented from Paper designs | Hosting selected; framework TBD; no operator login |
+| Backend hosting/runtime | Railway, Node.js / TypeScript, Fastify + `@fastify/websocket`; single deployment | Selected; deployment feasibility unverified |
+| Database | Supabase PostgreSQL | Selected; foundation schema/transaction helper present; ingestion unimplemented |
+| Realtime | Supabase Realtime with operator JWT and facility RLS | Selected; publication and policies required; live deployment unverified |
+| Persistence | Direct PostgreSQL via `pg` | Same checked-out client for BEGIN/COMMIT/ROLLBACK; database uniqueness |
+| Monorepo | pnpm workspaces for TypeScript only | Two deployable apps; independent QNX/Python toolchains |
+| Operator identity | Supabase Auth | Shared demo account acceptable; explicit facility membership |
+| UI | React/Vite browser demo on Vercel, implemented from Paper designs | Selected; Supabase Auth login required; deployment unverified |
 | Model 2 | Hosted Google Gemini API | Selected; model/version/configuration TBD; unverified |
 | Optional sponsor effort | Veri Studio with a compatible open-source model | Separate from MVP Gemini inference; eligibility unverified |
 | Family contact | Photon calling or messaging API | Planned; exact product/API/capabilities TBD |
 
-Dependency versions, setup commands and deployment instructions must be added when
-implementation selects actual tooling. Do not invent install/build commands now.
+TypeScript dependency versions are pinned in pnpm-lock.yaml and the Docker
+toolchain. Setup/check commands are documented in docs/development.md. Training,
+QNX and hosted deployment versions/configuration remain to be verified.
 
 ## 7. Dataset Format and Collection
 
@@ -500,7 +503,7 @@ Deduplicate using globally unique `event_id`, also recording authenticated devic
 ownership. Reject an event ID reused by another device or with changed facts.
 Do not create repeated incidents or notifications on retransmission. Retain
 observed detection and receipt timestamps for delayed/out-of-order events; delayed
-incidents still require fresh visitor review before any demo notification.
+incidents still require fresh operator review before any demo notification.
 
 Proposed ACK (a separate backend response, not an added inference-event requirement):
 
@@ -594,7 +597,7 @@ omit scores and include only reviewed verified facts. Notes are data, not prompt
 instructions. Record model/prompt version and input hash for traceability.
 
 Gemini's key stays exclusively server-side. The browser and QNX never call Gemini.
-Generation never initiates notifications or substitutes for explicit visitor
+Generation never initiates notifications or substitutes for explicit operator
 review/approval. Keep deterministic same-schema fallbacks and cautious wording.
 Explanation states are `pending | ready | fallback`; failures must not block
 incident publication, incident actions or notification review. Proposed timeout is
@@ -606,7 +609,7 @@ Durable processing and restart recovery are required by Section 18.
 Owner: Chace / Backend Team. Deploy a single Node.js/TypeScript application on
 Railway with logical modules for authenticated WSS ingestion, validation and
 deduplication, incident lifecycle, health monitoring, persistence, Gemini jobs,
-public demo REST, Photon approvals/dispatch and audit/recovery. Do not introduce
+authenticated demo REST, Photon approvals/dispatch and audit/recovery. Do not introduce
 independent backend services without a demonstrated requirement. Railway is the
 selected MVP target; deployment feasibility and operational limits are unverified.
 
@@ -615,23 +618,25 @@ stay server-side; QNX neither connects directly to Supabase nor holds its secret
 
 | Logical entity | Minimum information/invariant |
 | --- | --- |
-| Facility / Room | Separate IDs, facility membership and fictional display labels |
+| Facility / Room | Separate IDs, facility membership, fictional labels, floor and static layout geometry |
 | Device | Device ID, configured room, credential reference, connectivity and sensing health |
-| User / staff scope | Reserved logical entity for future authenticated use; no required MVP login; do not fabricate staff identity |
+| User / staff scope | Supabase Auth subject and explicit facility membership; shared account is not individual staff attribution |
+| Patient | Fictional resident identifier/display label; no real patient information |
+| RoomAssignment | Patient/room mapping with assigned/released timestamps; preserve historical associations |
 | InferenceEvent | Unique event ID, device ownership, validated payload/hash, detection and receipt times |
 | Incident | ID, event reference, room, status, revision, lifecycle actors/timestamps, disposition and notes |
 | Explanation | Incident, output, persistent generation status, model/prompt version and input hash |
 | ExplanationJob | Durable pending work, unique work identity, attempts, next retry, claim/lease and terminal outcome |
 | FamilyContact / consent | Preconfigured consented demo relationship, private destination and grant/revocation evidence |
 | Notification | Incident/contact, explicit approval, exact approved text, idempotency key, provider ID/status |
-| Audit | Device or unverified demo actor, action, target, timestamp and outcome without secrets |
+| Audit | Device or authenticated operator subject, action, target, timestamp and outcome without secrets |
 
 Proposed incident lifecycle remains `pending -> acknowledged -> responding -> resolved`.
 Validate revision and allowed transitions, record action/time and bounded notes.
 False alarm is a separate resolution outcome. Proposed outcomes remain
 `reported_fall`, `false_alarm`, `unknown`; no clinical validation is implied.
 Default proposal rejects skipped states; reopening remains TBD. Resolved incidents
-remain in history. Demo actors are not authenticated staff. Notification state
+remain in history. A shared demo account does not establish an individual staff identity. Notification state
 remains independent from incident state (Section 20).
 
 ### Durable asynchronous explanation processing
@@ -659,27 +664,39 @@ cause a repeated API call, so do not promise exactly-once external generation.
 Database uniqueness and conditional writes must prevent duplicate persisted work
 or inconsistent explanations. Gemini outage cannot suppress incidents.
 
-### Realtime and public demo data
+### Transactions, identity and Realtime
 
-Supabase Realtime carries database changes, not durable jobs or the source of
-truth. Fetch current state/history via demo REST on initial load and reconnect;
-ignore older entity revisions. Do not rely on replay of missed change messages.
+Backend persistence uses `pg` with explicit BEGIN/COMMIT/ROLLBACK on one checked-out
+client. Never emulate a transaction with independent Supabase REST calls or
+`pool.query` calls. PostgreSQL enforces unique event IDs and one incident/job per
+event. On retransmission compare the stored original validated payload; return the
+existing incident for identical content and reject conflicting ID reuse.
 
-Chace and Kiro must finalize the demo access configuration together. No operator
-login is required. Preserve facility/room relationships and restrict all public
-interfaces/subscriptions to the designated fictional demo dataset. Use row-level
-security on directly accessible tables/subscriptions; backend-proxied operations
-must enforce equivalent demo-only boundaries. Keep contact destinations, secrets,
-internal jobs and private audit metadata out of public projections. Public incident
-actions use validated backend APIs. Never expose privileged Supabase keys.
+Supabase Auth issues the operator JWT. Railway verifies signature, issuer,
+audience, expiry and authenticated role, then checks facility membership on every
+REST object/action. Supabase Realtime receives the same session JWT and enforces
+facility-scoped RLS. Include intended tables in `supabase_realtime`; creating
+tables alone is insufficient. Only safe operator projections are selectable;
+contact destinations, device credentials and internal jobs stay server-only.
+
+Realtime is not durable storage or a job queue. Fetch REST snapshots/history on
+initial load/reconnect and ignore older revisions. No anonymous operator access.
+Chace and Kiro jointly finalize subscriptions and DTOs.
+
+Room records include a floor and static layout metadata (proposed x/y/width/height
+in shared facility-plan coordinates). The layout DTO and units require Kiro's
+agreement. Add fictional patients and timestamped room assignments. These model
+configured room occupancy, not inferred physical position. Incidents remain
+room-centric; historical patient linkage must use assignment time, not silently
+relabel old incidents from the current room occupant.
 
 ## 19. Operator Dashboard
 
 Primary owner: Kiro / Frontend Team. Paper is the design tool; the actual frontend
 must be implemented on Vercel and connected to backend APIs and Supabase Realtime.
-The demo is usable by every visitor without operator authentication. No Paper
-design artifact or application is evidenced yet. Record the design link and implementation handoff
-when available.
+The demo requires Supabase Auth and assigned facility membership. A scaffold
+login/room shell exists, but no Paper design artifact or design integration is
+evidenced. Record the design link and implementation handoff when available.
 
 | View | Required content/actions |
 | --- | --- |
@@ -700,7 +717,8 @@ succeeds after reconnect. Use accessible text/icons as well as color and accessi
 focus behavior. Multiple-room fixtures test layout without claiming multi-room
 sensing. Render incidents immediately while explanation state is `pending`, then update to `ready`
 or `fallback`. The browser never connects to QNX or Gemini. Patient-to-room
-assignment remains a team schema question, not an implemented localization feature.
+assignment is explicit timestamped configuration, not inferred localization.
+Render a top-down facility view from static room geometry; Kiro finalizes its DTO.
 The binary classifier cannot support detailed activity or physical-position claims.
 
 ## 20. Family Notifications and Photon
@@ -710,19 +728,19 @@ a named Photon lead must own provider integration and authorized live testing.
 Exact Photon product, calling, messaging, TTS, webhook and status capabilities
 are **Not yet verified**. Do not document them as working.
 
-Confirmed demo flow: detection → persisted incident → visitor review → explicit
+Confirmed demo flow: detection → persisted incident → operator review → explicit
 approval of recipient and final text → durable notification job → Photon → stored
-delivery status. Visitors need no operator login; this explicitly supersedes the
-previous authenticated staff-approval requirement for the demo.
+delivery status. Require Supabase Auth and facility membership; this supersedes
+ADR-018 public access. A shared demo account is acceptable.
 Never call family for every positive window or model prediction.
 
 Proposed concrete workflow:
 
-1. A visitor selects a preconfigured consented demo contact and reviews persisted
+1. An authenticated operator selects a preconfigured consented demo contact and reviews persisted
    incident/response facts. Arbitrary destination entry is not supported.
-2. Backend generates a draft from reviewed context; the visitor reviews the recipient
+2. Backend generates a draft from reviewed context; the operator reviews the recipient
    and final wording before dispatch. New text or recipient changes require review.
-3. Backend verifies demo-dataset membership, active contact authorization/consent,
+3. Backend verifies operator facility membership, active contact authorization/consent,
    current incident revision and explicit approval of the exact recipient/text.
    Verified follow-up updates after resolution may be eligible; resolution alone never authorizes or forbids contact.
 4. Atomically store approval and a durable notification job; recheck consent and
@@ -743,7 +761,7 @@ Family payload contains approved incident updates, verified or explicitly staged
 response facts (never claimed to be authenticated staff actions) and
 authorized follow-up only. Exclude scores, raw CSI, other residents and unsupported
 clinical claims. Public responses redact private destinations. Audit the approver
-as an unverified demo actor rather than a verified staff member. Use fictional
+as the authenticated account; a shared login is not individual staff attribution. Use fictional
 residents and preconfigured consented demo contacts. Photon outage
 preserves approved payload and status for review; a mock never proves a real call.
 
@@ -756,7 +774,7 @@ Assignments below are confirmed by the complete request, except explicit TBDs.
 | Emilia | Hardware and CSI collection | Working TX/RX, reproducible configuration, timestamped serial stream, recordings and schema evidence to Chloe |
 | Chloe | Model 1 and edge inference | Parsing/preprocessing, CNN training, evaluation, artifacts, QNX runtime, event-producing WSS client |
 | Chace | Model 2 and backend | Gemini explanations and durable jobs, Railway WSS/REST, Supabase persistence, demo notification approval |
-| Kiro / Frontend Team | Operator interface | Paper design, public Vercel dashboard/detail, incident actions and Supabase Realtime/backend integration |
+| Kiro / Frontend Team | Operator interface | Paper design, authenticated Vercel dashboard/detail, incident actions and Supabase Realtime/backend integration |
 | TBD | Photon provider integration | Exact API/capability verification, consented recipient, dispatch/status adapter and live test |
 | Entire team | Integration, testing and presentation | End-to-end evidence, honest limitations and demo rehearsal; integration lead TBD |
 
@@ -791,20 +809,23 @@ No current sponsor website rules or supported-model catalog were verified here.
 
 ## 23. API Contracts
 
-The following routes are the team's **proposed API**, not implemented endpoints.
-Chace finalizes response bodies and public demo policies with Kiro before
+The following routes define the target API. The scaffold implements only the
+rooms route, currently returning static room metadata; health, incidents and
+attention counts arrive in later slices. Other routes remain proposed.
+Chace finalizes response bodies and authenticated demo policies with Kiro before
 implementation. Existing REST paths are retained; `/operator/` is a domain label,
-not a login requirement. Only fictional demo data/actions are publicly exposed.
+not an alternative API namespace. Supabase Auth and facility membership protect
+all operator routes; only health/liveness is public.
 
 | Method/path | Behavior |
 | --- | --- |
-| `GET /api/operator/rooms` | Public demo room summaries, health, incident and attention counts |
+| `GET /api/operator/rooms` | Authorized demo room summaries, health, incident and attention counts |
 | `GET /api/operator/rooms/:id` | Demo room/device detail and recent incident references |
 | `GET /api/operator/incidents` | Filtered demo history; proposed cursor pagination, default 25/max 100 |
 | `GET /api/operator/incidents/:id` | Facts, lifecycle, explanation, notes and allowed notification history |
-| `PATCH /api/operator/incidents/:id` | Validated visitor demo state transition, disposition or note |
-| `GET /api/devices/status` | Public demo device/serial/model/network health; no secrets |
-| `POST /api/operator/incidents/:id/notifications` | Explicit visitor-approved dispatch to preconfigured consented demo recipients |
+| `PATCH /api/operator/incidents/:id` | Authorized operator state transition, disposition or note |
+| `GET /api/devices/status` | Authorized demo device/serial/model/network health; no secrets |
+| `POST /api/operator/incidents/:id/notifications` | Explicit operator-approved dispatch to preconfigured consented demo recipients |
 | `GET /api/operator/stream` | Superseded proposal; use demo-scoped Supabase Realtime instead, not a second required stream |
 
 Proposed mutation example:
@@ -814,8 +835,8 @@ Proposed mutation example:
 ```
 
 Require demo-only object access, allowed state transitions, optimistic revision
-checks, audit and idempotency for mutations. No visitor login or staff permission
-is required; an audit actor must not be represented as authenticated staff.
+checks, audit and idempotency for mutations. Require a verified Supabase Auth JWT and facility membership.
+Audit the account subject; do not claim individual staff identity for a shared login.
 A retry must not duplicate a note or notification. A successful incident response includes ID, room,
 status, revision, detection/receipt times, explanation status and allowed actions;
 final detailed response schemas remain proposed and require Chace/Kiro agreement.
@@ -826,8 +847,7 @@ Proposed error envelope:
 {"error":{"code":"state_conflict","message":"Incident changed; refresh before retrying.","request_id":"opaque-id"}}
 ```
 
-Use `400` invalid payload, `401` invalid/missing device credentials where
-authentication is required, `403` forbidden operation, `404` absent or non-demo
+Use `400` invalid payload, `401` invalid/missing operator or device credentials, `403` forbidden operation, `404` absent or non-demo
 object, `409` revision/state conflict, `429` rate limit and
 `503` transient outage. Never expose credentials or private contact destinations
 in errors. Proposed live updates carry update ID, entity ID, type and revision
@@ -837,49 +857,39 @@ snapshots/history; durable live-message replay is not promised for MVP.
 
 ## 24. Privacy, Safety and Security
 
-The MVP website is public and has no operator authentication. This approval
-supersedes the earlier staff RBAC and family exclusion from dashboard access.
+Supabase Auth is required for operator REST and Realtime. A shared fictional demo
+operator account is acceptable; no anonymous database subscription or operator
+mutation is allowed. This explicitly supersedes ADR-018's public demo access.
 
 | Principal | Required boundary |
 | --- | --- |
-| Device | Authenticated; submit its own events/health and receive its own ACKs |
-| Any demo visitor | View fictional demo data; perform incident actions and explicitly approve consented demo notifications |
-| Backend/worker | Hold service credentials; access persistence, Gemini and Photon; validate all operations |
-| Notification recipient | Preconfigured consented demo contact; private destination not exposed through public interfaces |
+| Device | Authenticated WSS, own events/health/ACKs and assigned room |
+| Operator | Valid Supabase JWT plus facility membership; scoped reads/actions |
+| Backend/worker | Server-held PostgreSQL, Gemini and Photon credentials |
+| Family recipient | Preconfigured consented demo contact; private destination not exposed |
 
-Keep facility/room relationships and enforce the demo-dataset boundary on every
-REST object, public projection and subscription. Supabase RLS is required for
-directly accessible tables/subscriptions; proxied operations enforce equivalent
-server-side restrictions. Public access is not unrestricted access to internal
-tables, credentials, recipient destinations or deployment configuration. Do not
-introduce an operator-login gate. Preserve validation, revision checks, mutation
-idempotency, rate limits and explicit notification approval. Audit visitor actions
-as unverified demo actors. Final anonymous-access/RLS policy details require
-Chace/Kiro agreement and verification.
+Railway verifies JWT signature, issuer, audience, expiry and role, then checks
+facility/object authorization. Realtime uses the operator session JWT and RLS;
+add approved tables explicitly to the publication. No privileged Supabase keys in
+browser bundles or on QNX. Use TLS, secret environment configuration and redacted
+logs. Direct PostgreSQL backend access must enforce the same object authorization
+in server queries; database owner privileges do not replace these checks.
 
-Use WSS/TLS, revocable device credentials and server-side environment secrets for
-Railway, Supabase, Gemini and Photon. Never put privileged Supabase credentials in
-Vercel browser bundles or on QNX. Redact tokens/contact numbers from logs and
-persist approval trails. CSI remains sensitive movement data even without cameras.
+Keep event validation, optimistic revisions, rate limits, consent, explicit review
+of exact recipient/text, audit and notification idempotency. Acknowledgment and
+Gemini output never authorize dispatch. Audit account identity honestly when a
+shared operator account is used. Fictional residents/static layouts only; the CNN
+cannot locate a person within a room or diagnose injury.
 
-Demo uses staged events and fictional residents/rooms, never actual resident data.
-Use verified consented demo contacts. Separate family and operator DTOs; family
-inputs/outputs exclude experimental scores and technical diagnostics. No component
-may invent resident condition or imply emergency services were contacted.
-
-Retention is TBD with team approval. Proposed demo backend retention: seven days
-for events, explanations, incidents, notification records and audit, followed by
-deletion of derived copies; confirm audit needs, backups and host expiry before
-adoption. Dataset permissions/retention and Model 2 provider retention are separate
-verification items. No production compliance or clinical safety claim is made.
-
-Failure recovery must expose sensing loss, stale UI, unavailable models, queued
-undelivered events and notification uncertainty. A disconnected sensor is not
-evidence of safety, and lack of an alert is not proof no fall occurred.
+Retention remains TBD. Proposed demo retention is seven days, pending approval
+of audit/backups/deletion needs; dataset and provider retention require separate
+verification. No clinical validation or production compliance is claimed. Faults,
+stale data, outbox loss and uncertain delivery must remain visible.
 
 ## 25. MVP Acceptance Criteria
 
-All criteria below are **Unverified**; no implementation evidence exists. Dataset
+All full-system criteria below are **Unverified**; the local foundation checks
+in Section 29 do not establish these integrations. Dataset
 inspection is **Blocked** by the observed access failure. No criterion is marked
 implemented or partial merely because this specification describes it.
 
@@ -894,10 +904,10 @@ implemented or partial merely because this specification describes it.
 | 7 | Temporal logic produces a grouped inference event with binary confidence scores | Chloe |
 | 8 | Pi sends the approved seven-field v2 event through authenticated WSS | Chloe + Chace; Chace leads ingestion validation |
 | 9 | Railway transactionally persists one event, incident and pending job in Supabase before ACK; retries deduplicate | Chace |
-| 10 | Public Vercel dashboard displays the incident without login or waiting for Gemini | Kiro |
-| 11 | Any visitor acknowledges and resolves; responding/false-alarm/notes work without login | Kiro + Chace; Kiro leads UI validation |
+| 10 | Public Vercel dashboard displays the incident after authorized login, without waiting for Gemini | Kiro |
+| 11 | Authorized operator acknowledges and resolves; responding/false-alarm/notes work | Kiro + Chace; Kiro leads UI validation |
 | 12 | Railway worker calls Gemini with persisted facts, validates/persists the explanation and updates Realtime; failure gives deterministic fallback | Chace |
-| 13 | Explicit visitor-approved Photon contact succeeds to a preconfigured consented demo recipient | Photon lead TBD |
+| 13 | Explicit operator-approved Photon contact succeeds to a preconfigured consented demo recipient | Photon lead TBD |
 
 P1 roadmap classification of explanations/Photon does not remove criteria 12–13
 from the complete MVP demonstration. Also verify pending jobs recover after
@@ -911,8 +921,8 @@ labeled and cannot establish a live integration it replaces.
 
 ## 26. Testing and Validation
 
-No test tooling or runnable build/train/test commands are present. These are
-planned checks, not tests executed by this task.
+The validation matrix below defines required integration evidence. Foundation
+checks are recorded separately in Section 29; they do not establish live providers.
 
 | Layer | Planned meaningful checks |
 | --- | --- |
@@ -920,13 +930,13 @@ planned checks, not tests executed by this task.
 | Hardware | TX/RX stability, packet integrity, measured sample rate, sustained capture, USB disconnect/reconnect and timestamp continuity |
 | QNX | Model load, operator compatibility, Keras/export/QNX output comparison, memory, inference time and sustained real-time windows |
 | Backend | Authenticated WSS, malformed messages, duplicate/conflicting IDs, lost ACKs, reconnect/restart, incident persistence, lifecycle concurrency, transactional pending work, post-commit ACK, Gemini outage, bounded retries, lease expiry/stale worker, idempotent completion and restart recovery |
-| Frontend | Multiple fixture room cards, detail navigation, live/stale/offline states, acknowledgment/responding/resolution, false alarm, notes and conflict recovery, no-login use, immediate pending incidents and Realtime explanation updates/reconnect refetch |
+| Frontend | Multiple fixture room cards, detail navigation, live/stale/offline states, acknowledgment/responding/resolution, false alarm, notes and conflict recovery, Supabase login and facility scope, immediate pending incidents and Realtime explanation updates/reconnect refetch |
 | Notifications | Unauthorized/revoked contact rejection, content re-review, idempotency, provider outage, ambiguous submit and duplicate callbacks if supported |
-| Security | Public demo actions without login, non-demo/private-data denial in REST and Realtime/RLS, device identity mismatch, recipient allowlist enforcement and secret redaction |
+| Security | Missing/invalid JWT and unauthorized facility denial in REST and Realtime/RLS, device identity mismatch, recipient allowlist enforcement and secret redaction |
 
 Full-system rehearsal: normal movement produces no alert in the tested trial;
 a controlled staged fall yields local QNX inference, WSS event, persisted incident,
-dashboard update, grounded explanation, explicit visitor review/approval and Photon delivery
+dashboard update, grounded explanation, explicit operator review/approval and Photon delivery
 evidence. Record false alerts and misses from broader evaluation; one successful
 rehearsal is not an accuracy guarantee. Exercise serial/backend/LLM/Photon outages
 and recoveries, marking real hardware versus synthetic fixture evidence.
@@ -948,7 +958,7 @@ observed duration, hardware/software versions and limitations.
 | Railway deployment incompatible | Verify WSS, worker lifecycle, restart/storage/network and operational limits early; any alternate host requires a documented decision, not a laptop dependency |
 | Supabase/Realtime unavailable | QNX bounded retry if persistence fails; no success ACK without commit; frontend refetches durable history when service returns |
 | Worker crash or multiple instances | Database-backed claims/leases and conditional idempotent completion recover unfinished work |
-| Public demo misuse | Enforce demo-only data, validated/revisioned actions, rate limits, private recipient allowlist and explicit notification approval; do not claim staff attribution |
+| Shared demo account misuse | Supabase Auth, facility authorization/RLS, validated actions, rate limits, private recipient allowlist and explicit approval; shared login is not individual staff attribution |
 | Photon unavailable | Preserve approved payload and status, demonstrate review workflow, disclose no real call/message occurred |
 | Poor live performance | Report actual results and collect better data; use clearly labeled recorded replay for fallback presentation, never as live evidence |
 | Backend/network outage | Continue local inference and bounded outbox; reconnect/retry stable IDs; expose losses and stale monitoring |
@@ -960,6 +970,39 @@ contact. No fallback justifies unsupported medical or sponsor-success claims.
 
 ## 28. Implementation Roadmap
 
+### Docker development and validation
+
+Use Docker Compose for the Node/pnpm toolchain, app development and automated
+foundation checks; no host Node/pnpm installation is required. Commit the Dockerfile,
+Compose configuration and pinned lockfile. PostgreSQL migration/RLS checks run in
+an isolated disposable database with a clearly labeled test-only Supabase auth
+bootstrap. They do not establish live Supabase Auth, Realtime or provider deployment.
+QNX and Python keep independent toolchains; Docker tests never replace actual
+Pi/QNX TLS networking, native schema parity or inference validation. Local developer
+containers are not production runtime intermediaries.
+
+
+
+### Monorepo implementation slices
+
+1. Foundation: pnpm workspace, authoritative schemas/generated contracts/fixtures,
+   migrations, Supabase operator auth/facility policies, Fastify and React/Vite shells.
+   Verify typecheck, lint, builds, contract tests, migration and authorization tests.
+2. First vertical slice: durable WSS ingestion through Railway/Supabase to Vercel,
+   retry/idempotency and scoped Realtime. As soon as a basic WSS server exists,
+   Chloe sends a synthetic event from the actual Pi running QNX with authenticated
+   TLS; record this independently of CNN integration and desktop simulations.
+3. Enrichment/workflows: durable Gemini worker/fallback, full incident actions and
+   reviewed Photon dispatch with recovery tests.
+
+Use apps/backend, apps/web and packages/contracts as initial TypeScript workspaces;
+keep supabase migrations outside application code. Add tools/simulator, edge/qnx,
+ml and hardware content when real work needs them, without empty future modules.
+JSON Schema is authoritative; generate TypeScript types and validate JS with Ajv.
+QNX needs a compatible native validator or native rules, tested against the same
+valid/invalid fixtures. Types/fixtures alone never prove native compatibility.
+
+
 Priorities below follow the team's supplied order. Some P1 work remains mandatory
 for the full MVP acceptance; prioritize core infrastructure first, then finish the
 required explanation and notification flow before claiming the complete MVP.
@@ -970,7 +1013,7 @@ required explanation and notification flow before claiming the complete MVP.
 | P0 | CNN training and evaluation | Group-aware splits, baseline training, honest held-out report and versioned artifacts |
 | P0 | QNX inference | Verified eligible runtime, real USB windows and output parity on Pi/QNX |
 | P0 | Supabase schema and Railway Node.js/TypeScript backend | Provision services, authenticated QNX WSS, transactional event/incident persistence, health, REST and synthetic end-to-end event flow |
-| P0 | Public Vercel dashboard and Supabase Realtime | Demo-only access, room overview/detail, snapshot/reconnect recovery and incident lifecycle without login |
+| P0 | Authenticated Vercel dashboard and Supabase Realtime | Supabase Auth, facility RLS/publication, room overview/static plan and reconnect recovery |
 | Optional / separate | Veri fine-tuning investigation | Compatible open-source model, documented training/comparison and mentor-confirmed sponsor evidence; not required for MVP inference |
 | P1 | Durable Gemini integration | Pending-work claims/leases, structured output validation/persistence, retries/fallback, restart recovery and frontend explanation updates |
 | P1 | Complete incident actions and Photon | Lifecycle correctness and explicitly reviewed/approved consented demo contact with delivery evidence |
@@ -987,9 +1030,9 @@ required explanation and notification flow before claiming the complete MVP.
    and exports versioned model/configuration artifacts.
 4. Chace implements the confirmed seven-field event ingestion with authentication,
    durable transactional event/incident persistence in Supabase, incident lifecycle,
-   health and agreed public demo REST/Realtime interfaces on Railway.
+   health and agreed authenticated demo REST/Realtime interfaces on Railway.
 5. Kiro integrates the Paper-designed room/incident UI; Chace and the named Photon
-   lead complete durable Gemini explanations and visitor-reviewed demo contact for
+   lead complete durable Gemini explanations and operator-reviewed demo contact for
    end-to-end rehearsal on Vercel.
 
 Synthetic contract fixtures can unblock backend/UI work while hardware/ML work
@@ -998,35 +1041,29 @@ presentation. Assign Photon and integration leads immediately.
 
 ## 29. Current Repository Implementation Status
 
-Inspection baseline for application source: `8aa999b1047197c01b8813d917429e43ff66b860`.
-Prior specification commit: `b428a4d`. The earlier inspection concerned the local
-`docs/project-spec` branch. For this approved delta, main was pulled at `20ab349`;
-tracked files remain documentation only. This verifies repository contents, not
-external deployments, hardware, data access or provider integration. The earlier
-dataset-access observation below has not been retested.
+The repository was pulled at `cc6da98` before the foundation work. Earlier source
+baselines (`8aa999b`, `b428a4d`, `20ab349`) describe documentation-only history.
+The current scaffold adds source and local checks; it is not deployment evidence.
+The previous dataset-access 404 observation has not been retested by this work.
 
-| Existing relative path | Observed evidence |
+| Component / source | Current boundary |
 | --- | --- |
-| [README.md](README.md) | Project overview, setup placeholders and spec-change process |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Branch/PR workflow, Conventional Commits and validation expectations |
-| [AGENTS.md](AGENTS.md) | Repository working instructions |
-| [SPEC.md](SPEC.md) | Compatibility pointer to this canonical specification |
-| [PROJECT_SPEC.md](PROJECT_SPEC.md) | This architecture/planning document; not implementation evidence |
+| [packages/contracts](packages/contracts) | Authoritative JSON Schemas, generated TS, Ajv validators and synthetic event fixtures; native QNX parity unverified |
+| [apps/backend/src](apps/backend/src) | Fastify liveness and scoped room API, JWT verification and pg transaction helper; no WSS ingestion/ACK yet |
+| [apps/web/src](apps/web/src) | React/Vite setup/login/room shell; Supabase client and room subscription; no live provider evidence |
+| [supabase/migrations](supabase/migrations) | Foundation tables, database constraints, operator facility RLS and rooms/incidents publication membership |
+| [supabase/tests](supabase/tests) | Plain PostgreSQL test-only Supabase role/auth bootstrap; not live Auth/Realtime validation |
+| [Dockerfile](Dockerfile), [compose.yaml](compose.yaml) | Node/pnpm toolchain and disposable PostgreSQL validation; no host Node needed |
+| [.github/workflows/ci.yml](.github/workflows/ci.yml) | Docker foundation workflow; writing it is not evidence of a remote CI run |
+| Firmware, dataset, training, QNX runtime/model | Not implemented/verified in this repository; no data downloaded or training started |
+| Gemini worker, explanations, incident actions, Photon | Later slices; no working integration claimed |
+| Railway/Vercel/hosted Supabase | Not provisioned or verified by scaffold work |
 
-| Component | Status from repository evidence |
-| --- | --- |
-| Firmware, CSI parser, collection code | Not implemented in this repository; external hardware work not yet verified |
-| Dataset schema/content | Blocked from inspection: GitHub contents returned 404; no clone/download |
-| Training notebooks/scripts, checkpoints, evaluation | Not present; no training/evaluation claimed |
-| QNX service, runtime module, exported model | Not present; compatibility and deployment not yet verified |
-| WSS/REST backend, database, auth, Model 2 | Not present |
-| Paper artifact and integrated frontend | Not present |
-| Veri job, Photon adapter/live delivery | Not present; not yet verified externally |
-| Dependency manifests, CI/build/test tooling | Not present; no application checks can be run |
-
-This task changes documentation only. It creates no feature code, training script,
-model, dataset, notification or deployment. No fabricated source paths are offered
-as implementation evidence.
+Validation commands and exact limits are recorded in [docs/development.md](docs/development.md).
+The isolated database check emulates only role/auth contracts and never proves
+live Supabase JWT issuance or Realtime delivery. A desktop synthetic event never
+proves actual QNX networking, CNN capability or end-to-end acceptance. Section 25
+remains future integration criteria; local foundation results are separate.
 
 ## 30. Open Questions and Decisions
 
@@ -1037,11 +1074,11 @@ as implementation evidence.
 | QNX image/BSP, USB driver, compiler/ABI, eligible catalog AI module and required operators | Chloe + QNX mentor |
 | LiteRT/TFLite versus ONNX and artifact host/checksum/configuration format | Chloe |
 | Separate optional Veri model/path compatibility, licenses, challenge rules and documented training/submission evidence | Chloe/Chace + Veri mentor |
-| Railway deployment feasibility/configuration, Supabase schema/transactions, public demo RLS/projections, API bodies, health and concurrency details | Chace + Kiro |
+| Railway deployment feasibility/configuration, Supabase schema/transactions, authenticated demo RLS/projections, API bodies, health and concurrency details | Chace + Kiro |
 | Durable explanation claim/lease SQL, timeout/retry limits, recovery and idempotent completion | Chace |
 | Gemini model/version, structured-output/API configuration, privacy/retention, exact prompt and evaluation set | Chace |
-| Paper design access/link, frontend framework, Vercel deployment and Realtime demo-access configuration | Kiro + Chace |
-| Patient-to-room assignment schema, if needed; no localization capability assumed | Team |
+| Paper design access/link, React/Vite implementation, Vercel deployment and Realtime demo-access configuration | Kiro + Chace |
+| Static room-layout DTO/coordinate units and historical patient-assignment presentation; no localization inferred | Kiro + Chace |
 | Photon lead, exact provider/API, calling/messaging/TTS, delivery evidence and idempotency | Team assigns lead + Photon mentor |
 | Integration coordinator, deadlines, consented recipient, final demo retention and deletion process | Entire team; lead TBD |
 
@@ -1070,13 +1107,22 @@ documented evidence supports a decision.
 | ADR-015 / 2026-10-17 | Approved selection, not verified implementation: Require transactional pending work, leases, bounded retries and recovery | Incident publication and ACK do not wait for Gemini; prevent inconsistent duplicate completion |
 | ADR-016 / 2026-10-17 | Approved selection, not verified implementation: Supersede MVP Model 2 SFT; separate optional unverified open-source training effort | Gemini inference does not prove Veri eligibility; preserves unrelated sponsor work |
 | ADR-017 / 2026-10-17 | Approved selection, not verified implementation: Supersede ADR-004 v1 with seven-field v2 inference_result and confidence_scores | Approved schema change; binary classifier unchanged; retained v1 endpoint requires explicit payload agreement |
-| ADR-018 / 2026-10-17 | Approved selection, not verified implementation: No operator login; visitors can perform demo actions and explicitly approve consented demo notifications | Supersedes staff RBAC/dashboard exclusion in ADR-009 for demo; preserves device auth, consent, audit and idempotency |
+| ADR-018 / 2026-10-17 | Historical; superseded by ADR-021: No operator login; visitors can perform demo actions and explicitly approve consented demo notifications | Supersedes staff RBAC/dashboard exclusion in ADR-009 for demo; preserves device auth, consent, audit and idempotency |
+| ADR-019 / 2026-10-17 | Approved: pnpm TypeScript workspaces, React/Vite frontend, Fastify + @fastify/websocket backend | Two deployable apps; worker stays in backend; QNX/Python independent; grow incrementally |
+| ADR-020 / 2026-10-17 | Approved: direct PostgreSQL via pg with single-client explicit transactions | Atomic event/incident/job persistence, database uniqueness and payload comparison on retry |
+| ADR-021 / 2026-10-17 | Approved: Supabase Auth operator JWT, Railway facility authorization and Realtime RLS/publication | Supersedes ADR-018 public access; shared demo account acceptable, not individual staff identity |
+| ADR-022 / 2026-10-17 | Approved: fictional patients, timestamped room assignments and static room geometry | Supports top-down room view; Kiro finalizes DTO/units; no inferred patient localization |
+| ADR-023 / 2026-10-17 | Approved: authoritative JSON Schema, generated TypeScript types and shared native-consumable fixtures | Preserve seven-field v2 from ADR-017; review's v1 reference is stale; native parity requires actual QNX tests |
+| ADR-024 / 2026-10-17 | Approved: early actual Pi/QNX TLS WSS smoke milestone before CNN integration | Synthetic event tests networking independently; desktop simulator is not hardware evidence |
+| ADR-025 / 2026-10-17 | Approved: Docker Compose for Node/pnpm development and foundation validation | User requested Docker; disposable PostgreSQL tests, independent QNX/Python, no host Node requirement |
 
 The user explicitly approved this delta after reviewing the proposal. See
 [deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md](deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md)
 for previous/revised requirements, rationale and preserved contracts. Historical
 ADRs retain their original rationale; the superseding entries above govern the MVP.
 Approval of architecture is not evidence of provider integration or sponsor eligibility.
+
+The approved scaffold-review amendment is recorded in [deltas/2026-10-17T22-01-59Z-authenticated-monorepo-foundation.md](deltas/2026-10-17T22-01-59Z-authenticated-monorepo-foundation.md).
 
 ## 32. How to Maintain This Specification
 

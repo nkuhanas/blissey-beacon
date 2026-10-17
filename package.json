@@ -1,0 +1,30 @@
+{
+  "name": "blissey-beacon",
+  "private": true,
+  "packageManager": "pnpm@10.34.7",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "dev:backend": "pnpm --filter @blissey/backend dev",
+    "dev:web": "pnpm --filter @blissey/web dev",
+    "contracts:generate": "pnpm --filter @blissey/contracts generate",
+    "contracts:check": "pnpm --filter @blissey/contracts generate:check",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint .",
+    "test": "pnpm -r test",
+    "test:db": "pnpm --filter @blissey/backend test:db",
+    "check": "pnpm contracts:check && pnpm --filter @blissey/contracts build && pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm build",
+    "format": "prettier --write apps packages/contracts/src/index.ts packages/contracts/tests packages/contracts/scripts eslint.config.mjs",
+    "format:check": "prettier --check apps packages/contracts/src/index.ts packages/contracts/tests packages/contracts/scripts eslint.config.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.13.0",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.10",
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.0.0"
+  }
+}
