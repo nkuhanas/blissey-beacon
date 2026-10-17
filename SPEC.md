@@ -1,27 +1,12 @@
 # Project Specification
 
-Status: Placeholder. The TODOs below are not established requirements.
+The canonical specification is [PROJECT_SPEC.md](PROJECT_SPEC.md). Read it for
+scope, architecture, interfaces, data handling, model training, ownership,
+implementation priorities, validation, and open decisions.
 
-## Goals and scope
+This file remains the entrypoint for existing repository instructions and links;
+it does not define a separate set of requirements. The previous placeholder TODOs
+were not established requirements.
 
-TODO: Define the problem, intended users, goals, and non-goals.
-
-## Requirements
-
-TODO: Describe expected behavior, constraints, and acceptance criteria.
-
-## Architecture and interfaces
-
-TODO: Document components, responsibilities, data flows, and interface contracts.
-
-## Data and privacy
-
-TODO: Define data formats, collection, storage, access, and retention requirements.
-
-## Validation
-
-TODO: Define how correctness and project success will be measured.
-
-## Milestones and open questions
-
-TODO: Outline development slices and record unresolved decisions.
+Follow the specification-change workflow in [README.md](README.md) for work that
+contradicts the canonical specification.
