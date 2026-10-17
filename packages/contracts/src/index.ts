@@ -5,6 +5,7 @@ import health from "../schemas/device-health.json" with { type: "json" };
 import ack from "../schemas/event-ack.json" with { type: "json" };
 import error from "../schemas/event-error.json" with { type: "json" };
 import explanation from "../schemas/explanation.json" with { type: "json" };
+import incident from "../schemas/incident.json" with { type: "json" };
 import room from "../schemas/room.json" with { type: "json" };
 import type {
   InferenceEvent,
@@ -13,6 +14,7 @@ import type {
   EventError,
   Explanation,
   Room,
+  Incident,
 } from "./generated.js";
 export type * from "./generated.js";
 const ajv = new AjvModule.default({ allErrors: true, strict: true });
@@ -36,3 +38,6 @@ export function isInferenceEvent(value: unknown): value is InferenceEvent {
     ) <= 1e-6
   );
 }
+
+export const validateIncident: ValidateFunction<Incident> =
+  ajv.compile(incident);

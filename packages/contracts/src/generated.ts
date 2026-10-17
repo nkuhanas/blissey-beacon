@@ -33,6 +33,29 @@ export interface Explanation {
   recommended_action: string;
 }
 
+export interface Incident {
+  id: string;
+  event_id: string;
+  room_id: string;
+  facility_id: string;
+  device_id: string;
+  status: "pending" | "acknowledged" | "responding" | "resolved";
+  revision: number;
+  detected_at: string;
+  received_at: string;
+  created_at: string;
+  confidence_scores: {
+    fall: number;
+    non_fall: number;
+  };
+  sensor_status: "connected";
+  explanation_status: "pending" | "ready" | "fallback";
+  /**
+   * @maxItems 0
+   */
+  allowed_actions: [];
+}
+
 export interface InferenceEvent {
   event_id: string;
   room_id: string;

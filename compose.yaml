@@ -9,6 +9,7 @@ services:
       - backend_dependencies:/workspace/apps/backend/node_modules
       - web_dependencies:/workspace/apps/web/node_modules
       - contracts_dependencies:/workspace/packages/contracts/node_modules
+      - simulator_dependencies:/workspace/tools/simulator/node_modules
       - pnpm_store:/pnpm/store
     environment:
       CI: "true"
@@ -51,3 +52,4 @@ volumes:
   web_dependencies:
   contracts_dependencies:
   pnpm_store:
+  simulator_dependencies:

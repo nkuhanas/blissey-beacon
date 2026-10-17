@@ -3,12 +3,16 @@ import { createRoot } from "react-dom/client";
 import type { Session } from "@supabase/supabase-js";
 import { validateRoom, type Room } from "@blissey/contracts";
 import { apiUrl, facilityId, supabase } from "./client";
+import { fetchIncidents, subscribeToIncidents } from "./incidents";
+import type { Incident } from "@blissey/contracts";
 import "./style.css";
 function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [checking, setChecking] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [incidentStale, setIncidentStale] = useState(true);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -94,6 +98,45 @@ function App() {
       void supabase!.removeChannel(channel);
     };
   }, [session]);
+  useEffect(() => {
+    setIncidents([]);
+    setIncidentStale(true);
+    if (!session || !supabase) return;
+    const controller = new AbortController();
+    let revision = 0;
+    const refresh = () => {
+      const current = ++revision;
+      void fetchIncidents(
+        apiUrl,
+        session.access_token,
+        facilityId,
+        controller.signal,
+      )
+        .then((rows) => {
+          if (!controller.signal.aborted && current === revision) {
+            setIncidents(rows);
+          }
+        })
+        .catch(() => {
+          if (!controller.signal.aborted) setIncidentStale(true);
+        });
+    };
+    refresh();
+    const stop = subscribeToIncidents(
+      supabase,
+      facilityId,
+      refresh,
+      (stale) => {
+        if (!controller.signal.aborted) setIncidentStale(stale);
+      },
+    );
+    window.addEventListener("online", refresh);
+    return () => {
+      controller.abort();
+      stop();
+      window.removeEventListener("online", refresh);
+    };
+  }, [session]);
   async function login(event: React.FormEvent) {
     event.preventDefault();
     if (!supabase) return;
@@ -138,8 +181,8 @@ function App() {
             sign-in.
           </p>
           <p>
-            Hardware sensing, incident ingestion, explanations and notifications
-            are not connected in this scaffold.
+            Configure the backend and database to receive synthetic events.
+            Explanations and notifications are not implemented.
           </p>
         </section>
       ) : checking ? (
@@ -207,6 +250,25 @@ function App() {
               No rooms loaded. Provision facility membership and apply the demo
               seed.
             </p>
+          )}
+          <h2>Recent incidents</h2>
+          <p className="muted">
+            {incidentStale
+              ? "Live updates unavailable; showing the latest loaded history."
+              : "Live incident updates connected."}
+          </p>
+          {incidents.length ? (
+            <ul>
+              {incidents.map((incident) => (
+                <li key={incident.id}>
+                  {incident.room_id} · {incident.status} ·{" "}
+                  {new Date(incident.detected_at).toLocaleString()} ·
+                  Explanation {incident.explanation_status}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>No incidents loaded.</p>
           )}
         </section>
       )}

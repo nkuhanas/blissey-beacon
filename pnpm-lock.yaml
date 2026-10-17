@@ -46,13 +46,25 @@ importers:
       pg:
         specifier: ^8.0.0
         version: 8.23.1
+      ws:
+        specifier: ^8.18.0
+        version: 8.22.0
     devDependencies:
+      "@blissey/simulator":
+        specifier: workspace:*
+        version: link:../../tools/simulator
+      "@supabase/realtime-js":
+        specifier: ^2.0.0
+        version: 2.118.0
       "@types/node":
         specifier: ^24.0.0
         version: 24.19.2
       "@types/pg":
         specifier: ^8.0.0
         version: 8.23.1
+      "@types/ws":
+        specifier: ^8.18.0
+        version: 8.18.2
       tsx:
         specifier: ^4.0.0
         version: 4.23.15
@@ -100,6 +112,25 @@ importers:
       json-schema-to-typescript:
         specifier: ^15.0.0
         version: 15.0.4
+      tsx:
+        specifier: ^4.0.0
+        version: 4.23.15
+
+  tools/simulator:
+    dependencies:
+      "@blissey/contracts":
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      ws:
+        specifier: ^8.18.0
+        version: 8.22.0
+    devDependencies:
+      "@types/node":
+        specifier: ^24.0.0
+        version: 24.19.2
+      "@types/ws":
+        specifier: ^8.18.0
+        version: 8.18.2
       tsx:
         specifier: ^4.0.0
         version: 4.23.15
@@ -1062,6 +1093,12 @@ packages:
     resolution:
       {
         integrity: sha512-N0rFCuH9YoxG9/m61l9MfpJKfmLOVU0em7ipIz6TRgSSkvReLB9vL85GB+yr8Bs5leqpvg96JSwF4ZS1s4viQg==,
+      }
+
+  "@types/ws@8.18.2":
+    resolution:
+      {
+        integrity: sha512-67MQl+fpWKVTT1NYdnmo3U4sc/xPo/zQBncVnI74qmQa0z/b+1g6iYqNmGCPbxO+zz2aklb08a0oHfegiVd0/w==,
       }
 
   "@typescript-eslint/eslint-plugin@8.71.2":
@@ -2857,6 +2894,10 @@ snapshots:
   "@types/react@19.3.0":
     dependencies:
       csstype: 3.2.3
+
+  "@types/ws@8.18.2":
+    dependencies:
+      "@types/node": 24.19.2
 
   "@typescript-eslint/eslint-plugin@8.71.2(@typescript-eslint/parser@8.71.2(eslint@10.13.0)(typescript@5.9.3))(eslint@10.13.0)(typescript@5.9.3)":
     dependencies:
