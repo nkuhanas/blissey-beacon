@@ -2,7 +2,7 @@
 
 Event: LA Hacks 2026. Last updated: 2026-10-17.
 Document steward: Chloe (proposed); component owners review their contracts.
-Status: authoritative implementation specification; Slice 2 source present; hosted/hardware integration unverified.
+Status: authoritative implementation specification; hosted synthetic Slice 2 verified; hardware integration unverified.
 
 **Confirmed** means selected in the complete team request, not proven operational.
 **Proposed** means an implementation detail awaiting owner agreement. **TBD / Not
@@ -25,8 +25,9 @@ fall detector, medical diagnosis tool, or emergency response device. It is not
 suitable for unsupervised medical safety monitoring.
 
 The repository now contains Slice 2 ingestion, incident reads, simulator and local
-Docker verification. This is not evidence of a deployed hardware sensing system. No trained model, hosted deployment
-or successful sponsor integration is evidenced. Section 29 records source paths
+Docker verification. Hosted synthetic ingestion and dashboard integration were
+verified on 2026-10-17. This is not evidence of a deployed hardware sensing system,
+trained model or successful sponsor integration. Section 29 records source paths
 and exact verification limits.
 
 ## 2. Product Goals and Non-Goals
@@ -104,8 +105,9 @@ independent microservice. The ESP32 receiver does not run Model 1. Model 1 and
 temporal grouping stay on QNX. Only structured
 inference events and device health travel to the backend; QNX has no direct
 database access. No MacBook intermediary, developer laptop, home GPU node or
-self-hosted generative inference is required at runtime. Railway deployment
-feasibility and operational compatibility still require verification.
+self-hosted generative inference is required at runtime. Railway Docker deployment
+and synthetic WSS/REST integration are verified; worker operation and actual QNX
+compatibility still require verification.
 
 ## 5. Hardware and Network Architecture
 
@@ -115,7 +117,8 @@ The website domain is **blissey-beacon.health**, targeting Vercel. The planned
 Railway API subdomain is **api.blissey-beacon.health**, with secure device endpoint
 `wss://api.blissey-beacon.health/api/devices/v1/stream`. Supabase uses its assigned
 project URL for Auth/Realtime/database connectivity. DNS, certificates and provider
-configuration remain unverified until deployment evidence exists. Root `.env.example`,
+configuration are recorded with scoped synthetic evidence in
+[docs/deployment-verification.md](docs/deployment-verification.md). Root `.env.example`,
 `vercel.json`, `railway.json`, the production backend Dockerfile and
 [docs/deployment.md](docs/deployment.md) provide the setup handoff. The provisioned
 Supabase production project is not modified by local verification.
@@ -155,20 +158,21 @@ selected providers are not evidence of deployment or integration.
 | Model 1 training | Google Colab, Python, NumPy, TensorFlow/Keras, Scikit-learn | Confirmed; versions TBD |
 | Model 1 baseline | Custom lightweight 1D CNN, random initialization | Confirmed; no pretrained checkpoint |
 | Edge inference format | LiteRT/TensorFlow Lite if supported; ONNX alternative | Candidates; QNX runtime/operator support not yet verified |
-| Backend hosting/runtime | Railway, Node.js / TypeScript, Fastify + `@fastify/websocket`; single deployment | Selected; deployment feasibility unverified |
-| Database | Supabase PostgreSQL | Selected; foundation schema/transaction helper present; ingestion unimplemented |
-| Realtime | Supabase Realtime with operator JWT and facility RLS | Selected; publication and policies required; live deployment unverified |
+| Backend hosting/runtime | Railway, Node.js / TypeScript, Fastify + `@fastify/websocket`; single deployment | Docker deployment and synthetic WSS/REST verified; actual QNX unverified |
+| Database | Supabase PostgreSQL | Two migrations applied to approved demo project; synthetic event/incident/job persistence and deduplication verified |
+| Realtime | Supabase Realtime with operator JWT and facility RLS | Hosted authorized delivery and dashboard live update verified |
 | Persistence | Direct PostgreSQL via `pg` | Same checked-out client for BEGIN/COMMIT/ROLLBACK; database uniqueness |
 | Monorepo | pnpm workspaces for TypeScript only | Two deployable apps; independent QNX/Python toolchains |
 | Operator identity | Supabase Auth | Shared demo account acceptable; explicit facility membership |
-| UI | React/Vite browser demo on Vercel, implemented from Paper designs | Selected; Supabase Auth login required; deployment unverified |
+| UI | React/Vite browser demo on Vercel, implemented from Paper designs | Minimal deployed shell: login, room/history and live incident verified; full design/workflows remain pending |
 | Model 2 | Hosted Google Gemini API | Selected; model/version/configuration TBD; unverified |
 | Optional sponsor effort | Veri Studio with a compatible open-source model | Separate from MVP Gemini inference; eligibility unverified |
 | Family contact | Photon calling or messaging API | Planned; exact product/API/capabilities TBD |
 
 TypeScript dependency versions are pinned in pnpm-lock.yaml and the Docker
 toolchain. Setup/check commands are documented in docs/development.md. Training,
-QNX and hosted deployment versions/configuration remain to be verified.
+QNX configuration remains unverified; hosted demo settings and limits are recorded
+in docs/deployment-verification.md.
 
 ## 7. Dataset Format and Collection
 
@@ -715,11 +719,22 @@ relabel old incidents from the current room occupant.
 
 ## 19. Operator Dashboard
 
-Primary owner: Kiro / Frontend Team. Paper is the design tool; the actual frontend
-must be implemented on Vercel and connected to backend APIs and Supabase Realtime.
-The demo requires Supabase Auth and assigned facility membership. A scaffold
-login/room shell exists, but no Paper design artifact or design integration is
-evidenced. Record the design link and implementation handoff when available.
+Primary owner: Kiro / Frontend Team. Paper is the required frontend design tool.
+Create and maintain the dashboard's screen/component designs in Paper before
+implementing or materially redesigning their corresponding React/Vite views in
+`apps/web`. The runnable website remains deployed on Vercel and connected to the
+backend APIs and Supabase Realtime.
+
+The frontend handoff and relevant PRs must identify the Paper document and screen
+references, then compare the implemented views against those designs. Cover the
+facility plan, room/incident detail, actions and the UI states required below.
+Keep the Paper design and implemented UI aligned as those views change.
+
+The demo requires Supabase Auth and assigned facility membership. The deployed
+login/room/incident shell has verified synthetic integration, but remains a
+provisional interface. No Paper design artifact, design handoff or visual parity
+is evidenced yet; document access and screen references remain TBD. A successful
+deployment does not complete the Paper-designed frontend requirement.
 
 | View | Required content/actions |
 | --- | --- |
@@ -797,7 +812,7 @@ Assignments below are confirmed by the complete request, except explicit TBDs.
 | Emilia | Hardware and CSI collection | Working TX/RX, reproducible configuration, timestamped serial stream, recordings and schema evidence to Chloe |
 | Chloe | Model 1 and edge inference | Parsing/preprocessing, CNN training, evaluation, artifacts, QNX runtime, event-producing WSS client |
 | Chace | Model 2 and backend | Gemini explanations and durable jobs, Railway WSS/REST, Supabase persistence, demo notification approval |
-| Kiro / Frontend Team | Operator interface | Paper design, authenticated Vercel dashboard/detail, incident actions and Supabase Realtime/backend integration |
+| Kiro / Frontend Team | Operator interface | Paper document/screen handoff and matching React/Vite UI, authenticated Vercel dashboard/detail, incident actions and Supabase Realtime/backend integration |
 | TBD | Photon provider integration | Exact API/capability verification, consented recipient, dispatch/status adapter and live test |
 | Entire team | Integration, testing and presentation | End-to-end evidence, honest limitations and demo rehearsal; integration lead TBD |
 
@@ -967,7 +982,7 @@ checks are recorded separately in Section 29; they do not establish live provide
 | Hardware | TX/RX stability, packet integrity, measured sample rate, sustained capture, USB disconnect/reconnect and timestamp continuity |
 | QNX | Model load, operator compatibility, Keras/export/QNX output comparison, memory, inference time and sustained real-time windows |
 | Backend | Authenticated WSS, malformed messages, duplicate/conflicting IDs, lost ACKs, reconnect/restart, incident persistence, lifecycle concurrency, transactional pending work, post-commit ACK, Gemini outage, bounded retries, lease expiry/stale worker, idempotent completion and restart recovery |
-| Frontend | Multiple fixture room cards, detail navigation, live/stale/offline states, acknowledgment/responding/resolution, false alarm, notes and conflict recovery, Supabase login and facility scope, immediate pending incidents and Realtime explanation updates/reconnect refetch |
+| Frontend | Comparison against linked Paper screens, multiple fixture room cards, detail navigation, live/stale/offline states, acknowledgment/responding/resolution, false alarm, notes and conflict recovery, Supabase login and facility scope, immediate pending incidents and Realtime explanation updates/reconnect refetch |
 | Notifications | Unauthorized/revoked contact rejection, content re-review, idempotency, provider outage, ambiguous submit and duplicate callbacks if supported |
 | Security | Missing/invalid JWT and unauthorized facility denial in REST and Realtime/RLS, device identity mismatch, recipient allowlist enforcement and secret redaction |
 
@@ -1050,7 +1065,7 @@ required explanation and notification flow before claiming the complete MVP.
 | P0 | CNN training and evaluation | Group-aware splits, baseline training, honest held-out report and versioned artifacts |
 | P0 | QNX inference | Verified eligible runtime, real USB windows and output parity on Pi/QNX |
 | P0 | Supabase schema and Railway Node.js/TypeScript backend | Provision services, authenticated QNX WSS, transactional event/incident persistence, health, REST and synthetic end-to-end event flow |
-| P0 | Authenticated Vercel dashboard and Supabase Realtime | Supabase Auth, facility RLS/publication, room overview/static plan and reconnect recovery |
+| P0 | Paper-designed authenticated Vercel dashboard and Supabase Realtime | Linked Paper screens and matching React/Vite views, Supabase Auth, facility RLS/publication, room overview/static plan and reconnect recovery |
 | Optional / separate | Veri fine-tuning investigation | Compatible open-source model, documented training/comparison and mentor-confirmed sponsor evidence; not required for MVP inference |
 | P1 | Durable Gemini integration | Pending-work claims/leases, structured output validation/persistence, retries/fallback, restart recovery and frontend explanation updates |
 | P1 | Complete incident actions and Photon | Lifecycle correctness and explicitly reviewed/approved consented demo contact with delivery evidence |
@@ -1081,14 +1096,15 @@ presentation. Assign Photon and integration leads immediately.
 Slice 2 was implemented against current main `96efb9b`; the foundation work
 started from `cc6da98`. Earlier source
 baselines (`8aa999b`, `b428a4d`, `20ab349`) describe documentation-only history.
-The current scaffold adds source and local checks; it is not deployment evidence.
+The scaffold's source/local checks are distinct from the subsequent
+[hosted verification record](docs/deployment-verification.md), deployed from `c63a067`.
 The previous dataset-access 404 observation has not been retested by this work.
 
 | Component / source | Current boundary |
 | --- | --- |
 | [packages/contracts](packages/contracts) | Authoritative JSON Schemas, generated TS, Ajv validators and synthetic event fixtures; native QNX parity unverified |
 | [apps/backend/src](apps/backend/src) | Authenticated device stream, transactional event/incident/job persistence, post-commit ACK/deduplication, health and authorized incident/status read APIs |
-| [apps/web/src](apps/web/src) | Existing login/room shell plus minimal shared-DTO incident list/subscription/refetch; no hosted frontend verification |
+| [apps/web/src](apps/web/src) | Provisional login/room shell and shared-DTO incident list/subscription/refetch; hosted browser login, live arrival and logout verified; required Paper artifact/handoff and design parity unverified |
 | [supabase/migrations](supabase/migrations) | Foundation plus Slice 2 credentials/health and incident facility metadata; existing operator RLS/publication retained |
 | [supabase/tests](supabase/tests) | Plain PostgreSQL test-only Supabase role/auth bootstrap; not live Auth/Realtime validation |
 | [Dockerfile](Dockerfile), [compose.yaml](compose.yaml) | Node/pnpm toolchain and disposable PostgreSQL validation; no host Node needed |
@@ -1098,18 +1114,20 @@ The previous dataset-access 404 observation has not been retested by this work.
 | [tools/simulator](tools/simulator) | Canonical-fixture synthetic device client with stable retry IDs and bounded retries; not QNX evidence |
 | [compose.realtime.yaml](compose.realtime.yaml) | Isolated PostgreSQL + official Supabase Realtime test service with synthetic signed identities; never production |
 | [apps/backend/Dockerfile](apps/backend/Dockerfile), [railway.json](railway.json), [vercel.json](vercel.json) | Deployment setup artifacts; build validation is not hosted deployment or DNS/TLS verification |
-| Railway/Vercel/hosted Supabase | Supabase production is user-reported provisioned, but was not inspected or modified; hosted integration/deployment remains unverified |
+| Railway/Vercel/hosted Supabase | User explicitly approved the provisioned project for fictional demo setup; schema backup/migrations, Auth, TLS, synthetic ingestion, operator reads, Realtime and dashboard browser checks verified on 2026-10-17 |
 
 Validation commands and exact limits are recorded in [docs/development.md](docs/development.md).
 The ordinary isolated database check emulates only role/auth contracts. The separate
 local Realtime acceptance check runs the actual Realtime service and real logical
 replication with synthetic signed identities; it does not prove Supabase Auth JWT
 issuance, production configuration, or hosted integration. A desktop synthetic event never
-proves actual QNX networking, CNN capability or end-to-end acceptance. Section 25
+proves actual QNX networking, CNN capability or full hardware end-to-end acceptance. Section 25
 remains future full-system integration criteria. Local Slice 2 acceptance passed
 for simulator ingestion → one durable incident → authorized REST and actual
 Supabase Realtime delivery, with duplicate and no-membership exclusion checks.
-See docs/slice-2.md for the recorded test scope and results.
+See docs/slice-2.md for local test scope and results, and
+docs/deployment-verification.md for the separate hosted evidence. The hosted
+project uses fictional residents and two staged synthetic events, not live sensing.
 
 ## 30. Open Questions and Decisions
 
@@ -1120,10 +1138,10 @@ See docs/slice-2.md for the recorded test scope and results.
 | QNX image/BSP, USB driver, compiler/ABI, eligible catalog AI module and required operators | Chloe + QNX mentor |
 | LiteRT/TFLite versus ONNX and artifact host/checksum/configuration format | Chloe |
 | Separate optional Veri model/path compatibility, licenses, challenge rules and documented training/submission evidence | Chloe/Chace + Veri mentor |
-| Railway deployment feasibility/configuration, Supabase schema/transactions, authenticated demo RLS/projections, API bodies, health and concurrency details | Chace + Kiro |
+| Railway operational limits and failure behavior beyond the hosted synthetic check; remaining lifecycle/API/authorization interfaces | Chace + Kiro |
 | Durable explanation claim/lease SQL, timeout/retry limits, recovery and idempotent completion | Chace |
 | Gemini model/version, structured-output/API configuration, privacy/retention, exact prompt and evaluation set | Chace |
-| Paper design access/link, React/Vite implementation, Vercel deployment and Realtime demo-access configuration | Kiro + Chace |
+| Paper document access/link and screen references, matching React/Vite implementation and visual comparison; full dashboard/workflow integration | Kiro + Chace |
 | Static room-layout DTO/coordinate units and historical patient-assignment presentation; no localization inferred | Kiro + Chace |
 | Photon lead, exact provider/API, calling/messaging/TTS, delivery evidence and idempotency | Team assigns lead + Photon mentor |
 | Integration coordinator, deadlines, consented recipient, final demo retention and deletion process | Entire team; lead TBD |

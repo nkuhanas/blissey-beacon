@@ -1,15 +1,20 @@
 # Deployment setup: blissey-beacon.health
 
-Planned public website: **https://blissey-beacon.health** on Vercel.
-Planned backend: **https://api.blissey-beacon.health** on Railway, with
+Public demo website: **https://blissey-beacon.health** on Vercel.
+Backend: **https://api.blissey-beacon.health** on Railway, with
 `wss://api.blissey-beacon.health/api/devices/v1/stream` for devices.
 Supabase retains its provider-assigned project URL. DNS, TLS, provider configuration
-and production integration are not established merely by these files.
+and production integration are not established merely by these files. The
+[2026-10-17 verification record](deployment-verification.md) documents the
+deployed synthetic demo and its limits.
 
-Production was explicitly left untouched during development. Start with the isolated
-Docker tests; review a Supabase backup and migration plan before applying migrations
-to the provisioned production project. Do not reset production or run test bootstrap,
-seed/integration test scripts or the test Compose stack against it.
+The user explicitly approved the provisioned Supabase project for fictional demo
+setup on 2026-10-17. Its application schema was empty, a schema backup was saved,
+and the two existing migrations and fictional records were applied intentionally.
+For future changes, start with isolated Docker tests and review a backup/migration
+plan. Never reset the hosted project or point test bootstrap, integration-test
+scripts or the test Compose stack at it. Hosted synthetic checks are separate,
+intentional operations against the approved demo environment.
 
 ## 1. Supabase
 
@@ -67,6 +72,20 @@ privilege for runtime access; do not grant arbitrary database credentials to dev
 5. `/healthz` proves process liveness only. Check authorized room/incident reads
    and synthetic ingestion separately before calling the deployment integrated.
 
+When the provider CA is required, set the server-only `SUPABASE_CA_CERT` variable
+to its complete PEM certificate/bundle and include
+`sslmode=verify-full&sslrootcert=/tmp/supabase-ca.crt` in `DATABASE_URL`. The current
+Railway custom start command writes that certificate before starting the app:
+
+```sh
+sh -c 'umask 077; printf "%s\n" "$SUPABASE_CA_CERT" > /tmp/supabase-ca.crt; exec node dist/server.js'
+```
+
+Keep the Dockerfile as the build source, with no custom pnpm build override.
+`RAILWAY_DOCKERFILE_PATH=apps/backend/Dockerfile` is also configured on the service.
+The CA can be obtained from Supabase Database Settings; the local Docker backend
+uses a `/workspace/` certificate path instead of the Railway `/tmp/` path.
+
 ## 3. Vercel frontend
 
 1. Import the same repository with project Root Directory **`.`**. Root vercel.json
@@ -82,6 +101,14 @@ privilege for runtime access; do not grant arbitrary database credentials to dev
 4. Sign in using the provisioned operator account. A valid account without facility
    membership must not see incidents. Confirm browser REST calls use the production
    API URL and Realtime uses the Supabase project/session, not the Raspberry Pi.
+
+For Porkbun, an empty Host field means the root domain. Do not enter the literal
+text `blank/root`. Use the current Vercel-recommended A records for the root and
+the Railway-provided CNAME for `api`. Railway also requires the TXT ownership record
+identified by `verificationDnsHost` / `verificationToken` in its domain status;
+a propagated CNAME alone does not establish ownership or certificate issuance.
+Preserve mail and unrelated TXT records. Confirm both providers' status and actual
+HTTPS certificate validation before treating the domains as ready.
 
 WEB_ORIGIN is a single allowed browser origin. For preview deployments use a
 separate staging backend/origin/project or deliberately configure the specific
@@ -101,6 +128,14 @@ operator REST read and Realtime notification; resend the identical ID/payload an
 expect duplicate ACK with the same incident ID. Revocation sets revoked_at and is
 rechecked even on established streams. This check is not performed automatically
 against production by CI or deployment.
+
+For local administration, keep provider management tokens in `.env.deploy.local`
+(mode `600`, Git-ignored). `SUPABASE_ACCESS_TOKEN`, `RAILWAY_TOKEN` and `VERCEL_TOKEN`
+are deployment credentials; they are not app runtime variables. Keep the database
+password, operator password and device token private as well. Use the app-specific
+ignored `.env` files for local Docker development. Parse these as dotenv files;
+do not source untrusted credential-file contents as shell code. Browser bundles
+receive only the four public `VITE_` values listed above.
 
 Actual Pi/QNX authenticated TLS WebSocket smoke remains a separate milestone for
 the edge owner. No Gemini or Photon work is included. The site is experimental,
