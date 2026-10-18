@@ -13,6 +13,7 @@ import type { Contact, DemoIncident, DemoRoom, Scenario } from "./model";
 import "./dashboard.css";
 import "./refinement.css";
 import "./moonlit.css";
+import "./overview.css";
 
 type View = "overview" | "residents" | "history" | "devices";
 const navigation: { id: View; label: string }[] = [
@@ -468,53 +469,68 @@ export function Dashboard() {
           </p>
         </div>
       )}
-      <div className="contact-section">
-        <div className="section-heading">
-          <h3>Family contact</h3>
-          <button className="compact" onClick={() => setModal("contact")}>
-            {room.contact ? "Edit" : "Add"}
-            <span className="sr-only"> family contact for {room.resident}</span>
+      <details
+        className="contact-section"
+        key={`${view}-${room.id}`}
+        open={view === "overview" ? undefined : true}
+      >
+        <summary>
+          Family contact
+          <span className="small muted">
+            {room.contact?.name ?? "No contact saved"}
+          </span>
+        </summary>
+        <div className="contact-content">
+          <div className="section-heading">
+            <h3>Family contact</h3>
+            <button className="compact" onClick={() => setModal("contact")}>
+              {room.contact ? "Edit" : "Add"}
+              <span className="sr-only">
+                {" "}
+                family contact for {room.resident}
+              </span>
+            </button>
+          </div>
+          {room.contact ? (
+            <>
+              <dl className="facts">
+                <div>
+                  <dt>Name</dt>
+                  <dd>{room.contact.name}</dd>
+                </div>
+                <div>
+                  <dt>Contact information</dt>
+                  <dd>Phone ending {room.contact.phone.slice(-4)}</dd>
+                </div>
+              </dl>
+              <p
+                className={`status ${room.contact.consent ? "monitoring" : "offline"}`}
+              >
+                <Icon name={room.contact.consent ? "check" : "close"} />
+                {room.contact.consent
+                  ? "Agreed to receive calls"
+                  : "Consent not granted"}
+              </p>
+            </>
+          ) : (
+            <p className="muted">No family contact saved.</p>
+          )}
+          <button
+            className="full"
+            disabled={!canReviewCall(room, incident)}
+            onClick={() => setModal("call")}
+          >
+            Review notification <Icon name="arrow" size={16} />
           </button>
+          <p className="small muted">
+            {!incident
+              ? "A recorded incident is needed to review a notification."
+              : !room.contact?.consent
+                ? "Save a contact with consent before reviewing a notification."
+                : "Review the recipient, context and opening before authorizing. Nothing sends automatically."}
+          </p>
         </div>
-        {room.contact ? (
-          <>
-            <dl className="facts">
-              <div>
-                <dt>Name</dt>
-                <dd>{room.contact.name}</dd>
-              </div>
-              <div>
-                <dt>Contact information</dt>
-                <dd>Phone ending {room.contact.phone.slice(-4)}</dd>
-              </div>
-            </dl>
-            <p
-              className={`status ${room.contact.consent ? "monitoring" : "offline"}`}
-            >
-              <Icon name={room.contact.consent ? "check" : "close"} />
-              {room.contact.consent
-                ? "Agreed to receive calls"
-                : "Consent not granted"}
-            </p>
-          </>
-        ) : (
-          <p className="muted">No family contact saved.</p>
-        )}
-        <button
-          className="full"
-          disabled={!canReviewCall(room, incident)}
-          onClick={() => setModal("call")}
-        >
-          Review notification <Icon name="arrow" size={16} />
-        </button>
-        <p className="small muted">
-          {!incident
-            ? "A recorded incident is needed to review a notification."
-            : !room.contact?.consent
-              ? "Save a contact with consent before reviewing a notification."
-              : "Review the recipient, context and opening before authorizing. Nothing sends automatically."}
-        </p>
-      </div>
+      </details>
       {incident && (
         <details className="incident-details">
           <summary>Timeline, notes & event details</summary>
@@ -558,7 +574,7 @@ export function Dashboard() {
   );
   return (
     <div
-      className={`dashboard ${refined ? "conservatory" : ""} ${moonlit ? "moonlit" : ""}`}
+      className={`dashboard ${refined ? "conservatory" : ""} ${moonlit ? "moonlit" : ""} ${view === "overview" ? "overview-workspace" : ""}`}
     >
       <a className="skip-link" href="#dashboard-main">
         Skip to dashboard
@@ -660,18 +676,20 @@ export function Dashboard() {
             Reset demo
           </button>
         </div>
-        <header className="topbar">
-          <div className={online < 6 ? "notice" : "quiet"}>
-            <strong>
-              {online < 6 ? "Monitoring interrupted" : "Monitoring"}
-            </strong>
-            <span>
-              {online} of 6 staged devices connected
-              {online === 5 ? " · Room 106 offline" : ""}
-            </span>
-          </div>
-          <span className="workspace-label">Demo workspace</span>
-        </header>
+        {view !== "overview" && (
+          <header className="topbar">
+            <div className={online < 6 ? "notice" : "quiet"}>
+              <strong>
+                {online < 6 ? "Monitoring interrupted" : "Monitoring"}
+              </strong>
+              <span>
+                {online} of 6 staged devices connected
+                {online === 5 ? " · Room 106 offline" : ""}
+              </span>
+            </div>
+            <span className="workspace-label">Demo workspace</span>
+          </header>
+        )}
         <div className="page-heading">
           {refined && (
             <>
@@ -721,6 +739,27 @@ export function Dashboard() {
           online={online}
           refined={refined}
         />
+        {view === "overview" && (
+          <div className="overview-health" role="status">
+            <span>
+              <Icon
+                name={online < state.rooms.length ? "offline" : "check"}
+                size={16}
+              />
+              <strong>
+                {online < state.rooms.length
+                  ? "Monitoring interrupted"
+                  : "Monitoring connected"}
+              </strong>
+              <span>
+                {online === 5
+                  ? "Room 106 offline"
+                  : `${online} of ${state.rooms.length} staged devices connected`}
+              </span>
+            </span>
+            <span className="small muted">Last staged data · 2:32 PM</span>
+          </div>
+        )}
         {(view === "overview" || view === "residents") && (
           <div className="overview-grid">
             <div className="facility-column">
@@ -751,6 +790,12 @@ export function Dashboard() {
                     <span className="room-person">
                       <strong>{r.resident}</strong>
                       <Status room={r} incident={state.incident} />
+                      {view === "overview" && (
+                        <span className="room-telemetry">
+                          {r.device} · Last data{" "}
+                          {r.online ? "2:32 PM" : "2:25 PM"}
+                        </span>
+                      )}
                     </span>
                     <Icon name="arrow" size={18} />
                   </button>

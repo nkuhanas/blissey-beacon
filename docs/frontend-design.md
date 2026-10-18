@@ -108,6 +108,21 @@ checks. Sponsor eligibility and award submission requirements were not verified.
 
 ## Run and explore the interactive demo
 
+The overview now uses a compact operator layout: a smaller title area, horizontal
+status cards, a monitoring-health strip with the last staged data time, and a
+facility map beside the selected room's incident actions on desktop. Family
+contact details expand on demand; the room list includes device identifiers and
+last staged data times. The moonlit logo, botanical ornament and landscape remain
+prominent. Other tabs keep their existing layouts. This local iteration follows
+the owner's direction to stop Paper work; it is not a new Paper export.
+
+At narrow widths the incident appears before the map. The floor plan scrolls
+within its own region to preserve readable room labels. Browser checks at 320,
+390, 768, 1024, 1280 and 1440 CSS pixels verified no page-level horizontal overflow,
+room selection, staged incident actions, contact-dialog access, scenario changes
+and navigation. These checks use fictional in-memory fixtures, with no provider
+calls or backend requests.
+
 No Supabase account, backend, hardware or environment secrets are needed for demo
 mode. With Docker and Compose installed, from the repository root:
 

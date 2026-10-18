@@ -1,0 +1,410 @@
+/* The overview prioritizes the map and incident actions over display space.
+   Other tabs retain their existing editorial layouts. */
+.dashboard.overview-workspace {
+  width: calc(100% - 24px);
+  max-width: 1920px;
+  min-height: calc(100vh - 24px);
+  margin: 12px auto;
+  grid-template-columns: 200px minmax(0, 1fr);
+  border-radius: 20px;
+}
+.overview-workspace .sidebar {
+  padding: 20px 16px;
+  gap: 24px;
+  border-radius: 20px 0 0 20px;
+}
+.overview-workspace .moonlit-brand {
+  width: 168px;
+  height: 184px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0;
+}
+.overview-workspace .moonlit-mark {
+  width: 168px;
+  height: 116px;
+}
+.overview-workspace .moonlit-mark .logo {
+  width: 168px;
+  height: 168px;
+  position: static;
+}
+.overview-workspace .moonlit-wordmark {
+  align-items: center;
+}
+.overview-workspace .brand-blissey {
+  font-size: 32px;
+  line-height: 36px;
+}
+.overview-workspace .brand-beacon {
+  font-size: 14px;
+  line-height: 20px;
+}
+.overview-workspace .sidebar nav button {
+  padding: 12px;
+  gap: 10px;
+  font-size: 14px;
+}
+.overview-workspace .moon-hills {
+  width: 100%;
+  height: 176px;
+}
+.overview-workspace .sidebar-bottom {
+  padding-top: 32px;
+}
+.dashboard.overview-workspace .dashboard-main {
+  max-width: none;
+  margin: 0;
+  padding: 16px 24px 24px;
+  gap: 16px;
+}
+.overview-workspace .demo-toolbar {
+  padding-bottom: 10px;
+  font-size: 12px;
+  gap: 12px;
+}
+.overview-workspace .page-heading {
+  flex-direction: row;
+  align-items: center;
+  padding: 22px 0 0;
+  border: 0;
+  gap: 16px;
+}
+.overview-workspace .workspace-eyebrow {
+  font-size: 10px;
+  line-height: 14px;
+}
+.overview-workspace h1 {
+  font-size: 38px;
+  line-height: 42px;
+}
+.overview-workspace .page-heading p:not(.workspace-eyebrow) {
+  font-size: 14px;
+  line-height: 21px;
+  margin-top: 4px;
+}
+.overview-workspace .header-ornament {
+  width: 160px;
+  height: 120px;
+  top: -16px;
+  right: 250px;
+}
+.overview-workspace .scenario-label {
+  position: relative;
+  font-size: 12px;
+  margin: 0;
+}
+.overview-workspace .summary-grid {
+  gap: 12px;
+}
+.overview-workspace .refined-summary > div {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-content: center;
+  align-items: center;
+  gap: 0 14px;
+  padding: 14px 64px 14px 16px;
+  border-radius: 20px 20px 20px 6px;
+}
+.overview-workspace .refined-summary .summary-alert {
+  border-top-width: 1px;
+  border-left: 3px solid var(--color-berry);
+  padding-left: 14px;
+}
+.overview-workspace .summary-grid strong {
+  grid-row: 1 / 3;
+  font-size: 36px;
+  line-height: 44px;
+}
+.overview-workspace .refined-summary > div > span:not(.summary-emblem) {
+  grid-column: 2;
+  font-size: 14px;
+  line-height: 20px;
+}
+.overview-workspace .summary-caption {
+  grid-column: 2;
+  padding: 0;
+  font-size: 12px;
+  line-height: 18px;
+}
+.overview-workspace .summary-emblem,
+.overview-workspace .connectivity-ring {
+  width: 32px;
+  height: 32px;
+  right: 16px;
+  top: calc(50% - 16px);
+}
+.overview-health,
+.overview-health > span {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.overview-health {
+  justify-content: space-between;
+  padding: 8px 12px;
+  border: 1px solid #e9ddc2;
+  background: #fff7e8;
+  color: var(--color-warning);
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 20px;
+}
+.overview-health .small {
+  font-size: 12px;
+}
+.overview-workspace .overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(330px, 1fr);
+  gap: 20px;
+}
+.overview-workspace .facility-column,
+.overview-workspace .dashboard-right-column {
+  gap: 16px;
+}
+.overview-workspace .map-section {
+  gap: 10px;
+}
+.overview-workspace h2 {
+  font-size: 26px;
+  line-height: 30px;
+}
+.overview-workspace .map-legend {
+  font-size: 12px;
+  line-height: 18px;
+  gap: 6px 12px;
+}
+.overview-workspace .floorplan-artwork {
+  min-width: 520px;
+}
+.overview-workspace .map-room-status {
+  font-size: 12px;
+  line-height: 18px;
+}
+.overview-workspace .map-caption {
+  font-size: 12px;
+  line-height: 18px;
+}
+.overview-workspace .panel {
+  padding: 18px;
+  border-radius: 24px 24px 24px 6px;
+}
+.overview-workspace .resident-panel {
+  gap: 12px;
+}
+.overview-workspace .resident-heading h2 {
+  font-size: 28px;
+  line-height: 32px;
+}
+.overview-workspace .incident-callout {
+  padding: 14px;
+  gap: 6px;
+}
+.overview-workspace .incident-callout h3 {
+  font-size: 16px;
+  line-height: 22px;
+}
+.overview-workspace .incident-callout > p:not(.small) {
+  font-size: 14px;
+  line-height: 21px;
+}
+.overview-workspace .resident-panel .actions {
+  gap: 8px;
+}
+.overview-workspace .resident-panel .actions button {
+  font-size: 14px;
+  padding: 10px;
+}
+.contact-section > summary {
+  min-height: 44px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 0;
+}
+.contact-section > summary > span {
+  margin-left: 10px;
+  font-weight: 400;
+}
+.contact-content {
+  display: grid;
+  gap: 14px;
+}
+.dashboard:not(.overview-workspace) .contact-section > summary {
+  display: none;
+}
+.overview-workspace .contact-section {
+  display: block;
+  padding-top: 4px;
+}
+.overview-workspace .incident-details {
+  padding-top: 0;
+}
+.overview-workspace .room-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 16px;
+}
+.overview-workspace .room-list > .section-heading {
+  grid-column: 1 / -1;
+  padding-bottom: 10px;
+}
+.overview-workspace .room-row {
+  padding: 10px 4px;
+  gap: 10px;
+}
+.overview-workspace .room-number {
+  width: 32px;
+}
+.overview-workspace .room-person {
+  gap: 2px;
+}
+.room-telemetry {
+  color: var(--color-muted);
+  font-size: 11px;
+  line-height: 16px;
+}
+.overview-workspace .sensor-history {
+  padding: 20px;
+  gap: 12px;
+  border-radius: 24px 24px 24px 6px;
+}
+.overview-workspace .sensor-history h2 {
+  font-size: 26px;
+  line-height: 30px;
+}
+.overview-workspace footer {
+  margin-top: 0;
+}
+@media (min-width: 1024px) {
+  .overview-workspace .sidebar {
+    position: sticky;
+    top: 12px;
+    height: calc(100vh - 24px);
+    overflow-y: auto;
+  }
+}
+@media (max-width: 1350px) {
+  .overview-workspace .refined-summary > div {
+    padding-right: 16px;
+    gap: 0 10px;
+  }
+  .overview-workspace .summary-emblem,
+  .overview-workspace .connectivity-ring {
+    display: none;
+  }
+}
+@media (max-width: 1150px) and (min-width: 1024px) {
+  .overview-workspace .header-ornament {
+    display: none;
+  }
+  .dashboard.overview-workspace {
+    grid-template-columns: 180px minmax(0, 1fr);
+  }
+  .overview-workspace .sidebar {
+    padding: 16px 10px;
+  }
+  .overview-workspace .overview-grid {
+    grid-template-columns: minmax(0, 1fr) 310px;
+    gap: 16px;
+  }
+  .overview-workspace .summary-grid strong {
+    font-size: 30px;
+  }
+  .overview-workspace .summary-caption {
+    display: none;
+  }
+  .overview-workspace .room-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 1023px) {
+  .dashboard.overview-workspace {
+    width: 100%;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+  }
+  .overview-workspace .sidebar {
+    padding: 10px 20px;
+    border-radius: 0;
+  }
+  .overview-workspace .moonlit-brand {
+    height: 64px;
+    width: 216px;
+    flex-direction: row;
+    gap: 10px;
+  }
+  .overview-workspace .moonlit-mark {
+    width: 64px;
+    height: 58px;
+  }
+  .overview-workspace .moonlit-mark .logo {
+    width: 80px;
+    height: 80px;
+    position: relative;
+    left: -8px;
+  }
+  .overview-workspace .moonlit-wordmark {
+    align-items: flex-start;
+  }
+  .overview-workspace .brand-blissey {
+    font-size: 28px;
+    line-height: 32px;
+  }
+  .overview-workspace .overview-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .overview-workspace .facility-column {
+    grid-row: 2;
+  }
+  .overview-workspace .resident-panel {
+    grid-row: 1;
+  }
+  .overview-workspace .map-section {
+    order: 0;
+  }
+}
+@media (max-width: 600px) {
+  .dashboard.overview-workspace .dashboard-main {
+    padding: 12px 16px 20px;
+    gap: 12px;
+  }
+  .overview-workspace .page-heading {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .overview-workspace h1 {
+    font-size: 34px;
+    line-height: 38px;
+  }
+  .overview-workspace .refined-summary > div {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 10px;
+    gap: 2px;
+  }
+  .overview-workspace .summary-grid {
+    gap: 8px;
+  }
+  .overview-workspace .summary-grid strong {
+    font-size: 28px;
+    line-height: 34px;
+  }
+  .overview-workspace .summary-caption {
+    display: none;
+  }
+  .overview-workspace .room-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .overview-workspace .resident-panel .actions {
+    flex-direction: column;
+  }
+  .overview-workspace .demo-toolbar > span {
+    max-width: none;
+  }
+}
