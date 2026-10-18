@@ -108,14 +108,20 @@ checks. Sponsor eligibility and award submission requirements were not verified.
 
 ## Run and explore the interactive demo
 
-All dashboard tabs share the overview's compact operator layout: a smaller title
-area, horizontal status cards and a monitoring-health strip with the last staged
-data time. The sidebar, logo, headings, summary cards and health strip retain the
-same size and placement when switching tabs. The moonlit logo, botanical ornament
-and landscape remain prominent. The overview places the facility map beside the
-selected room's incident actions on desktop. In overview and residents, family
-contact details expand on demand, and room lists include device identifiers and
-last staged data times. This local iteration follows the owner's direction to
+All dashboard tabs share a compact header and a single status strip for active
+incidents, offline devices, room count and last staged data time. The offline
+device indicator opens Devices. The sidebar keeps the moonlit logo and landscape,
+uses shorter navigation labels, and has no independent scrollbar. At short
+desktop heights it scrolls with the page so every navigation item remains reachable.
+The botanical header ornament and the existing palette and typography remain.
+
+Overview retains the original illustrated facility map beside the selected room's
+incident card, with their top edges aligned. The map title and zoom controls sit
+over the map; controls stay in place when its illustration scrolls. The room
+directory is only in Residents, with aligned room, resident, status and last-data
+columns. Device check-in history is only in Devices. Incident detail presents the
+next valid lifecycle action, with family notification and timeline details
+expandable underneath. This local iteration follows the owner's direction to
 stop Paper work; it is not a new Paper export.
 
 At narrow widths the incident appears before the map. The floor plan scrolls
@@ -123,8 +129,11 @@ within its own region to preserve readable room labels. Browser checks at 320,
 390, 768, 1024, 1280 and 1440 CSS pixels verified no page-level horizontal overflow,
 room selection, staged incident actions, contact-dialog access, scenario changes
 and navigation. All four tabs also passed shared-shell dimension comparisons at
-these widths, including the mobile navigation menu. These checks use fictional
-in-memory fixtures, with no provider calls or backend requests.
+these widths, including the mobile navigation menu. Desktop checks verify that
+the map and incident card are flush at the top, the zoom controls sit inside the
+map, and the directory and check-in history appear only in their respective tabs.
+These checks use fictional in-memory fixtures, with no provider calls or backend
+requests.
 
 No Supabase account, backend, hardware or environment secrets are needed for demo
 mode. With Docker and Compose installed, from the repository root:

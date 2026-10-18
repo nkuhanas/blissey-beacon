@@ -29,10 +29,90 @@ export function FacilityMap({
   const [zoom, setZoom] = useState(0);
   return (
     <section className="map-section" aria-labelledby="map-title">
-      <div className="section-heading">
-        <div>
-          <h2 id="map-title">Facility map</h2>
-          <p className="small muted">Ground floor · Staged room status</p>
+      <div className="floorplan-shell">
+        <div className="map-heading">
+          <div>
+            <h2 id="map-title">Facility map</h2>
+            <p className="small muted">Ground floor</p>
+          </div>
+        </div>
+        <div
+          className="floorplan-viewport"
+          tabIndex={0}
+          role="region"
+          aria-label="Scrollable facility floor plan"
+          aria-describedby="map-description"
+        >
+          <div
+            className="floorplan-artwork"
+            style={{ width: `${100 + zoom * 25}%` }}
+          >
+            <img
+              className="floorplan-building"
+              src={architecture}
+              alt=""
+              width="1000"
+              height="800"
+              draggable={false}
+            />
+            {roomGeometry.map(({ id, x, y }) => {
+              const room = rooms.find((r) => r.id === id);
+              if (!room) return null;
+              const active =
+                incident?.roomId === id && incident.status !== "resolved";
+              const tone = !room.online
+                ? "offline"
+                : active
+                  ? incident.status === "pending"
+                    ? "attention"
+                    : "responding"
+                  : "monitoring";
+              const label =
+                tone === "offline"
+                  ? "Sensor offline"
+                  : tone === "attention"
+                    ? "Possible fall"
+                    : tone === "responding"
+                      ? incident!.status === "acknowledged"
+                        ? "Acknowledged"
+                        : "Responding"
+                      : "Monitoring";
+              const style: CSSProperties = {
+                left: `${x / 10}%`,
+                top: `${y / 8}%`,
+                width: "19.9%",
+                height: "26.125%",
+              };
+              return (
+                <button
+                  key={id}
+                  className={`room-hotspot ${tone} ${y > 400 ? "south-room" : "north-room"}`}
+                  style={style}
+                  aria-label={`Room ${id}, ${room.resident}, ${roomStatus(room, incident)}`}
+                  aria-pressed={selected === id}
+                  title={`${room.resident} · ${roomStatus(room, incident)}`}
+                  onClick={() => onSelect(id)}
+                >
+                  <span className="room-pin">
+                    <Icon
+                      name={
+                        tone === "offline"
+                          ? "offline"
+                          : tone === "attention"
+                            ? "alert"
+                            : tone === "responding"
+                              ? "history"
+                              : "check"
+                      }
+                      size={16}
+                    />
+                  </span>
+                  <strong className="map-room-label">Room {id}</strong>
+                  <span className="map-room-status">{label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
         <div className="map-zoom" role="group" aria-label="Map zoom">
           <button
@@ -74,87 +154,9 @@ export function FacilityMap({
           Offline
         </li>
       </ul>
-      <div
-        className="floorplan-viewport"
-        tabIndex={0}
-        role="region"
-        aria-label="Scrollable facility floor plan"
-        aria-describedby="map-description"
-      >
-        <div
-          className="floorplan-artwork"
-          style={{ width: `${100 + zoom * 25}%` }}
-        >
-          <img
-            className="floorplan-building"
-            src={architecture}
-            alt=""
-            width="1000"
-            height="800"
-            draggable={false}
-          />
-          {roomGeometry.map(({ id, x, y }) => {
-            const room = rooms.find((r) => r.id === id);
-            if (!room) return null;
-            const active =
-              incident?.roomId === id && incident.status !== "resolved";
-            const tone = !room.online
-              ? "offline"
-              : active
-                ? incident.status === "pending"
-                  ? "attention"
-                  : "responding"
-                : "monitoring";
-            const label =
-              tone === "offline"
-                ? "Sensor offline"
-                : tone === "attention"
-                  ? "Possible fall"
-                  : tone === "responding"
-                    ? incident!.status === "acknowledged"
-                      ? "Acknowledged"
-                      : "Responding"
-                    : "Monitoring";
-            const style: CSSProperties = {
-              left: `${x / 10}%`,
-              top: `${y / 8}%`,
-              width: "19.9%",
-              height: "26.125%",
-            };
-            return (
-              <button
-                key={id}
-                className={`room-hotspot ${tone} ${y > 400 ? "south-room" : "north-room"}`}
-                style={style}
-                aria-label={`Room ${id}, ${room.resident}, ${roomStatus(room, incident)}`}
-                aria-pressed={selected === id}
-                title={`${room.resident} · ${roomStatus(room, incident)}`}
-                onClick={() => onSelect(id)}
-              >
-                <span className="room-pin">
-                  <Icon
-                    name={
-                      tone === "offline"
-                        ? "offline"
-                        : tone === "attention"
-                          ? "alert"
-                          : tone === "responding"
-                            ? "history"
-                            : "check"
-                    }
-                    size={16}
-                  />
-                </span>
-                <strong className="map-room-label">Room {id}</strong>
-                <span className="map-room-status">{label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
       <p id="map-description" className="map-caption small muted">
         Illustrative floor plan · Select a room for details. Scroll to explore,
-        or use the room list below.
+        or open Residents for the room directory.
       </p>
     </section>
   );
