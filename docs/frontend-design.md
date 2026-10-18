@@ -129,9 +129,19 @@ addition to color. Visual emphasis does not confirm that a fall or injury occurr
 
 Overview retains the original illustrated facility map beside the selected room's
 incident card, with their top edges aligned. The map title and zoom controls sit
-over the map; controls stay in place when its illustration scrolls. The room
-directory is only in Residents, with aligned room, resident, status and last-data
-columns. Device check-in history is only in Devices. Incident detail presents the
+over the map; controls stay in place when its illustration scrolls. The map
+supports mouse, pen and touch grab-and-drag panning in both directions,
+including at 100% zoom, with 240 CSS pixels of canvas beyond each illustration
+edge. A fixed viewport keeps zoom from expanding the page. Zoom preserves the
+view center; Reset map view restores 100% and the initial map position. A small
+movement threshold distinguishes dragging from room selection. Keyboard room
+activation, native scrolling and arrow-key panning remain available. Pointer
+cancellation and capture loss release the grabbing state. Browser checks cover
+dragging across rooms without selecting them, pointer jitter, dragging outside
+the viewport, cancellation, reset, zoom anchoring and emulated touch gestures.
+
+The room directory is only in Residents, with aligned room, resident, status and
+last-data columns. Device check-in history is only in Devices. Incident detail presents the
 next valid lifecycle action, with family notification and timeline details
 expandable underneath. This local iteration follows the owner's direction to
 stop Paper work; it is not a new Paper export.

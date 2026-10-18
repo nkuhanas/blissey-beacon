@@ -80,12 +80,33 @@
 }
 .floorplan-viewport {
   overflow: auto;
+  aspect-ratio: 5 / 4;
   border: 1px solid #d6cdd3;
   border-radius: 16px;
   background: #f0f4eb;
+  background-image: radial-gradient(#b6c2ad80 1px, transparent 1px);
+  background-size: 20px 20px;
   padding: 0;
   scrollbar-color: #807781 #e4e9e1;
   scroll-padding: 16px;
+  scrollbar-width: none;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.floorplan-viewport::-webkit-scrollbar {
+  display: none;
+}
+.dashboard .floorplan-viewport .room-hotspot {
+  cursor: grab;
+}
+.floorplan-viewport[data-panning="true"],
+.dashboard .floorplan-viewport[data-panning="true"] .room-hotspot {
+  cursor: grabbing;
+}
+.floorplan-canvas {
+  padding: var(--pan-gutter);
+  min-width: calc(520px + 2 * var(--pan-gutter));
 }
 .floorplan-artwork {
   position: relative;
@@ -195,6 +216,12 @@
   }
   .map-legend {
     gap: 8px 12px;
+  }
+}
+@media (max-width: 480px) {
+  .map-zoom {
+    top: auto;
+    bottom: 12px;
   }
 }
 @container (max-width:800px) {
