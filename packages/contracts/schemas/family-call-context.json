@@ -34,6 +34,13 @@
       "minLength": 1,
       "maxLength": 120
     },
+    "resident_name": {
+      "description": "Frozen fictional patient display label from the incident-time room assignment. Optional only for historical contexts created before family-call-v3.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120,
+      "pattern": "\\S"
+    },
     "detected_at": {
       "type": "string",
       "format": "date-time"

@@ -896,8 +896,9 @@ change; finalize bounded JSON Schema/DTOs before implementation):
   "explanation_source": "gemini",
   "event_type": "inference_result",
   "room_label": "Room 102",
+  "resident_name": "Demo Resident 102",
   "detected_at": "2026-10-17T14:32:06-07:00",
-  "family_summary": "A sensor result was recorded for Room 102. The resident's condition has not been confirmed.",
+  "family_summary": "A sensor result was recorded for Demo Resident 102 in Room 102. Their condition has not been confirmed.",
   "resident_condition": "unknown",
   "staff_response": "not_confirmed",
   "recipient_name": "Sarah",
@@ -911,6 +912,15 @@ possible-fall description needs a documented supported fact and explicit review.
 The projection never copies score-bearing operator prose. Its provenance references
 the persisted explanation; a deterministic fallback must not be labeled Gemini.
 Do not fabricate an explanation or imply Gemini ran when output is absent.
+
+New call reviews include the fictional resident's saved display label from the
+patient assigned at detection time. Freeze it with the approved context and show
+it to the operator, separately from the recipient name. Disclose it only after
+recipient verification; the agent can then answer who the incident concerns.
+Do not substitute the room's current occupant or invent a missing name. Historical
+contexts without a resident name remain readable; new previews reject missing or
+overlong labels. This adds notification context only, leaving sensing and Gemini
+explanation schemas unchanged.
 
 ElevenLabs Agents manages speech and conversation. Its conversational LLM is
 configurable; Gemini Flash is preferred pending supported-model/configuration

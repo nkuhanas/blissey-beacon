@@ -7,6 +7,7 @@ import {
 } from "../src/notifications/provider.js";
 import { familyContext, POLICY, digest } from "../src/notifications/policy.js";
 import { loadConfig } from "../src/config.js";
+import { validateFamilyCallContext } from "@blissey/contracts";
 const context = familyContext(
   {
     id: "11111111-1111-4111-8111-111111111111",
@@ -15,6 +16,7 @@ const context = familyContext(
     source: "gemini",
   },
   "Demo recipient",
+  "Alex Demo",
 );
 const input = {
   callId: "11111111-1111-4111-8111-111111111111",
@@ -22,7 +24,7 @@ const input = {
   destination: "+15555550123",
   context,
   opening: "Hello, this is an automated demo. May I speak to Demo recipient?",
-  policyVersion: "family-call-v2",
+  policyVersion: "family-call-v3",
 };
 export function sign(
   raw: string,
@@ -36,6 +38,9 @@ export function sign(
 test("family projection is neutral, score-free and deterministically hashed; provider receives only approved context", async () => {
   assert.equal(context.event_type, "inference_result");
   assert.equal(context.resident_condition, "unknown");
+  assert.equal(context.resident_name, "Alex Demo");
+  assert.ok(context.family_summary.includes("Alex Demo"));
+  assert.ok(!context.family_summary.includes(context.recipient_name));
   assert.ok(!JSON.stringify(context).includes("confidence"));
   assert.ok(!context.family_summary.includes("possible fall"));
   assert.ok(POLICY.includes("No tools"));
@@ -73,6 +78,32 @@ test("family projection is neutral, score-free and deterministically hashed; pro
     conversationId: "synthetic-conversation",
     sipCallId: "synthetic-sip",
   });
+});
+test("resident identity is bounded; historical contexts without a name remain readable", () => {
+  assert.ok(validateFamilyCallContext(context));
+  const { resident_name: _name, ...historical } = context;
+  assert.equal(_name, "Alex Demo");
+  assert.ok(validateFamilyCallContext(historical));
+  for (const resident of ["", "   ", "x".repeat(121)]) {
+    assert.throws(
+      () =>
+        familyContext(
+          {
+            id: context.incident_id,
+            label: context.room_label,
+            detected_at: new Date(context.detected_at),
+            source: "gemini",
+          },
+          "Demo recipient",
+          resident,
+        ),
+      /resident_name_unavailable/,
+    );
+    assert.equal(
+      validateFamilyCallContext({ ...context, resident_name: resident }),
+      false,
+    );
+  }
 });
 test("ambiguous external outcomes never become retryable automatic redials", async () => {
   for (const [response, state] of [

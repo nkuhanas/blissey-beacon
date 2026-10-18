@@ -158,6 +158,62 @@ export async function runNotificationTests(t: TestContext, pool: Pool) {
       },
     );
     await t.test(
+      "call review uses the incident-time resident, freezes their name and refuses missing identity",
+      async () => {
+        await fresh();
+        await pool.query(
+          "UPDATE public.room_assignments SET released_at='2026-10-18' WHERE room_id='room_102'",
+        );
+        await pool.query(
+          "INSERT INTO public.patients(id,facility_id,display_label) VALUES('synthetic_new_resident','demo_facility','Different Resident')",
+        );
+        await pool.query(
+          "INSERT INTO public.room_assignments(facility_id,room_id,patient_id,assigned_at) VALUES('demo_facility','room_102','synthetic_new_resident','2026-10-18')",
+        );
+        try {
+          const p = await preview();
+          assert.equal(p.context.resident_name, "Demo Resident 102");
+          assert.ok(p.context.family_summary.includes("Demo Resident 102"));
+          assert.ok(!JSON.stringify(p.context).includes("Different Resident"));
+          assert.notEqual(p.context.resident_name, p.recipient.name);
+          // A later profile edit must not silently change the reviewed snapshot.
+          await pool.query(
+            "UPDATE public.patients SET display_label='Updated Demo Label' WHERE id='demo_resident_102'",
+          );
+          await store.authorize(
+            subject,
+            incidentId,
+            "synthetic-resident-snapshot",
+            {
+              preview_id: p.preview_id,
+              context_hash: p.context_hash,
+              expected_revision: p.expected_revision,
+              explicit_authorization: true,
+            },
+          );
+          const submission = await dispatch.claim();
+          assert.equal(submission?.context.resident_name, "Demo Resident 102");
+          await pool.query(
+            "UPDATE public.patients SET display_label='   ' WHERE id='demo_resident_102'",
+          );
+          await assert.rejects(preview(), /resident_name_unavailable/);
+        } finally {
+          await pool.query(
+            "DELETE FROM public.room_assignments WHERE patient_id='synthetic_new_resident'",
+          );
+          await pool.query(
+            "DELETE FROM public.patients WHERE id='synthetic_new_resident'",
+          );
+          await pool.query(
+            "UPDATE public.room_assignments SET released_at=NULL WHERE room_id='room_102'",
+          );
+          await pool.query(
+            "UPDATE public.patients SET display_label='Demo Resident 102' WHERE id='demo_resident_102'",
+          );
+        }
+      },
+    );
+    await t.test(
       "HTTP contracts enforce explicit authorization, idempotency keys and facility privacy",
       async () => {
         await fresh();

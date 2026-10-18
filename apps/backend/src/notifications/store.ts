@@ -43,12 +43,15 @@ async function assigned(
   patient: string,
 ) {
   const r = await c.query(
-    `SELECT patient_id FROM public.room_assignments WHERE room_id=$1 AND facility_id=$2
-    AND assigned_at<=$3 AND (released_at IS NULL OR released_at>$3) FOR SHARE`,
+    `SELECT a.patient_id,p.display_label FROM public.room_assignments a
+    JOIN public.patients p ON p.id=a.patient_id AND p.facility_id=a.facility_id
+    WHERE a.room_id=$1 AND a.facility_id=$2
+    AND a.assigned_at<=$3 AND (a.released_at IS NULL OR a.released_at>$3) FOR SHARE OF a,p`,
     [i.room_id, i.facility_id, i.detected_at],
   );
   if (r.rowCount !== 1 || r.rows[0].patient_id !== patient)
     throw new CallError("historical_patient_mismatch");
+  return r.rows[0].display_label as string;
 }
 async function bump(c: PoolClient, id: string) {
   await c.query("UPDATE public.incidents SET revision=revision+1 WHERE id=$1", [
@@ -173,8 +176,8 @@ export function createCallStore(pool: Pool) {
         if (!contact) throw new CallError("contact_not_found", 404);
         if (contact.consent_status !== "granted")
           throw new CallError("consent_required");
-        await assigned(c, i, contact.patient_id);
-        const context = familyContext(i, contact.contact_name);
+        const residentName = await assigned(c, i, contact.patient_id);
+        const context = familyContext(i, contact.contact_name, residentName);
         const opening =
           "Hello, this is Blissey Beacon's automated demo assistant. May I speak to " +
           contact.contact_name +
