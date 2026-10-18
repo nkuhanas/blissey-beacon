@@ -35,6 +35,31 @@
           "type": "null"
         }
       ]
+    },
+    "message_preview_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "message_context_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "explicit_messaging_authorization": {
+      "const": true
     }
+  },
+  "dependencies": {
+    "message_preview_id": [
+      "message_context_hash",
+      "explicit_messaging_authorization"
+    ],
+    "message_context_hash": [
+      "message_preview_id",
+      "explicit_messaging_authorization"
+    ],
+    "explicit_messaging_authorization": [
+      "message_preview_id",
+      "message_context_hash"
+    ]
   }
 }

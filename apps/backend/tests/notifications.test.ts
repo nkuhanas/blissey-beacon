@@ -24,7 +24,7 @@ const input = {
   destination: "+15555550123",
   context,
   opening: "Hello, this is an automated demo. May I speak to Demo recipient?",
-  policyVersion: "family-call-v3",
+  policyVersion: "family-call-v5",
 };
 export function sign(
   raw: string,
@@ -35,15 +35,21 @@ export function sign(
     .update(timestamp + "." + raw)
     .digest("hex")}`;
 }
-test("family projection is neutral, score-free and deterministically hashed; provider receives only approved context", async () => {
+test("family projection describes a possible fall, remains score-free and deterministically hashed; provider receives only approved context", async () => {
   assert.equal(context.event_type, "inference_result");
   assert.equal(context.resident_condition, "unknown");
   assert.equal(context.resident_name, "Alex Demo");
   assert.ok(context.family_summary.includes("Alex Demo"));
   assert.ok(!context.family_summary.includes(context.recipient_name));
   assert.ok(!JSON.stringify(context).includes("confidence"));
-  assert.ok(!context.family_summary.includes("possible fall"));
-  assert.ok(POLICY.includes("No tools"));
+  assert.equal(
+    context.family_summary,
+    "We're contacting you about a possible fall involving Alex Demo in Room 102. Their condition has not been confirmed.",
+  );
+  assert.equal(context.staff_response, "not_confirmed");
+  assert.ok(
+    POLICY.includes("no external, database, notification or incident tools"),
+  );
   assert.equal(digest({ b: 2, a: 1 }), digest({ a: 1, b: 2 }));
   const submit = createElevenLabsSubmit({
     apiKey: "synthetic-key",

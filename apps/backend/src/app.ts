@@ -1,3 +1,4 @@
+import { registerMessageRoutes } from "./messages/routes.js";
 import { registerCallRoutes } from "./notifications/routes.js";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
@@ -16,6 +17,10 @@ export async function createApp(options: {
   store: Store;
   webOrigin: string;
   devices?: DeviceStore;
+  messages?: Omit<
+    Parameters<typeof registerMessageRoutes>[1],
+    "verifyOperator"
+  >;
   calls?: Omit<Parameters<typeof registerCallRoutes>[1], "verifyOperator">;
 }) {
   const app = Fastify({ logger: { redact: ["req.headers.authorization"] } });
@@ -50,6 +55,11 @@ export async function createApp(options: {
     },
   );
   if (options.devices) registerDeviceRoutes(app, options.devices);
+  if (options.messages)
+    registerMessageRoutes(app, {
+      ...options.messages,
+      verifyOperator: options.verifyOperator,
+    });
   if (options.calls)
     registerCallRoutes(app, {
       ...options.calls,

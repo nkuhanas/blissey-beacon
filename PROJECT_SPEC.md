@@ -19,7 +19,8 @@ Vercel demo dashboard shows incidents; Gemini API generates grounded explanation
 asynchronously. Operators review and authorize bounded conversational family calls: Railway
 freezes a family-safe context and opening message, ElevenLabs Agents conducts the
 conversation, and Photon supplies the planned outbound SIP telephony connection.
-Supabase Auth operator login and facility membership are required.
+Independently consented Photon-hosted iMessage adds a reviewed call follow-up,
+written updates and family replies; see §20. Supabase Auth operator login and facility membership are required.
 
 The MVP uses one room and one person with controlled staged falls and normal
 movement. This is an experimental proof of concept, not a clinically validated
@@ -47,7 +48,8 @@ and exact verification limits.
 One ESP32 transmitter, one ESP32 receiver, one Pi 5 running QNX, one monitored room,
 one person, one local neural network, one incident-explanation language model,
 a cloud backend, an operator website, and one operator-authorized conversational
-family-call flow through ElevenLabs and Photon. One primary consented contact per
+family-call flow through ElevenLabs and Photon, with independently authorized
+iMessage follow-ups and a family reply inbox. One primary consented contact per
 fictional resident and one outbound call per incident/contact define the MVP unless
 an operator explicitly authorizes a retry. The conversational LLM is configurable;
 Gemini Flash is the preferred candidate, with voice-agent compatibility unverified.
@@ -108,6 +110,8 @@ flowchart TD
     FAMILY -->|Conversation| VOICE
     VOICE -->|Signed provider callbacks| CALLBACK
     CALLBACK -->|Call evidence, optional callback request| DB
+    REVIEW -->|Preauthorized follow-up or exact staff update| IMESSAGE[Photon hosted iMessage]
+    IMESSAGE -->|Private delivery evidence and family replies| CALLBACK
     REVIEW -->|Approval and durable call attempts| DB
 ```
 
@@ -180,12 +184,17 @@ selected providers are not evidence of deployment or integration.
 | Model 2 | Hosted Google Gemini API, configured `gemini-3.5-flash-lite` | Live model/local path and hosted synthetic Railway/Supabase/Realtime path verified |
 | Optional sponsor effort | Veri Studio with a compatible open-source model | Separate from MVP Gemini inference; eligibility unverified |
 | Conversational voice | ElevenLabs Agents; configurable conversational LLM, Gemini Flash preferred | Agent configuration and one consented live synthetic-incident conversation verified; automated spoken-evidence mapping pending |
+| Family messaging | Photon hosted iMessage via Railway | Assignment/onboarding and one isolated Docker + real Photon message delivery and correlated ACK verified; hosted rollout pending |
 | Family telephony | Photon outbound SIP trunk connected to ElevenLabs | One consented outbound call verified through the configured trunk; broader failure/recovery coverage pending |
 
 TypeScript dependency versions are pinned in pnpm-lock.yaml and the Docker
 toolchain. Setup/check commands are documented in docs/development.md. Training,
 QNX configuration remains unverified; hosted demo settings and limits are recorded
 in docs/deployment-verification.md.
+
+Hosted iMessage is a separate Photon channel managed by the Railway backend;
+PHOTON_PROJECT_ID/PHOTON_API_KEY and PHOTON_IMESSAGE_SENDER_NUMBER are server-only.
+No Mac-local messaging package is permitted at runtime.
 
 ## 7. Dataset Format and Collection
 
@@ -780,6 +789,9 @@ are tested with synthetic providers. The call schema and disabled-dispatch
 contact/review APIs are deployed and verified; frontend controls, real calling and
 connected/spoken evidence remain pending. See [docs/family-calls.md](docs/family-calls.md).
 
+Messaging adds private authorization/job/attempt/message/reply records and separate
+channel consent; see §20. No provider payload or destination is browser-public.
+
 ## 19. Operator Dashboard
 
 Primary owner: Emilia. Use Paper to help design and implement the frontend.
@@ -920,7 +932,7 @@ change; finalize bounded JSON Schema/DTOs before implementation):
   "room_label": "Room 102",
   "resident_name": "Demo Resident 102",
   "detected_at": "2026-10-17T14:32:06-07:00",
-  "family_summary": "A sensor result was recorded for Demo Resident 102 in Room 102. Their condition has not been confirmed.",
+  "family_summary": "We're contacting you about a possible fall involving Demo Resident 102 in Room 102. Their condition has not been confirmed.",
   "resident_condition": "unknown",
   "staff_response": "not_confirmed",
   "recipient_name": "Sarah",
@@ -931,6 +943,16 @@ change; finalize bounded JSON Schema/DTOs before implementation):
 Preserve `inference_result`; do not restore a categorical `possible_fall` event or
 infer one from scores without a separately approved interpretation rule. A
 possible-fall description needs a documented supported fact and explicit review.
+For the staged fall demo, the user approved the shared notification wording:
+"We're contacting you about a possible fall involving [resident] in [room]. Their
+condition has not been confirmed." This describes the operator-reviewed demo
+scenario, not a newly inferred category or calibrated score interpretation. Only
+authorize this template for an intended possible-fall scenario; do not turn every
+inference window into a family alert. The same frozen family summary is spoken
+by the call agent after recipient verification and used in the reviewed post-call
+iMessage. Never upgrade possible to confirmed, assert injury, or invent staff action.
+Previously approved snapshots retain their exact text; new wording requires a new
+review, rather than silently changing queued/previously approved notifications.
 The projection never copies score-bearing operator prose. Its provenance references
 the persisted explanation; a deterministic fallback must not be labeled Gemini.
 Do not fabricate an explanation or imply Gemini ran when output is absent.
@@ -957,6 +979,17 @@ request. It must not reclassify sensor data, infer positions/activities, diagnos
 injury, confirm an unknown condition, invent staff actions or new updates, dispatch
 other notifications, initiate emergency escalation or perform unrelated actions.
 There are no live database-query or incident-mutating agent tools in the MVP.
+The provider-native `end_call` control ends the current session after an explicit
+request to stop, a completed closing exchange, or an unverified/wrong recipient or
+voicemail greeting. This grants no database access, transfers or further dispatch.
+Say one brief goodbye and disconnect rather than restarting the conversation after
+a farewell. Providing the incident alone must not cut off a follow-up question.
+Use calm, measured delivery with warmth and restraint; avoid cheerful/excited
+incident announcements. Acknowledgments such as "okay", "great" or "thanks", silence
+and declining a callback do not themselves close a conversation. If closure is
+unclear, ask whether the recipient needs anything else and wait for their answer.
+Configure the native end-call description with the same explicit closing rules
+reviewed in the frozen policy; do not rely on default inferred satisfaction.
 A callback request is recorded for operator review; it does not automatically
 contact staff or claim a response has occurred.
 
@@ -1021,6 +1054,73 @@ describes signed callbacks, analysis and initiation failures. These documented
 interfaces do not establish Photon compatibility, recipient verification or
 notification-spoken evidence. Verify the actual Photon product/trunk, agent/LLM,
 number, signatures, event mapping and consented live call before claiming integration.
+
+### Approved iMessage follow-ups and family replies
+
+Extend the voice flow with Photon-hosted iMessage. This is an approved architecture,
+not verified live messaging. Preserve the seven-field v2 inference contract, Gemini's
+four-field output, deterministic incident decisions and the existing voice flow.
+No additional inference model or developer Mac is needed.
+
+Voice and iMessage have separate consent. The operator may review and explicitly
+authorize the call and its two frozen follow-up candidates together: a generic
+missed-call message and a family-safe incident summary. Existing call-only approvals
+never authorize messaging retroactively. Before each message, recheck operator
+membership, historical patient/contact association, messaging consent/version and
+Photon sender assignment for that recipient. `PHOTON_IMESSAGE_SENDER_NUMBER` is an
+E.164 sender override for the single-recipient demo, not a universally valid line.
+Shared recipients must complete Photon's required assignment and inbound onboarding.
+
+Select at most one preauthorized initial follow-up per call, deterministically:
+
+| Confirmed call evidence | Message |
+| --- | --- |
+| No answer, busy, voicemail, or ended before incident communication | Generic missed-call notification with no resident/room/incident details |
+| Verified intended recipient and incident communicated, including an early hangup afterward | Approved incident summary |
+| Uncertain, conflicting, or incomplete evidence | Hold for explicit operator review; no automatic message |
+
+A connected call, transcript, model analysis, completed session or lack of recipient
+acknowledgment alone does not prove incident communication. Preserve the existing
+connected/spoken evidence boundary. A scoped operator may explicitly classify/review
+an uncertain call and authorize the appropriate candidate; record evidence and actor.
+No automatic "possible fall" claim may be derived from experimental scores.
+
+Freeze exact candidate text, destination, contact revision, policy and approver in a
+durable authorization. Use database uniqueness for one initial follow-up per call,
+persist an attempt before submission and use a stable provider idempotency key.
+Ambiguous submissions stay unknown and are reconciled; never blindly retry or
+substitute SMS. Revocation cancels unsent work; changes require new approval.
+Staff-reviewed updates are separately authorized exact messages grounded in verified
+facts. Do not invent condition, staff response or promised callback timing.
+
+Persist message IDs, space/sender association, status and provenance privately in
+Supabase. Delivery/read evidence is separate from call success and never establishes
+recipient action or resident safety. Reconcile provider state and inbound messages
+through authenticated Photon APIs with durable deduplication/restart recovery.
+Do not publish message bodies, contacts or provider credentials directly to Realtime;
+bump incident revision and refetch through authorized REST interfaces.
+
+Record bounded inbound text as untrusted content. Correlate a reply to the original
+incident using an explicit parent message where available; a unique known incident
+in the same sender/recipient conversation is acceptable. If multiple incidents are
+possible, hold it in a facility-scoped unassigned review inbox rather than guessing.
+Surface acknowledgments and callback requests for operator review; deterministic
+explicit reply commands may label intent, but all other replies remain reviewable.
+No automatic medical advice, promises of staff action or autonomous calls/messages.
+Stop/unsubscribe replies revoke messaging consent and cancel unsent messages.
+
+Required interfaces include scoped messaging-consent management, preview/authorization
+of call-follow-up candidates, explicit uncertain-outcome review, exact staff-update
+authorization, incident messaging history and a reply review inbox. Frontend owner
+receives shared contracts and a handoff; new/material UI must follow §19's Paper
+workflow. Backend delivery does not establish frontend completion.
+
+Verification requires Docker tests for classification, consent/assignment mismatch,
+rollback/idempotency, uncertain submissions, duplicate and reordered provider events,
+reply ambiguity, authorization and restart recovery. Real send/receive must use a
+consented fictional demo and provider evidence. Synthetic tests cannot establish live
+iMessage integration, prize eligibility or provider provisioning. Live calling and
+messaging remain independently disabled unless explicitly enabled for verification.
 
 ## 21. Team Roles and Component Ownership
 
@@ -1160,6 +1260,9 @@ following commit via Supabase Realtime; exact update metadata remains to be
 finalized. The browser ignores older revisions. Reconnect refetches REST
 snapshots/history; durable live-message replay is not promised for MVP.
 
+Messaging REST interfaces and DTOs extend the operator API without replacing call
+contracts. See §20 and `docs/family-messages.md` for endpoint details and rollout.
+
 ## 24. Privacy, Safety and Security
 
 Supabase Auth is required for operator REST and Realtime. A shared fictional demo
@@ -1241,6 +1344,10 @@ Veri eligibility is tracked separately from
 core product functionality. A mock, replay or deterministic template must be
 labeled and cannot establish a live integration it replaces.
 
+The approved messaging extension additionally requires consented live send/receive,
+exactly one authorized call follow-up, and a correlated reply/callback request
+available through scoped operator interfaces. These criteria remain unverified.
+
 ## 26. Testing and Validation
 
 The validation matrix below defines required integration evidence. Foundation
@@ -1270,6 +1377,10 @@ trigger on a healthy network, excluding collection window and asynchronous LLM.
 Agree target with the team before acceptance use. Report p50/p95 stage latencies,
 observed duration, hardware/software versions and limitations.
 
+Messaging verification additionally covers independent consent, assignment/onboarding,
+atomic joint approval, deterministic evidence selection, ambiguous external outcomes,
+reply deduplication/correlation and restart-safe polling. See §20 and docs/family-messages.md.
+
 ## 27. Risks and Fallbacks
 
 | Risk | Explicit fallback and limit |
@@ -1292,6 +1403,10 @@ observed duration, hardware/software versions and limitations.
 Export feasibility and serial access are early critical-path gates. Stretch features
 must not consume time needed to prove local sensing, durable incidents and reviewed
 contact. No fallback justifies unsupported medical or sponsor-success claims.
+
+Messaging risks include missing project scopes, recipient-specific sender assignment,
+unverified voicemail/spoken mappings and ambiguous multi-incident replies. Hold unknown
+outcomes for review, retain durable evidence, and never fall back to SMS without approval.
 
 ## 28. Implementation Roadmap
 
@@ -1409,6 +1524,17 @@ verification and the separate hosted rollout record. See docs/slice-2.md for loc
 docs/deployment-verification.md for the separate hosted evidence. The hosted
 project uses fictional residents and staged synthetic events, not live sensing.
 
+Messaging source: `apps/backend/src/messages`, shared request/history/reply schemas,
+`20261018043000_family_messages.sql` and frontend data helpers. Docker verification
+passed with 44 PostgreSQL checks plus the existing scoped Realtime test. Photon
+Node authentication, the configured sender/recipient assignment and inbound
+onboarding were verified. One clearly labeled synthetic update was sent through
+the actual authorization/worker path against isolated Docker PostgreSQL; Photon
+reported delivery. A real ACK reply was persisted once, correlated to the original
+synthetic incident and returned through the authorized API. Hosted rollout and
+frontend display remain pending.
+Paper work was stopped at the user's request; no new dashboard view is claimed.
+
 ## 30. Open Questions and Decisions
 
 | Decision/evidence needed | Lead / confirmation |
@@ -1465,7 +1591,9 @@ documented evidence supports a decision.
 | ADR-026 / 2026-10-17 | Confirmed target: blissey-beacon.health website, planned api.blissey-beacon.health backend, provider-assigned Supabase project URL | User supplied domain; deployment manifests/env examples and setup handoff prepared; no DNS/TLS/production changes claimed |
 | ADR-027 / 2026-10-17 | Implementation: explicit Gemini 3.5 Flash-Lite, frozen minimal input, constrained schema/wording validation, 30-second leased jobs and atomic explanation/incident-revision publication; live model verified locally, hosted rollout pending | Preserves event/output contracts and single backend; opt-in explanation DTO supports independent frontend/backend rollout |
 | ADR-028 / 2026-10-17 | Approved: bounded conversational family notifications through ElevenLabs Agents and planned Photon SIP; operator approves frozen recipient/context/opening/policy, with one consented primary contact per fictional resident | Supersedes static-text-only authorization and configuration-time destination ban; preserves v2 ingestion, Gemini output/auth/lifecycle. Success is connected plus incident notification spoken, without recipient acknowledgment; provider integration/evidence mapping unverified |
-| ADR-029 / 2026-10-17 | User-directed: Emilia owns frontend design and implementation with Paper assistance; Chace owns application/backend scaffolding and backend/Model 2; Chloe retains Model 1/training/QNX | Supersedes Kiro frontend ownership in ADR-007 and the layout-owner reference in ADR-022; preserve React/Vite, Supabase Auth, API/Realtime boundaries and existing hardware ownership |
+| ADR-029 / 2026-10-18 | Approved: independently consented Photon-hosted iMessage follow-ups, deterministic call-evidence selection, operator review for unknowns, private durable messages and correlated family replies | One preauthorized initial follow-up per call; separate exact staff-update approval; preserve Gemini/event/voice contracts, no Mac runtime, no autonomous medical advice. Provider assignment and live send/receive require verification |
+| ADR-030 / 2026-10-18 | Approved: use an explicit possible-fall description in the staged demo's operator-reviewed shared family summary for calls and post-call iMessages | User requested stronger language than sensor result. Preserve unknown resident condition, identity checks, exact-text approval, generic missed-call messages, v2 event/Gemini contracts and frozen historical approvals; no score-derived reclassification |
+| ADR-031 / 2026-10-17 | User-directed: Emilia owns frontend design and implementation with Paper assistance; Chace owns application/backend scaffolding and backend/Model 2; Chloe retains Model 1/training/QNX | Supersedes Kiro frontend ownership in ADR-007 and the layout-owner reference in ADR-022; preserve React/Vite, Supabase Auth, API/Realtime boundaries and existing hardware ownership |
 
 The user explicitly approved this delta after reviewing the proposal. See
 [deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md](deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md)
