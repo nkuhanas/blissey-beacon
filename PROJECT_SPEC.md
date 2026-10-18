@@ -184,7 +184,7 @@ selected providers are not evidence of deployment or integration.
 | Model 2 | Hosted Google Gemini API, configured `gemini-3.5-flash-lite` | Live model/local path and hosted synthetic Railway/Supabase/Realtime path verified |
 | Optional sponsor effort | Veri Studio with a compatible open-source model | Separate from MVP Gemini inference; eligibility unverified |
 | Conversational voice | ElevenLabs Agents; configurable conversational LLM, Gemini Flash preferred | Agent configuration and one consented live synthetic-incident conversation verified; automated spoken-evidence mapping pending |
-| Family messaging | Photon hosted iMessage via Railway | Assignment/onboarding and one isolated Docker + real Photon message delivery verified; inbound reply and hosted rollout pending |
+| Family messaging | Photon hosted iMessage via Railway | Assignment/onboarding and one isolated Docker + real Photon message delivery and correlated ACK verified; hosted rollout pending |
 | Family telephony | Photon outbound SIP trunk connected to ElevenLabs | One consented outbound call verified through the configured trunk; broader failure/recovery coverage pending |
 
 TypeScript dependency versions are pinned in pnpm-lock.yaml and the Docker
@@ -1498,7 +1498,9 @@ passed with 44 PostgreSQL checks plus the existing scoped Realtime test. Photon
 Node authentication, the configured sender/recipient assignment and inbound
 onboarding were verified. One clearly labeled synthetic update was sent through
 the actual authorization/worker path against isolated Docker PostgreSQL; Photon
-reported delivery. Inbound reply evidence and hosted rollout remain pending.
+reported delivery. A real ACK reply was persisted once, correlated to the original
+synthetic incident and returned through the authorized API. Hosted rollout and
+frontend display remain pending.
 Paper work was stopped at the user's request; no new dashboard view is claimed.
 
 ## 30. Open Questions and Decisions

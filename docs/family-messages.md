@@ -3,13 +3,14 @@
 ADR-029 extends approved family calls with independently consented Photon 2.0
 hosted iMessage. The sensing/Gemini contracts are unchanged. No Mac relay or new
 inference model is used. Source, migrations and synthetic tests exist; hosted
-rollout and live reply reception remain unverified. The initial Python check hit Cloudflare error 1010, not a demonstrated key-permission
+rollout remains unverified. The initial Python check hit Cloudflare error 1010, not a demonstrated key-permission
 problem. The actual Node adapter authenticated successfully on 2026-10-18 UTC;
 the active recipient assignment and initial inbound onboarding were verified.
 The local sender value was corrected to the assigned Photon line. One clearly labeled
 synthetic update passed the actual authorization/worker path using an isolated Docker
 PostgreSQL database and real Photon. Its provider state advanced from accepted to
-delivered. A family reply has not yet been observed; hosted rollout remains pending.
+delivered. A real ACK reply was persisted once, linked to the synthetic incident
+and exposed through the authorized history API. Hosted rollout remains pending.
 
 ## Configuration and rollout
 
@@ -191,5 +192,8 @@ Railway or frontend rollout and not real Gemini/voice or hardware evidence.
 
 The private journal is `.supabase-test/imessage-live-journal.json`; it is ignored by
 Git and Docker builds. No production application schema, data or dispatch flag was
-changed. No automatic resend was made. Reply reception/correlation still requires
-actual incoming evidence; synthetic tests alone do not establish it.
+changed. No automatic resend was made. A real ACK reply was ingested, durably deduplicated, linked to the original
+synthetic incident and returned by the authorized history API. This establishes
+real Photon send/receive with the local backend path. A real callback-request reply,
+combined live call/follow-up selection, hosted Realtime display and frontend view
+remain unverified; their synthetic tests are not live provider evidence.
