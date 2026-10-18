@@ -108,7 +108,9 @@ checks. Sponsor eligibility and award submission requirements were not verified.
 
 ## Run and explore the interactive demo
 
-All dashboard tabs share a compact header and a single status strip for active
+All dashboard tabs share one compact header row containing the title, facility,
+demo notice, botanical ornament and scenario controls, with no separate notice
+row. The header reflows on narrow screens. A single status strip shows active
 incidents, offline devices, room count and last staged data time. The offline
 device indicator opens Devices. The sidebar keeps the moonlit logo and landscape,
 uses shorter navigation labels, and has no independent scrollbar. At short

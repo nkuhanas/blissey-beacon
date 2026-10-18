@@ -66,17 +66,19 @@ html:has(.dashboard.compact-workspace) {
   max-width: none;
   margin: 0;
   padding: 16px 24px 20px;
-  gap: 16px;
+  gap: 12px;
 }
 .compact-workspace .moon-background svg {
   height: auto;
   opacity: 0.45;
 }
 .compact-workspace .demo-toolbar {
+  display: block;
   padding: 0;
   border: 0;
-  font-size: 12px;
-  line-height: 18px;
+  font-size: 11px;
+  line-height: 16px;
+  margin-top: 3px;
 }
 .workspace-header {
   display: flex;
@@ -84,7 +86,7 @@ html:has(.dashboard.compact-workspace) {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  min-height: 92px;
+  min-height: 56px;
 }
 .compact-workspace .page-heading {
   display: block;
@@ -94,10 +96,15 @@ html:has(.dashboard.compact-workspace) {
   min-width: 0;
 }
 .compact-workspace .page-heading .facility-label {
-  margin: 0 0 4px;
+  margin: 0;
   font-size: 13px;
   line-height: 20px;
   font-weight: 500;
+}
+.workspace-title {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
 }
 .facility-label span {
   color: var(--color-muted);
@@ -112,19 +119,23 @@ html:has(.dashboard.compact-workspace) {
   width: 140px;
   height: 104px;
   flex: 0 0 auto;
-  margin: -6px 0;
+  margin: -24px 0;
 }
 .workspace-tools {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 8px;
 }
 .compact-workspace .scenario-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0;
   font-size: 11px;
   line-height: 16px;
 }
 .compact-workspace .scenario-label select {
+  margin-top: 0;
   font-size: 13px;
   width: 200px;
 }
@@ -388,6 +399,7 @@ html:has(.dashboard.compact-workspace) {
   .compact-workspace .header-ornament {
     width: 120px;
     height: 90px;
+    margin-block: -17px;
   }
   .last-update {
     width: 100%;
@@ -487,6 +499,16 @@ html:has(.dashboard.compact-workspace) {
   .workspace-header {
     flex-wrap: wrap;
     gap: 12px;
+  }
+  .workspace-title {
+    display: block;
+  }
+  .compact-workspace .page-heading .facility-label {
+    line-height: 18px;
+  }
+  .compact-workspace .demo-toolbar {
+    font-size: 10px;
+    line-height: 15px;
   }
   .compact-workspace .page-heading {
     flex-basis: 100%;

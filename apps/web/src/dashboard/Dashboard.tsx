@@ -638,24 +638,26 @@ export function Dashboard() {
             <MoonlitBackground />
           </div>
         )}
-        <div className="demo-toolbar">
-          <span>
-            <strong>Interactive demo</strong> · Fictional data. No live sensing
-            or calls.
-          </span>
-        </div>
         <header className="workspace-header">
           <div className="page-heading">
-            <p className="facility-label">
-              Willow House <span>/ Ground floor</span>
+            <div className="workspace-title">
+              <h1>
+                {view === "overview"
+                  ? "Overview"
+                  : view === "history"
+                    ? "Incident history"
+                    : navigation.find((n) => n.id === view)!.label}
+              </h1>
+              <p className="facility-label">
+                Willow House <span>/ Ground floor</span>
+              </p>
+            </div>
+            <p className="demo-toolbar">
+              <span>
+                <strong>Interactive demo</strong> · Fictional data. No live
+                sensing or calls.
+              </span>
             </p>
-            <h1>
-              {view === "overview"
-                ? "Overview"
-                : view === "history"
-                  ? "Incident history"
-                  : navigation.find((n) => n.id === view)!.label}
-            </h1>
           </div>
           {refined && (
             <img
