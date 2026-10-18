@@ -34,7 +34,7 @@ explicitly. Under `conversation_config.agent.prompt`, configure:
 }
 ```
 
-Use the current source `POLICY`, `END_CALL_DESCRIPTION` and `family-call-v5`. The
+Use the current source `POLICY`, `END_CALL_DESCRIPTION` and `family-call-v6`. The
 description placeholder above must be replaced, not submitted literally. Its
 exact text is included in the frozen policy's `Call ending:` paragraph so the
 smoke CLI can verify provider readback. Do not leave the permissive default blank
@@ -420,3 +420,38 @@ approvals retain their exact original text and require a fresh review to change.
 The agent prompt/policy version and provider configuration are unchanged; only
 new backend-generated context changes. No live call or deployment verifies this
 wording yet.
+
+## Reassuring demo callback acknowledgment — 2026-10-18 UTC
+
+The user explicitly approved ADR-031 after hearing the prior callback disclaimer.
+New `family-call-v6` reviews permit this fictional-demo voice acknowledgment:
+
+> Your callback request is noted. The care team will call you back as soon as possible.
+
+This is a scripted demo commitment. The backend still records the optional request
+for operator review; it does not schedule a callback or contact staff. The agent
+must not add a time estimate, claim staff are already responding, or invent a
+resident condition. iMessage templates retain their existing restrictions. Frozen
+historical approvals remain unchanged; new calls require the new policy/hash.
+Deploy the matching backend and agent policy with dispatch disabled before use.
+
+Immediately before this wording change, a fresh authenticated synthetic event
+passed duplicate-ACK, real Gemini, operator API and Realtime checks. After the test
+recipient disabled Silence Unknown Callers, the one authorized call rang normally;
+the recipient explicitly confirmed hearing the possible-fall summary. ElevenLabs
+reported a 64-second completed session and its signed callback was persisted.
+Call dispatch was restored to disabled and its deployment verified. This is live
+recipient-reported delivery of the previous policy, not a voice retest of v6 or
+verification of automated provider playback mapping. Private run journal:
+`.smoke/runs/call-unsilenced-20261018-0520.json` (ignored; do not publish).
+
+Docker lint/format, generated-contract checks, typechecking, unit/script tests,
+builds and 44 disposable PostgreSQL tests passed for this change. The dedicated
+ElevenLabs agent was updated with dispatch disabled; readback matched v6 exactly
+and preserved voice, turn settings, conversational model and native end-call tool.
+Three real-provider **text-only synthetic simulations** exercised the callback
+acknowledgment, unknown condition/staff response, and wrong-recipient privacy.
+The callback simulation used the approved promise without the previous disclaimer;
+the condition response remained unknown and the wrong-recipient case disclosed
+no incident details. These simulations placed no telephone call and do not prove
+spoken delivery of the new acknowledgment.
