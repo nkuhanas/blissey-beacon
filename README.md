@@ -58,6 +58,19 @@ docker compose run --rm verify
 docker compose down
 ```
 
+Reusable checks and the hosted incident/call rehearsal are documented in
+[scripts/README.md](scripts/README.md):
+
+```sh
+sh scripts/verify.sh --realtime
+sh scripts/demo.sh doctor
+sh scripts/demo.sh smoke --run rehearsal-001 --call --manage-dispatch
+```
+
+The last command creates a synthetic incident and, after explicit review, places
+one real call to the existing consented test contact. Omit `--call` to prepare only.
+It saves a private run journal and never automatically redials an existing call.
+
 The database test requires a fresh database. `docker compose down` removes its
 container and tmpfs data; dependency volumes are retained. No hosted database is
 used by this check. For actual local Supabase Realtime acceptance, run

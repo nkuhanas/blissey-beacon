@@ -15,9 +15,10 @@
     "lint": "eslint .",
     "test": "pnpm -r test",
     "test:db": "pnpm --filter @blissey/backend test:db",
-    "check": "pnpm contracts:check && pnpm --filter @blissey/contracts build && pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm build",
-    "format": "prettier --write apps tools packages/contracts/src/index.ts packages/contracts/tests packages/contracts/scripts eslint.config.mjs",
-    "format:check": "prettier --check apps tools packages/contracts/src/index.ts packages/contracts/tests packages/contracts/scripts eslint.config.mjs",
+    "test:scripts": "node --test scripts/tests/*.test.mjs",
+    "check": "pnpm contracts:check && pnpm --filter @blissey/contracts build && pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm test:scripts && pnpm build",
+    "format": "prettier --write apps tools scripts packages/contracts/src/index.ts packages/contracts/tests packages/contracts/scripts eslint.config.mjs",
+    "format:check": "prettier --check apps tools scripts packages/contracts/src/index.ts packages/contracts/tests packages/contracts/scripts eslint.config.mjs",
     "simulate": "pnpm --filter @blissey/simulator simulate"
   },
   "devDependencies": {

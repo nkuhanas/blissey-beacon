@@ -940,6 +940,12 @@ request to stop, a completed closing exchange, or an unverified/wrong recipient 
 voicemail greeting. This grants no database access, transfers or further dispatch.
 Say one brief goodbye and disconnect rather than restarting the conversation after
 a farewell. Providing the incident alone must not cut off a follow-up question.
+Use calm, measured delivery with warmth and restraint; avoid cheerful/excited
+incident announcements. Acknowledgments such as "okay", "great" or "thanks", silence
+and declining a callback do not themselves close a conversation. If closure is
+unclear, ask whether the recipient needs anything else and wait for their answer.
+Configure the native end-call description with the same explicit closing rules
+reviewed in the frozen policy; do not rely on default inferred satisfaction.
 A callback request is recorded for operator review; it does not automatically
 contact staff or claim a response has occurred.
 
