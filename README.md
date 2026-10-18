@@ -13,8 +13,8 @@ Built for **LA Hacks 2026 · Beyond the Digital**.
 
 ![Blissey Beacon dashboard showing an illustrated facility map, room monitoring states, and a possible-fall incident awaiting caregiver review.](docs/images/dashboard.png)
 
-*Connected operator dashboard showing a synthetic possible-fall alert in Room 104.
-Resident records are fictional; calls and texts require explicit operator approval.*
+*Interactive demo showing a staged possible-fall alert in Room 104.
+The browser-only demo uses fictional data; its actions do not place calls or send messages.*
 
 ## Why we built it
 
