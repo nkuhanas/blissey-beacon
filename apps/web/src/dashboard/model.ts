@@ -8,8 +8,11 @@ export type DemoRoom = {
   device: string;
   online: boolean;
   contact: Contact | null;
+  lastDataAt?: string | null;
+  monitoringStatus?: "offline" | "degraded" | "monitoring";
 };
 export type DemoIncident = {
+  record?: import("@blissey/contracts").Incident;
   roomId: string;
   status: IncidentStatus;
   explanation: "pending" | "ready" | "fallback";
@@ -109,12 +112,15 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
   };
 }
 export function roomStatus(room: DemoRoom, incident: DemoIncident | null) {
-  if (!room.online) return "Sensor offline";
   if (incident?.roomId === room.id && incident.status !== "resolved")
     return incident.status === "pending"
       ? "Possible fall · Pending"
       : `Possible fall · ${incident.status}`;
-  return "Monitoring";
+  return room.monitoringStatus === "degraded"
+    ? "Monitoring degraded"
+    : room.online
+      ? "Monitoring"
+      : "Sensor offline";
 }
 export function canReviewCall(room: DemoRoom, incident: DemoIncident | null) {
   return !!(

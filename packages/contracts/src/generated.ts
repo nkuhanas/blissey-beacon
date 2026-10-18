@@ -32,6 +32,26 @@ export interface CallPreview {
   dispatch_enabled: boolean;
 }
 
+export interface DashboardRoom {
+  id: string;
+  label: string;
+  resident: string | null;
+  patient_id: string | null;
+  device_id: string | null;
+  monitoring_status: "offline" | "degraded" | "monitoring";
+  last_data_at: string | null;
+  contact_name: string | null;
+  contact_id: string | null;
+  voice_consent: boolean;
+  messaging_consent: boolean;
+}
+
+export interface DemoScenarioRequest {
+  facility_id: string;
+  room_id: "101" | "102" | "103" | "104" | "105" | "106";
+  scenario: "attention" | "ready" | "fallback" | "offline" | "empty";
+}
+
 export interface DeviceHealth {
   type: "device_health";
   device_id: string;

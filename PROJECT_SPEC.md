@@ -851,6 +851,20 @@ The authenticated UI, backend actions, remaining states and full visual parity
 are not complete. A successful deployment does not complete the Paper-designed
 frontend requirement.
 
+
+The styled dashboard now includes an authenticated connected mode at `/`, with
+`/?operator=1` opening sign-in. The separate `/?demo=1` mode retains the browser-only
+contract above. Connected mode can instantiate explicitly synthetic backend
+scenarios, persist lifecycle actions/notes and review existing call/message APIs.
+Acknowledgment opens review but never authorizes communications by itself.
+Fictional contacts use a server-configured consented test destination. Synthetic
+scenario devices do not receive Pi credentials or generate health reports.
+This integration has source/database tests and local browser verification with
+real Supabase authentication, a durable incident, Gemini explanation and provider
+previews; no new live call or physical Pi verification is claimed. See
+[connected dashboard](docs/connected-dashboard.md). Existing UI contact editing and
+explicit retry controls remain in scope for later connected-interface work.
+
 Emilia owns visual design, responsive layouts, reusable UI components and frontend
 implementation with Paper's assistance. Chace owns application/backend scaffolding
 and backend integration; Emilia and Chace agree API response bodies, shared
@@ -1297,6 +1311,8 @@ provider-signature authentication instead of an operator JWT.
 
 | Method/path | Behavior |
 | --- | --- |
+| `GET /api/operator/dashboard` | Facility-authorized room/resident/contact-name and actual device-health snapshot; no private phone; scenario availability |
+| `POST /api/operator/demo/scenarios` | Opt-in authenticated synthetic scenario creation, durable idempotency and audit; canonical v2 event/incident/job transaction; no automatic notification |
 | `GET /api/operator/rooms` | Authorized demo room summaries, health, incident and attention counts |
 | `GET /api/operator/rooms/:id` | Demo room/device detail and recent incident references |
 | `GET /api/operator/incidents` | Filtered demo history; proposed cursor pagination, default 25/max 100 |

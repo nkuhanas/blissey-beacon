@@ -20,11 +20,13 @@ const roomGeometry = [
 export function FacilityMap({
   rooms,
   incident,
+  incidents,
   selected,
   onSelect,
 }: {
   rooms: DemoRoom[];
   incident: DemoIncident | null;
+  incidents?: DemoIncident[];
   selected: string;
   onSelect: (id: string) => void;
 }) {
@@ -169,22 +171,29 @@ export function FacilityMap({
               {roomGeometry.map(({ id, x, y }) => {
                 const room = rooms.find((r) => r.id === id);
                 if (!room) return null;
+                const roomIncident =
+                  incidents?.find(
+                    (i) => i.roomId === id && i.status !== "resolved",
+                  ) ?? incident;
                 const active =
-                  incident?.roomId === id && incident.status !== "resolved";
-                const tone = !room.online
-                  ? "offline"
-                  : active
-                    ? incident.status === "pending"
-                      ? "attention"
-                      : "responding"
+                  roomIncident?.roomId === id &&
+                  roomIncident.status !== "resolved";
+                const tone = active
+                  ? roomIncident.status === "pending"
+                    ? "attention"
+                    : "responding"
+                  : !room.online
+                    ? "offline"
                     : "monitoring";
                 const label =
                   tone === "offline"
-                    ? "Sensor offline"
+                    ? room.monitoringStatus === "degraded"
+                      ? "Monitoring degraded"
+                      : "Sensor offline"
                     : tone === "attention"
                       ? "Possible fall"
                       : tone === "responding"
-                        ? incident!.status === "acknowledged"
+                        ? roomIncident!.status === "acknowledged"
                           ? "Acknowledged"
                           : "Responding"
                         : "Monitoring";
@@ -199,9 +208,9 @@ export function FacilityMap({
                     key={id}
                     className={`room-hotspot ${tone} ${y > 400 ? "south-room" : "north-room"}`}
                     style={style}
-                    aria-label={`Room ${id}, ${room.resident}, ${roomStatus(room, incident)}`}
+                    aria-label={`Room ${id}, ${room.resident}, ${roomStatus(room, roomIncident)}`}
                     aria-pressed={selected === id}
-                    title={`${room.resident} · ${roomStatus(room, incident)}`}
+                    title={`${room.resident} · ${roomStatus(room, roomIncident)}`}
                     onClick={() => onSelect(id)}
                   >
                     <span className="room-pin">

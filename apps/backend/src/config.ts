@@ -44,7 +44,20 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     );
   if (photon.senderNumber && !/^\+[1-9][0-9]{7,14}$/.test(photon.senderNumber))
     throw new Error("Invalid PHOTON_IMESSAGE_SENDER_NUMBER");
+  const demoPhone = env.DEMO_CONTACT_PHONE ?? env.DEMO_FAMILY_PHONE_E164;
+  if (
+    env.DEMO_SCENARIOS_ENABLED === "true" &&
+    (!demoPhone || !/^\+[1-9]\d{7,14}$/.test(demoPhone))
+  )
+    throw new Error(
+      "Enabled dashboard scenarios require a consented DEMO_CONTACT_PHONE",
+    );
   return {
+    demo: {
+      enabled: env.DEMO_SCENARIOS_ENABLED === "true",
+      facilityId: env.DEMO_FACILITY_ID ?? "demo_facility",
+      phone: demoPhone,
+    },
     messagesEnabled,
     photon: messagingConfigured
       ? {

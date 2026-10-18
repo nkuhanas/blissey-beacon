@@ -1,3 +1,5 @@
+import dashboardRoomSchema from "../schemas/dashboard-room.json" with { type: "json" };
+import demoScenarioRequestSchema from "../schemas/demo-scenario-request.json" with { type: "json" };
 import familyReplySchema from "../schemas/family-reply.json" with { type: "json" };
 import messageHistorySchema from "../schemas/message-history.json" with { type: "json" };
 import replyReviewSchema from "../schemas/reply-review.json" with { type: "json" };
@@ -118,3 +120,10 @@ export const validateFamilyReply: ValidateFunction<
 export const validateMessageHistory: ValidateFunction<
   import("./generated.js").MessageHistory
 > = ajv.compile(messageHistorySchema);
+
+export const validateDashboardRoom: ValidateFunction<
+  import("./generated.js").DashboardRoom
+> = ajv.compile(dashboardRoomSchema);
+export const validateDemoScenarioRequest: ValidateFunction<
+  import("./generated.js").DemoScenarioRequest
+> = ajv.compile(demoScenarioRequestSchema);

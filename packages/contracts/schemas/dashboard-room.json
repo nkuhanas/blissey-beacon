@@ -1,0 +1,94 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DashboardRoom",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "resident": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 128
+    },
+    "patient_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 128
+    },
+    "device_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 128
+    },
+    "monitoring_status": {
+      "enum": [
+        "offline",
+        "degraded",
+        "monitoring"
+      ]
+    },
+    "last_data_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "contact_name": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 128
+    },
+    "contact_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "voice_consent": {
+      "type": "boolean"
+    },
+    "messaging_consent": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "id",
+    "label",
+    "resident",
+    "patient_id",
+    "device_id",
+    "monitoring_status",
+    "last_data_at",
+    "contact_name",
+    "contact_id",
+    "voice_consent",
+    "messaging_consent"
+  ]
+}
