@@ -23,8 +23,8 @@ export function selectFollowup(
 export function messageCandidates(context: FamilyCallContext) {
   return {
     missed:
-      "This is Blissey Beacon's automated demo service. We tried to reach you by phone. Please contact your usual care-team contact for an update. Reply CALLBACK to request operator review, or STOP to stop iMessages.",
-    summary: `Blissey Beacon demo notification: ${context.family_summary} Reply CALLBACK to request operator review, ACK to acknowledge this message, or STOP to stop iMessages. A callback request does not confirm that staff will call.`,
+      "This is Blissey Beacon. We tried to reach you with a care notification. Please contact your care team for an update. Reply CALLBACK to request operator review, or STOP to stop iMessages.",
+    summary: `Blissey Beacon care notification: ${context.family_summary} Reply CALLBACK to request operator review, ACK to acknowledge this message, or STOP to stop iMessages. A callback request does not confirm that staff will call.`,
   };
 }
 export function replyIntent(text: string) {

@@ -138,7 +138,7 @@ export function createCallStore(pool: Pool) {
         const residentName = await assigned(c, i, contact.patient_id);
         const context = familyContext(i, contact.contact_name, residentName);
         const opening =
-          "Hello, this is Blissey Beacon's automated demo assistant. May I speak to " +
+          "Hello, this is Blissey Beacon's automated care assistant. May I speak with " +
           contact.contact_name +
           "?";
         const hash = digest({

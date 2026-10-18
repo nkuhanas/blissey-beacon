@@ -951,6 +951,14 @@ verification step before disclosing incident-specific information. Wrong/unverif
 recipients and voicemail receive no incident details. Identity-check wording and
 failure handling require agreement before a live test; no real resident data is used.
 
+The approved public-facing identity is "Blissey Beacon's automated care assistant."
+New call openings say: "Hello, this is Blissey Beacon's automated care assistant.
+May I speak with [contact name]?" Use that identity in subsequent introductions;
+do not call it a demo service or demo assistant. Automation disclosure and recipient
+verification remain required. Internal prompts, fixtures and documentation continue
+to identify fictional data and synthetic tests honestly; if asked whether the call
+is a demonstration, answer truthfully.
+
 The agent may naturally express only the frozen approved facts, answer ordinary
 follow-up questions within those facts, state uncertainty, and capture a callback
 request. It must not reclassify sensor data, infer positions/activities, diagnose
@@ -981,7 +989,7 @@ that the resident's condition is known. Do not add a specific callback time or a
 unsupported claim about staff response. Preserve the optional callback-request
 flag and operator-review workflow; no automatic staff dispatch is introduced.
 The iMessage templates retain their existing prohibition on callback promises.
-New previews use policy `family-call-v6` and require a fresh policy/hash review;
+New previews use policy `family-call-v7` and require a fresh policy/hash review;
 previously approved calls retain their frozen context and policy.
 
 ### Call status and success evidence
@@ -1061,6 +1069,14 @@ membership, historical patient/contact association, messaging consent/version an
 Photon sender assignment for that recipient. `PHOTON_IMESSAGE_SENDER_NUMBER` is an
 E.164 sender override for the single-recipient demo, not a universally valid line.
 Shared recipients must complete Photon's required assignment and inbound onboarding.
+
+The generic missed-call text begins: "This is Blissey Beacon. We tried to reach you
+with a care notification. Please contact your care team for an update." Retain the
+CALLBACK and STOP instructions. Incident summaries use "Blissey Beacon care
+notification:" as their prefix. This copy does not change consent, reply routing,
+callback commitments or the prohibition on disclosing incident details in a
+missed-call message. Exact new text requires a new preview/hash and approval;
+previously frozen message/call authorizations keep their original text.
 
 Select at most one preauthorized initial follow-up per call, deterministically:
 
@@ -1231,7 +1247,7 @@ Calling remains disabled unless NOTIFICATION_CALLS_ENABLED=true and all required
 provider variables are configured. Credential presence alone never enables it.
 The backend currently records terminal transport/callback metadata but does not
 infer connected/notification-spoken proof from transcripts or analysis; actual
-provider mapping is an explicit remaining integration gate. Agent policy `family-call-v6`
+provider mapping is an explicit remaining integration gate. Agent policy `family-call-v7`
 permits only the approved fictional-demo callback commitment from §20; it does not
 add callback scheduling or staff dispatch. See docs/family-calls.md for provider
 configuration and real-model text-simulation evidence. No success is claimed
@@ -1586,6 +1602,7 @@ documented evidence supports a decision.
 | ADR-029 / 2026-10-18 | Approved: independently consented Photon-hosted iMessage follow-ups, deterministic call-evidence selection, operator review for unknowns, private durable messages and correlated family replies | One preauthorized initial follow-up per call; separate exact staff-update approval; preserve Gemini/event/voice contracts, no Mac runtime, no autonomous medical advice. Provider assignment and live send/receive require verification |
 | ADR-030 / 2026-10-18 | Approved: use an explicit possible-fall description in the staged demo's operator-reviewed shared family summary for calls and post-call iMessages | User requested stronger language than sensor result. Preserve unknown resident condition, identity checks, exact-text approval, generic missed-call messages, v2 event/Gemini contracts and frozen historical approvals; no score-derived reclassification |
 | ADR-031 / 2026-10-18 | Approved: reassuring scripted callback commitment in fictional demo voice calls, with new policy/hash approval | User explicitly approved the demo callback promise after hearing the prior disclaimer. Preserve operator review, consent, immutable approvals, unknown condition/staff response and iMessage restrictions; no actual staff calling/scheduling is added |
+| ADR-032 / 2026-10-18 | Approved: introduce the caller as Blissey Beacon's automated care assistant and use care-notification wording in family iMessages | User approved the proposed call opening and generic missed-call text. Preserve automation disclosure, recipient privacy, fictional-data boundaries, consent/reply controls, callback policy and immutable historical approvals |
 
 The user explicitly approved this delta after reviewing the proposal. See
 [deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md](deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md)

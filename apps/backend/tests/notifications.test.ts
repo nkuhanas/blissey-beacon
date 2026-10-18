@@ -28,7 +28,8 @@ const input = {
   attemptId: "22222222-2222-4222-8222-222222222222",
   destination: "+15555550123",
   context,
-  opening: "Hello, this is an automated demo. May I speak to Demo recipient?",
+  opening:
+    "Hello, this is Blissey Beacon's automated care assistant. May I speak with Demo recipient?",
   policyVersion: POLICY_VERSION,
 };
 export function sign(
