@@ -12,11 +12,12 @@ planned component should be interpreted as working software.
 ## 1. Executive Summary
 
 Blissey Beacon explores camera-free possible-fall detection for senior living
-facilities. ESP32 Wi-Fi Channel State Information (CSI) feeds a Random Forest
-classifier trained using Veri. Local inference on a Raspberry Pi 5 with QNX is the
-target architecture. The team confirms QNX OS sensing/transport on Pi 5 and
-integration of QNX's python3-tflite-runtime from oss.qnx.com; execution/parity of the
-trained forest through that runtime remains unverified here. Structured
+facilities. ESP32 Wi-Fi Channel State Information (CSI) feeds a logistic-regression
+classifier selected from candidate models trained using Veri (ADR-038). Inference runs
+locally on a Raspberry Pi 5 with QNX in a standard-library Python runtime; golden-output
+parity was reproduced on the Pi, while live USB CSI capture there remains under
+validation. The team also integrated QNX's python3-tflite-runtime from oss.qnx.com;
+Model 1 does not use it. Structured
 events travel over WSS to a Railway Node.js/TypeScript backend backed by Supabase PostgreSQL. An authenticated
 Vercel demo dashboard shows incidents; Gemini API generates grounded explanations
 asynchronously. Operators review and authorize bounded conversational family calls: Railway
@@ -49,7 +50,7 @@ and exact verification limits.
 ### Confirmed scope
 
 One ESP32 transmitter, one ESP32 receiver, one Pi 5 running QNX, one monitored room,
-one person, one local Random Forest classifier, one incident-explanation language model,
+one person, one local logistic-regression classifier, one incident-explanation language model,
 a cloud backend, an operator website, and one operator-authorized conversational
 family-call flow through ElevenLabs and Photon, with independently authorized
 iMessage follow-ups and a family reply inbox. One primary consented contact per
@@ -87,7 +88,7 @@ flowchart TD
     TX[ESP32 transmitter] -->|Wi-Fi sensing| RX[ESP32 receiver]
     RX -->|USB serial| PRE
     subgraph PI["Raspberry Pi 5 / QNX"]
-        PRE[Preprocessing, windows and saved features] --> MODEL["Random Forest: target QNX runtime"]
+        PRE[Preprocessing, windows and saved features] --> MODEL["Logistic regression: pure-Python QNX runtime"]
         MODEL --> EVENT[Temporal event grouping and outbox]
     end
     EVENT -->|Authenticated persistent WSS: events and health| INGEST
@@ -174,10 +175,10 @@ selected providers are not evidence of deployment or integration.
 | --- | --- | --- |
 | Sensing | ESP32 transmitter and receiver | Confirmed; boards/firmware TBD |
 | Edge hardware/OS | Raspberry Pi 5, QNX OS | Team confirms ESP32 sensing collection and secure result transmission; image/BSP/toolchain and actual logs not inspected here |
-| Model 1 training | Veri | Team confirms Random Forest training on CSI data; job/configuration/evaluation artifacts not inspected in this repository |
-| Model 1 baseline | Random Forest classifier | Selected by the team; supersedes the proposed Keras 1D CNN; implementation/library and hyperparameters TBD |
-| Edge inference format | Versioned Random Forest artifact and frozen feature pipeline | Export format, eligible QNX module and runtime compatibility not yet verified |
-| QNX inference runtime | python3-tflite-runtime from oss.qnx.com | Team confirms runtime integration to support local fall-detection inference; trained-forest export/execution/parity and sponsor eligibility not established here |
+| Model 1 training | Veri | Veri job `baae987abfc5` trained and cross-validated logistic regression, random forest and gradient-boosted trees on CSI windows (blissey-model `pipeline_v3`); within-session evaluation only, no held-out session yet |
+| Model 1 baseline | Logistic regression on 424 portable CSI motion features | Selected by the owner under a pre-declared rule (ADR-038); supersedes the Random Forest of ADR-036 |
+| Edge inference format | `model.json` (coefficients, standardization, threshold, alert policy) plus checksummed golden fixtures | Export reproduces scikit-learn on every training window; streaming replay matches offline scores and alerts |
+| QNX inference runtime | `blissey_edge`: standard-library Python, no numpy/TFLite/ONNX | Golden replay verified on the actual Pi (QNX 8.0, Python 3.14, about 31 ms per window). python3-tflite-runtime remains integrated but unused by Model 1. Live USB CSI on the Pi pending |
 | Backend hosting/runtime | Railway, Node.js / TypeScript, Fastify + `@fastify/websocket`; single deployment | Docker deployment and synthetic WSS/REST verified; actual QNX unverified |
 | Database | Supabase PostgreSQL | Four migrations applied to approved demo project; synthetic event/incident/job persistence and deduplication verified |
 | Realtime | Supabase Realtime with operator JWT and facility RLS | Hosted authorized delivery and dashboard live update verified |
@@ -186,7 +187,7 @@ selected providers are not evidence of deployment or integration.
 | Operator identity | Supabase Auth | Shared demo account acceptable; explicit facility membership |
 | UI | React/Vite browser demo on Vercel, implemented from Paper designs | Minimal deployed shell: login, room/history and live incident verified; full design/workflows remain pending |
 | Model 2 | Hosted Google Gemini API, configured `gemini-3.5-flash-lite` | Live model/local path and hosted synthetic Railway/Supabase/Realtime path verified |
-| Veri sponsor use | Random Forest training for Model 1 | Team-confirmed use; training does not by itself establish fine-tuning prize eligibility |
+| Veri sponsor use | Training and comparison of Model 1 candidates (job `baae987abfc5`) | Recorded use; training does not by itself establish fine-tuning prize eligibility |
 | Conversational voice | ElevenLabs Agents; configurable conversational LLM, Gemini Flash preferred | Agent configuration and one consented live synthetic-incident conversation verified; automated spoken-evidence mapping pending |
 | Family messaging | Photon hosted iMessage via Railway | Assignment/onboarding and one isolated Docker + real Photon message delivery and correlated ACK verified; hosted rollout pending |
 | Family telephony | Photon outbound SIP trunk connected to ElevenLabs | One consented outbound call verified through the configured trunk; broader failure/recovery coverage pending |
@@ -238,11 +239,13 @@ events and fictional resident/room identifiers; no real resident data for the de
 
 Owner: Chloe; Chace collaborates on edge/backend interfaces.
 
-**Selected model:** Random Forest classifier. The user confirmed that Veri was
-used to train it on the CSI data stream and approved reconciling this specification
-with that decision on 2026-10-18. This supersedes the earlier Keras 1D CNN/Colab
-selection. It does not establish inspected training artifacts, held-out performance,
-QNX execution or sponsor eligibility.
+**Selected model:** logistic regression (ADR-038, superseding ADR-036's Random
+Forest). Veri job `baae987abfc5` trained logistic regression, random forest and
+gradient-boosted trees on the same portable CSI features. The owner kept the
+candidate chosen by the pre-declared rule (most falls detected, then fewest false
+alerts, then simplest): 10/10 falls at 68 false alerts/h in within-session
+cross-validation. That figure is optimistic (one participant, one session); no
+held-out performance is established yet.
 
 The existing product contract remains supervised binary possible-fall
 classification: each example represents a fixed-length CSI window, with target
@@ -255,16 +258,21 @@ probabilities unless calibration is evaluated.
 
 ## 9. Model 1: Base Architecture
 
-**Selected baseline:** Random Forest trained using Veri. The model consumes a
-fixed feature representation derived from CSI windows. The exact feature
-extraction, class mapping, training library/version and hyperparameters must be
-recorded from the team's artifact; they are not inferred from the model name.
+**Selected baseline:** logistic regression trained using Veri. It consumes 424
+portable features from each 3 s window, computed after gain normalization:
+- per subcarrier: motion variance, smoothed movement per third, slow/fast motion
+  energy and burst ratio
+- global: movement curve statistics
+
+The same standard-library code computes the features in training and on QNX. Feature
+order, coefficients, standardization, threshold and class mapping (fall = score) are
+recorded in `model.json`.
 
 | Boundary | Required artifact / validation |
 | --- | --- |
 | Window | Frozen timing, channel layout and data-quality policy from Section 10 |
 | Features | Saved extraction code/configuration, feature count, order and dtype |
-| Forest | Versioned trained artifact, implementation/version, seed and tree settings |
+| Model | Versioned `model.json` (logistic coefficients, standardization, threshold), library versions, seed and Veri job reference |
 | Output | Explicit class-to-score adapter for `confidence_scores` in Section 15 |
 | Deployment | QNX-compatible representation and matching predictions on approved fixtures |
 
@@ -409,13 +417,14 @@ untested rooms, people, placement changes and other limitations honestly.
 
 ## 12. Training and Artifact Management
 
-**Team-confirmed:** Veri was used to train the Random Forest classifier on CSI
-data. This documentation task does not start training or inspect the external
-model repository, training job, dataset or evaluation results.
+**Recorded:** Veri job `baae987abfc5` trained and compared the Model 1 candidates
+on CSI data pinned to `chloe526/blissey-data@cbff5ec`. Its archive holds the results,
+the exported `model.json`, golden fixtures and parity reports. The job did not
+produce a held-out (frozen-session) evaluation.
 
 Required reproducibility workflow: pin the separate dataset revision, inspect/audit,
 split groups before windowing, fit any preprocessing on training only, create
-windows/features, train the forest, tune on validation, evaluate held-out data,
+windows/features, train the model, tune on validation, evaluate held-out data,
 save the model and preprocessing, then compare exported and reference predictions
 before transferring to QNX. Completion of these steps needs artifact evidence;
 the user's training confirmation alone does not establish evaluation completion.
@@ -424,7 +433,7 @@ the user's training confirmation alone does not establish evaluation completion.
 | --- | --- |
 | Source, future training notebook/scripts, inference code, contracts, lightweight configs and reports | Raw CSI, duplicate archives, temporary tensors, large checkpoints and sensitive resident information |
 
-Required artifact bundle: trained forest, Veri run reference, embedded representation,
+Required artifact bundle: trained model, Veri run reference, embedded representation,
 checksum manifest, any fitted normalization state, feature extractor/order,
 resampling policy, window/stride, class/label mapping, threshold/persistence/cooldown,
 seeds, dataset commit, split-manifest hash, evaluation report and small approved
@@ -435,16 +444,17 @@ commit dataset credentials or training-service tokens.
 
 ## 13. Veri Training Integration
 
-Veri was used to train Model 1's Random Forest classifier on the CSI data stream,
-as confirmed by the user on 2026-10-18. Record the actual Veri job, configuration,
-artifact revision and evaluation report when supplied. Do not describe this use
+Veri trained and compared Model 1 candidates on the CSI data stream (job
+`baae987abfc5`), and the selected logistic regression is deployed (ADR-038). The job,
+configuration, artifact checksums and within-session evaluation are recorded in the
+blissey-model repository. Do not describe this use
 as pretrained-model fine-tuning or claim measured performance without evidence.
 
 The earlier proposed open-source Model 2 / Qwen / Veri SFT serving path remains
 superseded by Gemini API. Veri training is separate from runtime incident
 explanations; no self-hosted generative model is added to the product.
 
-The team targets the Veri sponsor challenge, but Random Forest training on Veri
+The team targets the Veri sponsor challenge, but classical-model training on Veri
 infrastructure does not itself establish fine-tuning prize eligibility. Confirm
 current rules and required model/license/training/submission evidence with the
 sponsor. Preserve the QNX, Espressif, Paper and Photon contracts; training or
@@ -460,14 +470,16 @@ This records team-confirmed implementation, not a hardware test performed by thi
 documentation task. Capture the actual module/version and hardware logs; sponsor
 eligibility and full model execution/parity are still separate validation gates.
 
-Do not assume the Random Forest artifact executes through a TensorFlow Lite
-runtime merely because that runtime is integrated. Document the forest's actual
-export/adapter or other compatible inference path, and verify matching outputs
-on QNX before claiming deployed forest inference.
+Model 1 does not execute through TensorFlow Lite (ADR-038). It runs in
+`blissey_edge`, a standard-library Python runtime that parses USB serial CSI, applies
+the quality gate, computes features, scores the model and groups alerts. It then
+enqueues one v2 event per episode, plus health, for the `edge/qnx` transport. On the
+actual Pi, the golden-output self-test reproduced training-machine scores and
+alerts. Live USB capture still requires the CP210x `devc-serusb` driver, which is
+not yet started at boot, and the AP receiver board.
 
-1. Save the trained Random Forest and frozen preprocessing/feature configuration.
-2. Select a representation and eligible QNX inference module that actually support
-   the trained forest; format, library and module remain unverified.
+1. Save the trained model (`model.json`) and the frozen preprocessing/feature configuration.
+2. Run it with the standard-library runtime; no external inference module is required.
 3. Compare exported predictions against the training implementation on fixed
    held-out features using a declared tolerance; investigate class/threshold changes.
 4. Confirm exact QNX image/BSP, hardware architecture, compiler/ABI, inference
@@ -476,7 +488,7 @@ on QNX before claiming deployed forest inference.
 6. Load the model on actual Pi/QNX, reproduce golden outputs, measure resources
    and inference speed, then process live USB CSI into windows and events.
 
-Prove serial reading and representative forest inference early. Conversion
+Prove serial reading and representative model inference early. Conversion
 success alone does not prove QNX compatibility. A Linux desktop inference result
 is not a QNX result. Changing export format must preserve the model task and
 input contract. Startup/loading failure or missing data yields degraded monitoring,
@@ -1236,7 +1248,7 @@ Assignments below are confirmed by the complete request, except explicit TBDs.
 | Person | Primary ownership | Deliverables / handoff |
 | --- | --- | --- |
 | Emilia | Frontend with Paper; hardware and CSI collection | Paper document/screen handoff and matching React/Vite UI; authenticated dashboard, incident actions and API/Realtime integration; working TX/RX, reproducible serial stream, recordings and schema evidence to Chloe |
-| Chloe | Model 1 and edge inference | Parsing/preprocessing, Random Forest training/evaluation, artifacts, QNX runtime, event-producing WSS client |
+| Chloe | Model 1 and edge inference | Parsing/preprocessing, model training/evaluation, artifacts, QNX runtime, event-producing WSS client |
 | Chace | Application/backend scaffolding, backend and Model 2 | Gemini explanations and durable jobs, Railway WSS/REST, Supabase persistence, demo notification approval |
 | TBD | ElevenLabs/Photon provider integration | Agent and conversational LLM configuration, Photon SIP compatibility, signed evidence mapping, consented recipient and real-call test |
 | Entire team | Integration, testing and presentation | End-to-end evidence, honest limitations and demo rehearsal; integration lead TBD |
@@ -1258,12 +1270,12 @@ over earlier planned-status snapshots.
 
 | Track/sponsor | Planned contribution | Evidence needed |
 | --- | --- | --- |
-| Model Learning | Supervised learning on CSI using a Random Forest | Dataset provenance, reproducible model and held-out metrics |
+| Model Learning | Supervised learning on CSI; logistic regression selected over random forest and boosted trees | Dataset provenance, reproducible model and held-out metrics |
 | Beyond the Digital | Physical Wi-Fi sensing and local inference | Live hardware-to-edge demo |
 | Applied Intelligence | Caregiver monitoring and response workflow | Integrated product demonstration and limitations |
 | Espressif | ESP32 as core sensing hardware | Board/firmware evidence and live CSI collection |
-| QNX | Team-confirmed QNX OS sensing/transport on Pi 5 and python3-tflite-runtime integration from oss.qnx.com | Actual module/version, compatible forest export, QNX prediction-parity logs and sponsor eligibility confirmation |
-| Veri Studio | Team-confirmed Random Forest training on CSI data | Job/configuration/artifact/evaluation evidence and sponsor confirmation of eligibility; do not call forest training pretrained-model fine-tuning |
+| QNX | QNX OS on Pi 5 runs Model 1 locally (pure Python) and transmits results; python3-tflite-runtime also integrated | Golden-parity log on the Pi recorded; live USB CSI capture and sponsor eligibility confirmation pending |
+| Veri Studio | Training and comparison of Model 1 candidates (job `baae987abfc5`) | Job/configuration/artifact/evaluation evidence and sponsor confirmation of eligibility; do not call classical-model training pretrained-model fine-tuning |
 | Paper | Dashboard layout, typography, tokens and room-map design; supplied mascot imported into Paper | Linked Paper artifacts and implemented fixture UI in docs/frontend-design.md; later frontend refinements are documented separately |
 | Photon | SIP telephony plus hosted iMessage follow-ups/replies | Separate consented live call and isolated live message/ACK tests in docs/family-calls.md and docs/family-messages.md; full hosted workflow still pending |
 | ElevenLabs | Bounded family conversation and call evidence | Configured agent/LLM, ordinary follow-up handling, uncertainty refusal, signed results and live incident-notification speech evidence |
@@ -1499,9 +1511,9 @@ reply deduplication/correlation and restart-safe polling. See §20 and docs/fami
 
 | Risk | Explicit fallback and limit |
 | --- | --- |
-| Insufficient labeled CSI | Collect more controlled trials; keep the selected Random Forest and report measured limitations; replay or diagnostic outputs must be labeled |
-| Veri eligibility unresolved | Preserve actual Random Forest training attribution; confirm challenge requirements separately; Gemini remains the explanation runtime |
-| Random Forest export/runtime unsupported on QNX | Investigate a compatible representation and eligible module; preserve input/task contract and verify output parity; no silent runtime replacement |
+| Insufficient labeled CSI | Collect more controlled trials; keep the selected model and report measured limitations; replay or diagnostic outputs must be labeled |
+| Veri eligibility unresolved | Preserve actual Veri training attribution; confirm challenge requirements separately; Gemini remains the explanation runtime |
+| Model runtime regression on QNX | Re-run the golden self-test and parity checks; preserve the input/task contract; no silent runtime replacement |
 | QNX USB driver unavailable | Diagnose support, then seek team-approved adapter/transport change; no silent architecture replacement |
 | Gemini unavailable | Persist/show incidents immediately; bounded durable retries then deterministic same-schema fallback; do not claim Gemini ran |
 | Railway deployment incompatible | Verify WSS, worker lifecycle, restart/storage/network and operational limits early; any alternate host requires a documented decision, not a laptop dependency |
@@ -1566,11 +1578,11 @@ required explanation and notification flow before claiming the complete MVP.
 | Priority | Work | Exit evidence |
 | --- | --- | --- |
 | P0 | Reliable CSI capture and data pipeline | Verified source schema/labels, reproducible TX/RX/serial settings and clean windows |
-| P0 | Random Forest training and evaluation | Team confirms Veri training; collect group-aware splits, held-out report and versioned artifacts |
-| P0 | QNX inference | Verified eligible runtime, real USB windows and output parity on Pi/QNX |
+| P0 | Model 1 training and evaluation | Veri job `baae987abfc5` recorded; still need a frozen held-out session report |
+| P0 | QNX inference | Golden parity verified on Pi/QNX; still need live USB windows (devc-serusb + AP receiver) |
 | P0 | Supabase schema and Railway Node.js/TypeScript backend | Provision services, authenticated QNX WSS, transactional event/incident persistence, health, REST and synthetic end-to-end event flow |
 | P0 | Paper-designed authenticated Vercel dashboard and Supabase Realtime | Linked Paper screens and matching React/Vite views, Supabase Auth, facility RLS/publication, room overview/static plan and reconnect recovery |
-| Separate sponsor validation | Veri challenge eligibility | Actual forest training evidence plus mentor-confirmed eligibility/submission requirements; no pretrained fine-tuning claim |
+| Separate sponsor validation | Veri challenge eligibility | Actual training evidence plus mentor-confirmed eligibility/submission requirements; no pretrained fine-tuning claim |
 | P1 | Durable Gemini integration | Pending-work claims/leases, structured output validation/persistence, retries/fallback, restart recovery and frontend explanation updates |
 | P1 | Complete incident actions and ElevenLabs/Photon calls | Lifecycle correctness, one consented primary contact, reviewed immutable call context, real connected/spoken evidence, signed callbacks and dashboard status; no acknowledgment requirement |
 | P1 | Health/history product extensions | Basic health is required from P0; richer diagnostics and history follow |
@@ -1580,10 +1592,10 @@ required explanation and notification flow before claiming the complete MVP.
 
 1. Emilia and Chloe restore dataset access, inspect actual packets/annotations and
    prove reproducible TX/RX USB serial capture on QNX.
-2. Chloe proves a compatible eligible QNX inference module with representative forest
-   predictions, then freezes preprocessing/window/features with training/runtime parity.
-3. Chloe supplies the Veri-trained Random Forest/configuration artifacts and
-   group-aware evaluation evidence, with an export compatible with the selected QNX runtime.
+2. Chloe proves live USB CSI windows on the Pi (devc-serusb driver, AP receiver) feeding
+   the verified pure-Python runtime and the edge/qnx outbox.
+3. Chloe records a frozen held-out session evaluation for the Veri-trained logistic
+   regression and keeps the artifact/golden-parity bundle current.
 4. Chace implements the confirmed seven-field event ingestion with authentication,
    durable transactional event/incident persistence in Supabase, incident lifecycle,
    health and agreed authenticated demo REST/Realtime interfaces on Railway.
@@ -1615,7 +1627,7 @@ The previous dataset-access 404 observation has not been retested by this work.
 | [supabase/tests](supabase/tests) | Plain PostgreSQL test-only Supabase role/auth bootstrap; not live Auth/Realtime validation |
 | [Dockerfile](Dockerfile), [compose.yaml](compose.yaml) | Node/pnpm toolchain and disposable PostgreSQL validation; no host Node needed |
 | [.github/workflows/ci.yml](.github/workflows/ci.yml) | Docker foundation workflow; writing it is not evidence of a remote CI run |
-| Firmware, dataset, training, QNX runtime/model | User confirms Veri Random Forest training plus QNX OS sensing/transport and python3-tflite-runtime integration on Pi 5; artifacts/evaluation, actual hardware logs and forest execution/parity not inspected here; no dataset downloaded by this documentation task |
+| Firmware, dataset, training, QNX runtime/model | Veri job `baae987abfc5` trained the selected logistic regression; its golden-output parity was reproduced on the Pi 5. Live USB capture and held-out evaluation pending; artifacts live in the blissey-model repository |
 | [apps/backend/src/explanations](apps/backend/src/explanations) | Durable leased worker, constrained Gemini output, retry/fallback and atomic publication; real Gemini with local and hosted synthetic Supabase/Realtime verified |
 | [apps/backend/src/notifications](apps/backend/src/notifications), [docs/family-calls.md](docs/family-calls.md) | Contact configuration, reviewed snapshots, transactional approval/attempts, incident actions, disabled-by-default dispatcher and signed normalized callbacks; hosted contact/review APIs verified with dispatch disabled; frontend controls and actual calling pending |
 | Actual ElevenLabs agent, Photon SIP and connected/notification-spoken evidence mapping | Unverified and dependent on provider access/configuration; no real call made |
@@ -1656,8 +1668,8 @@ Paper work was stopped at the user's request; no new dashboard view is claimed.
 | Dataset access, exact schema, annotation clock/interval conventions, counts, license and participant permission | Chloe + Emilia |
 | Real sample rate/feature count, gap handling, labeling margins, split groups and final quality targets | Chloe |
 | QNX image/BSP, USB driver, compiler/ABI, eligible catalog AI module and required operators | Chloe + QNX mentor |
-| Random Forest feature schema/class mapping, export format, compatible QNX runtime and artifact host/checksum/configuration | Chloe |
-| Veri Random Forest job/configuration/evaluation artifacts, challenge rules and documented eligibility/submission evidence | Chloe/Chace + Veri mentor |
+| Held-out session evaluation, live USB capture/driver startup and artifact host/checksum distribution | Chloe |
+| Veri challenge rules and documented eligibility/submission evidence (training job `baae987abfc5` recorded) | Chloe/Chace + Veri mentor |
 | Railway operational limits and failure behavior beyond the hosted synthetic check; remaining lifecycle/API/authorization interfaces | Chace + Emilia |
 | Broader hosted load/failure measurements; synthetic hosted Gemini flow and local lease/retry/recovery checks are verified | Chace |
 | Gemini broader evaluation, provider limits and retention; hosted synthetic rollout verified and model/prompt recorded in docs/gemini-pipeline.md | Chace |
@@ -1669,8 +1681,8 @@ Paper work was stopped at the user's request; no new dashboard view is claimed.
 | Provider audio/transcript retention/deletion and consent settings; application retains minimal structured evidence | Provider lead + Chace |
 | Integration coordinator, deadlines, consented recipient, final demo retention and deletion process | Entire team; lead TBD |
 
-Do not reopen confirmed architecture, named ownership or selected Random Forest
-as if they were unspecified. Mentor-dependent compatibility remains TBD until
+Do not reopen confirmed architecture, named ownership or the selected logistic
+regression (ADR-038) as if they were unspecified. Mentor-dependent compatibility remains TBD until
 documented evidence supports a decision.
 
 ## 31. Architecture Decision Log
@@ -1714,6 +1726,7 @@ documented evidence supports a decision.
 | ADR-035 / 2026-10-18 | Approved: post-call thank-you acknowledgment replaces the incident recap, with dispatched/update commitment gated by explicit audited operator confirmation | User approved the proposed wording and dispatch condition. Preserve communicated/verified-recipient selection, separate consent, exact-text/hash approval, historical messages, generic missed-call privacy and unchanged sensing/voice/Gemini contracts |
 | ADR-036 / 2026-10-18 | Approved: select the Random Forest classifier trained using Veri for CSI Model 1, superseding the Keras CNN/Colab baseline in ADR-002 | User confirmed the actual training use and authorized README/spec reconciliation. Retain binary event/score contracts, frozen features, group-aware evaluation and QNX target. Training artifacts/metrics, runtime compatibility and sponsor eligibility remain unverified here; see deltas/2026-10-18T07-17-29Z-random-forest-product-readme.md |
 | ADR-037 / 2026-10-18 | Team confirms QNX OS on Pi 5 collects ESP32 sensing data and securely transmits results, with python3-tflite-runtime from oss.qnx.com integrated for local inference support | User supplied exact QNX attribution during the README rewrite. Record the module without inferring that the Random Forest executes through it; artifact/runtime compatibility, prediction parity, full live integration and eligibility need evidence; see the ADR-036 delta |
+| ADR-038 / 2026-10-18 | Approved: deploy logistic regression as Model 1, selected from Veri-trained candidates (job `baae987abfc5`), executed by the standard-library `blissey_edge` runtime on QNX; supersedes ADR-036's model selection and ADR-037's TFLite inference assumption | Model owner chose it under the pre-declared rule (10/10 falls vs random forest 9/10, within-session, optimistic). The plain-Python runtime is verified by golden replay on the actual Pi, while TFLite would not natively run a forest. Preserve v2 events, scores, grouping and evaluation gates; held-out evaluation and live USB capture remain open; see deltas/2026-10-18T08-50-54Z-logistic-regression-model.md |
 
 The user explicitly approved this delta after reviewing the proposal. See
 [deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md](deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md)

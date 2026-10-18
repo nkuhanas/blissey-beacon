@@ -29,15 +29,15 @@ and notification approval.
 ## From sensing to family updates
 
 The data path separates offline training, edge sensing and cloud incident
-processing. The team has integrated QNX sensing/transport and its inference
-runtime; classifier deployment/parity and the complete physical sensing flow
-remain under validation.
+processing. The classifier runs on QNX in pure Python, and its outputs on the Pi
+match the training machine. Live USB sensing on the Pi and the complete physical
+flow remain under validation.
 
 ```mermaid
 flowchart TD
-    recordings["Recorded CSI data"] --> veri["Veri: Random Forest training"]
+    recordings["Recorded CSI data"] --> veri["Veri: model training and selection"]
     esp["ESP32 transmitter and receiver"] -->|"CSI over USB serial"| edge["Raspberry Pi 5 / QNX OS"]
-    veri -.->|"Classifier deployment pending"| edge
+    veri -->|"Logistic regression · model.json"| edge
     edge -->|"Structured results over authenticated WSS"| api["Railway backend"]
     api -->|"Persist incident before ACK"| db[("Supabase PostgreSQL")]
     api <-->|"Facts / explanation"| gemini["Gemini API · asynchronous"]
@@ -45,11 +45,13 @@ flowchart TD
     api -->|"REST incident reads"| operator
 ```
 
-QNX collects ESP32 sensing data and securely sends results to the backend.
-We integrated QNX's `python3-tflite-runtime` from [oss.qnx.com](https://oss.qnx.com/)
-to support local fall-detection inference. Random Forest export and prediction
-parity with the QNX deployment still need validation; the runtime's presence is
-not evidence that the trained forest executes through it.
+QNX collects ESP32 sensing data, runs the fall classifier locally and securely
+sends results to the backend. The selected logistic regression runs in a
+standard-library Python runtime: no TensorFlow Lite, numpy or scikit-learn. Its
+golden-output self-test passed on the Pi 5 at about 31 ms per window. We also
+integrated QNX's `python3-tflite-runtime` from [oss.qnx.com](https://oss.qnx.com/),
+though the classifier does not need it. Live USB CSI capture on the Pi is still
+being validated.
 
 Veri is used for offline training. Raw CSI stays local at runtime, and Gemini
 receives only structured incident facts. Incidents are persisted and published
@@ -82,8 +84,9 @@ from the public fixture demo.
 1. **Sense movement.** ESP32 boards capture Wi-Fi Channel State Information (CSI),
    measuring how movement changes the wireless channel.
 2. **Process at the edge.** QNX OS on a Raspberry Pi 5 collects sensing data and
-   securely transmits results. Veri trained our Random Forest classifier;
-   deployment of that classifier on QNX remains under validation.
+   runs the fall classifier locally before securely transmitting results. Veri
+   trained and compared our candidate classifiers; the selected logistic regression
+   runs on QNX in pure Python.
 3. **Review the incident.** The cloud pipeline records incidents immediately;
    Gemini adds a concise explanation grounded in those recorded facts. Caregivers
    can review the room, incident history and next response action.
@@ -96,8 +99,8 @@ from the public fixture demo.
 | Product / challenge | Its role in Blissey Beacon |
 | --- | --- |
 | **Espressif · Best Use of Espressif** | ESP32 boards provide Wi-Fi CSI for camera-free movement sensing. |
-| **QNX · Best Use of QNX** | QNX OS on Raspberry Pi 5 collects ESP32 sensing data and securely transmits results. We integrated `python3-tflite-runtime` from [oss.qnx.com](https://oss.qnx.com/) to support local fall-detection inference. |
-| **Veri · Best Use of an Open-sourced Model** | We used Veri to train our Random Forest classifier on Wi-Fi CSI data. |
+| **QNX · Best Use of QNX** | QNX OS on Raspberry Pi 5 collects ESP32 sensing data, runs the fall classifier locally in pure Python (outputs match training on the Pi) and securely transmits results. We also integrated `python3-tflite-runtime` from [oss.qnx.com](https://oss.qnx.com/). |
+| **Veri · Best Use of an Open-sourced Model** | We used Veri to train and compare our Wi-Fi CSI classifiers (logistic regression, random forest, gradient-boosted trees); the selected logistic regression is deployed. |
 | **Gemini API · Best Use of Gemini API** | Generates concise incident explanations asynchronously, without holding up the initial alert. |
 | **ElevenLabs · Best Use of ElevenLabs** | Powers family notification conversations using caregiver-approved context and a bounded conversation policy. |
 | **Photon · Messaging/Calling Agent** | Provides the phone connection for ElevenLabs, hosted iMessage follow-ups and incoming family replies. |
@@ -105,7 +108,7 @@ from the public fixture demo.
 | **GoDaddy Registry · Best Domain Name** | Our public demo lives at **[blissey-beacon.health](https://blissey-beacon.health)**, a memorable home that reflects the project's focus on care. |
 
 These are the challenges we are targeting. Product use and prize eligibility are
-separate: Random Forest training on Veri does not itself establish eligibility
+separate: classical-model training on Veri does not itself establish eligibility
 for a pretrained-model fine-tuning prize. We make no claim of confirmed eligibility
 or completed sponsor submissions here.
 
@@ -144,11 +147,11 @@ and iMessage integrations:
   incident actions and notification reviews. Local browser verification used real
   Supabase authentication, durable incidents and call/message previews without
   authorizing a call. The pure browser demo remains available at `/?demo=1`.
-- **Model and edge:** the team confirms Random Forest training using Veri,
-  QNX OS sensing/transport on Pi 5, and integration of QNX's `python3-tflite-runtime`.
-  Training/evaluation artifacts and hardware logs are not reproduced here.
-  Random Forest deployment/parity and a complete live sensing-to-notification
-  demonstration remain under validation.
+- **Model and edge:** Veri job `baae987abfc5` trained and compared the candidate
+  classifiers. The selected logistic regression caught 10/10 staged falls in
+  within-session cross-validation, an optimistic figure with no held-out session yet.
+  Its golden-output self-test passed on the QNX Pi 5. Live USB CSI on the Pi and a
+  complete live sensing-to-notification demonstration remain under validation.
 
 Blissey Beacon is an **experimental proof of concept**, not a clinically validated
 fall detector or emergency response device. See the [deployment record](docs/deployment-verification.md),
