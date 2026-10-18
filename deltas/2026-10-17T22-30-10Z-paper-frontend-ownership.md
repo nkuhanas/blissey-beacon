@@ -31,3 +31,6 @@ ready, with their source labeled. Paper access/link and the specific integration
 or export method remain unverified. Design work is not evidence of a working
 integration or sponsor eligibility. No services were provisioned and no code was
 implemented as part of this amendment.
+
+Integration note: the ownership decision is numbered ADR-031 in the combined
+specification; ADR-029 is reserved for the later merged iMessage decision.

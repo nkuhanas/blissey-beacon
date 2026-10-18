@@ -640,7 +640,7 @@ export function Dashboard() {
             <br />
             Fictional residents & events
           </p>
-          <a href="/">
+          <a href="/?operator=1">
             Operator sign-in <Icon name="arrow" size={16} />
           </a>
         </div>

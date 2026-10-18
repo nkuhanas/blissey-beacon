@@ -291,7 +291,13 @@ The enriched sensor-history panel was corrected before implementation:
 - Use a flowing right column rather than absolute card placement. At narrow widths,
   the incident comes first, then the room list/map, then optional history.
 
-Preview variants (use Vite's printed port): default `/?demo=1` for Moonlit,
+Public entry points: `/` opens the approved Moonlit demo by default; `/?demo=1`
+remains compatible. The sidebar's operator link opens `/?operator=1`, preserving
+Supabase Auth and the existing live integration shell. `/?demo=0` is also accepted
+for the operator shell. The public dashboard continues to show fictional-data
+labels and makes no operator/provider requests.
+
+Preview variants (use Vite's printed port): default `/` or `/?demo=1` for Moonlit,
 `/?demo=1&style=conservatory` for the previous conservatory revision, and
 `/?demo=1&style=base` for the editorial base. Git tag `dashboard-base-v1` and the
 previous pushed branch remain intact. The Moonlit work uses

@@ -88,6 +88,14 @@ uses a `/workspace/` certificate path instead of the Railway `/tmp/` path.
 
 ## 3. Vercel frontend
 
+The approved Moonlit Paper dashboard is the default public frontend at `/`.
+It is explicitly labeled as fictional, browser-only demo data and never performs
+live calls or operator writes. `/?demo=1` remains compatible; `/?operator=1`
+opens the existing Supabase-authenticated integration shell. Promote the reviewed
+frontend PR into `main` through GitHub to trigger the connected Vercel production
+deployment, then verify both entry points on the public domain. Backend action
+integration into the Moonlit interface remains a separate milestone.
+
 1. Import the same repository with project Root Directory **`.`**. Root vercel.json
    installs pnpm's frozen lockfile, builds contracts + apps/web and serves
    apps/web/dist. The SPA rewrite supports future frontend routes. Do not point

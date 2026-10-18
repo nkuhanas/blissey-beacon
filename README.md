@@ -36,7 +36,9 @@ explanation DTO, failure/recovery behavior and rollout steps. See
 Frontend design work must use **Paper**, with linked screen references implemented
 in `apps/web` and deployed to Vercel. The current dashboard is a provisional
 integration shell. A [Paper-designed interactive demo](docs/frontend-design.md#run-and-explore-the-interactive-demo)
-is available at `/?demo=1` when running this branch. It uses browser-only fictional
+is the default public frontend at `/`; `/?demo=1` remains compatible. Operator
+sign-in and the authenticated integration shell are available at `/?operator=1`.
+The public frontend uses browser-only fictional
 fixtures for rooms, incidents, family contacts and notification review. The full
 authenticated frontend and backend action integration remain pending.
 
