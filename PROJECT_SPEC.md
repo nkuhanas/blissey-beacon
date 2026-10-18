@@ -1,6 +1,6 @@
 # Blissey Beacon — PROJECT_SPEC
 
-Event: LA Hacks 2026. Last updated: 2026-10-17.
+Event: LA Hacks 2026. Last updated: 2026-10-18.
 Document steward: Chloe (proposed); component owners review their contracts.
 Status: authoritative implementation specification; hosted synthetic Slice 2 verified; hardware integration unverified.
 
@@ -991,7 +991,20 @@ unclear, ask whether the recipient needs anything else and wait for their answer
 Configure the native end-call description with the same explicit closing rules
 reviewed in the frozen policy; do not rely on default inferred satisfaction.
 A callback request is recorded for operator review; it does not automatically
-contact staff or claim a response has occurred.
+contact staff or claim a response has occurred. For fictional demo voice calls only,
+the user approved this scripted acknowledgment:
+
+> Your callback request is noted. The care team will call you back as soon as possible.
+
+This narrow exception supersedes the previous blanket prohibition on callback
+fulfillment promises for that voice acknowledgment. It is a scripted demo commitment,
+not evidence that staff were contacted, a callback was scheduled or completed, or
+that the resident's condition is known. Do not add a specific callback time or an
+unsupported claim about staff response. Preserve the optional callback-request
+flag and operator-review workflow; no automatic staff dispatch is introduced.
+The iMessage templates retain their existing prohibition on callback promises.
+New previews use policy `family-call-v6` and require a fresh policy/hash review;
+previously approved calls retain their frozen context and policy.
 
 ### Call status and success evidence
 
@@ -1239,8 +1252,9 @@ Calling remains disabled unless NOTIFICATION_CALLS_ENABLED=true and all required
 provider variables are configured. Credential presence alone never enables it.
 The backend currently records terminal transport/callback metadata but does not
 infer connected/notification-spoken proof from transcripts or analysis; actual
-provider mapping is an explicit remaining integration gate. Agent policy family-call-v2
-forbids callback timing/fulfillment promises; see docs/family-calls.md for provider
+provider mapping is an explicit remaining integration gate. Agent policy `family-call-v6`
+permits only the approved fictional-demo callback commitment from §20; it does not
+add callback scheduling or staff dispatch. See docs/family-calls.md for provider
 configuration and real-model text-simulation evidence. No success is claimed
 without that evidence. A retry must not duplicate a note or notification. A successful incident response includes ID, room,
 status, revision, detection/receipt times, explanation status and allowed actions;
@@ -1569,7 +1583,7 @@ documented evidence supports a decision.
 | ADR-004 / 2026-10-17 | Historical: seven-field event v1; superseded by ADR-017 | Supersedes partial draft's `p_fall`, `event_kind`, mandatory UUID/envelope/version/window fields; extensions remain optional |
 | ADR-005 / 2026-10-17 | Proposed: `pending → acknowledged → responding → resolved` and `/api/operator/...` routes | Complete request supersedes earlier proposed `open → acknowledged → resolved` and `/v1/...` REST routes; owners finalize bodies |
 | ADR-006 / 2026-10-17 | Confirmed Model 2 example contract: event ID, title, description, recommended action | Supersedes partial draft's proposed summary/limitations output; raw CSI never supplied |
-| ADR-007 / 2026-10-17 | Historical ownership; frontend assignment superseded by ADR-031. Originally confirmed named owners: Emilia hardware, Chloe Model 1/QNX, Chace backend/Model 2, Kiro frontend; Photon TBD | Complete request replaces unassigned role placeholders |
+| ADR-007 / 2026-10-17 | Historical ownership; frontend assignment superseded by ADR-032. Originally confirmed named owners: Emilia hardware, Chloe Model 1/QNX, Chace backend/Model 2, Kiro frontend; Photon TBD | Complete request replaces unassigned role placeholders |
 | ADR-008 / 2026-10-17 | Historical: Veri paths; superseded for MVP by ADR-013/016 | Custom CNN training alone does not prove fine-tuning prize qualification |
 | ADR-009 / 2026-10-17 | Historical: authenticated staff review superseded for public demo by ADR-018; consent/content boundaries retained | Scores/CSI remain operator-only; acknowledgement or generation never substitutes for approval |
 | ADR-010 / 2026-10-17 | Confirmed complete-request structure and P0/P1/P2 order; full MVP includes explanations and Photon despite P1 sequencing | Supersedes truncated-request caveat and earlier all-P0 extension classification; no completion claim |
@@ -1593,7 +1607,8 @@ documented evidence supports a decision.
 | ADR-028 / 2026-10-17 | Approved: bounded conversational family notifications through ElevenLabs Agents and planned Photon SIP; operator approves frozen recipient/context/opening/policy, with one consented primary contact per fictional resident | Supersedes static-text-only authorization and configuration-time destination ban; preserves v2 ingestion, Gemini output/auth/lifecycle. Success is connected plus incident notification spoken, without recipient acknowledgment; provider integration/evidence mapping unverified |
 | ADR-029 / 2026-10-18 | Approved: independently consented Photon-hosted iMessage follow-ups, deterministic call-evidence selection, operator review for unknowns, private durable messages and correlated family replies | One preauthorized initial follow-up per call; separate exact staff-update approval; preserve Gemini/event/voice contracts, no Mac runtime, no autonomous medical advice. Provider assignment and live send/receive require verification |
 | ADR-030 / 2026-10-18 | Approved: use an explicit possible-fall description in the staged demo's operator-reviewed shared family summary for calls and post-call iMessages | User requested stronger language than sensor result. Preserve unknown resident condition, identity checks, exact-text approval, generic missed-call messages, v2 event/Gemini contracts and frozen historical approvals; no score-derived reclassification |
-| ADR-031 / 2026-10-17 | User-directed: Emilia owns frontend design and implementation with Paper assistance; Chace owns application/backend scaffolding and backend/Model 2; Chloe retains Model 1/training/QNX | Supersedes Kiro frontend ownership in ADR-007 and the layout-owner reference in ADR-022; preserve React/Vite, Supabase Auth, API/Realtime boundaries and existing hardware ownership |
+| ADR-032 / 2026-10-17 | User-directed: Emilia owns frontend design and implementation with Paper assistance; Chace owns application/backend scaffolding and backend/Model 2; Chloe retains Model 1/training/QNX | Supersedes Kiro frontend ownership in ADR-007 and the layout-owner reference in ADR-022; preserve React/Vite, Supabase Auth, API/Realtime boundaries and existing hardware ownership |
+| ADR-031 / 2026-10-18 | Approved: reassuring scripted callback commitment in fictional demo voice calls, with new policy/hash approval | User explicitly approved the demo callback promise after hearing the prior disclaimer. Preserve operator review, consent, immutable approvals, unknown condition/staff response and iMessage restrictions; no actual staff calling/scheduling is added |
 
 The user explicitly approved this delta after reviewing the proposal. See
 [deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md](deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md)

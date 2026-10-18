@@ -5,7 +5,12 @@ import {
   createElevenLabsSubmit,
   verifyProviderEvent,
 } from "../src/notifications/provider.js";
-import { familyContext, POLICY, digest } from "../src/notifications/policy.js";
+import {
+  familyContext,
+  POLICY,
+  POLICY_VERSION,
+  digest,
+} from "../src/notifications/policy.js";
 import { loadConfig } from "../src/config.js";
 import { validateFamilyCallContext } from "@blissey/contracts";
 const context = familyContext(
@@ -24,7 +29,7 @@ const input = {
   destination: "+15555550123",
   context,
   opening: "Hello, this is an automated demo. May I speak to Demo recipient?",
-  policyVersion: "family-call-v5",
+  policyVersion: POLICY_VERSION,
 };
 export function sign(
   raw: string,
