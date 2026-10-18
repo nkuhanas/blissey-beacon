@@ -60,7 +60,15 @@ test("deterministic follow-up selection requires evidence and verified identity 
   const candidates = messageCandidates(context);
   for (const x of ["Demo Resident", "Room 102", "fall", "condition"])
     assert.ok(!candidates.missed.includes(x));
-  assert.ok(candidates.summary.includes("Demo Resident"));
+  assert.ok(candidates.summary.includes(context.family_summary));
+  assert.ok(
+    candidates.summary.includes(
+      "a possible fall involving Demo Resident in Room 102",
+    ),
+  );
+  assert.ok(
+    candidates.summary.includes("Their condition has not been confirmed."),
+  );
   assert.ok(!candidates.summary.includes("confidence"));
   assert.ok(!candidates.summary.includes("staff will call. Reply"));
 });

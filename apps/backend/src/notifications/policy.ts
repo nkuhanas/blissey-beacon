@@ -43,7 +43,7 @@ export function familyContext(
     room_label: incident.label.slice(0, 120),
     resident_name: resident,
     detected_at: incident.detected_at.toISOString(),
-    family_summary: `A sensor result was recorded for ${resident} in ${incident.label.slice(0, 120)}. Their condition has not been confirmed.`,
+    family_summary: `We're contacting you about a possible fall involving ${resident} in ${incident.label.slice(0, 120)}. Their condition has not been confirmed.`,
     resident_condition: "unknown",
     staff_response: "not_confirmed",
     recipient_name: name,

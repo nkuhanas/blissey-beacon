@@ -910,7 +910,7 @@ change; finalize bounded JSON Schema/DTOs before implementation):
   "room_label": "Room 102",
   "resident_name": "Demo Resident 102",
   "detected_at": "2026-10-17T14:32:06-07:00",
-  "family_summary": "A sensor result was recorded for Demo Resident 102 in Room 102. Their condition has not been confirmed.",
+  "family_summary": "We're contacting you about a possible fall involving Demo Resident 102 in Room 102. Their condition has not been confirmed.",
   "resident_condition": "unknown",
   "staff_response": "not_confirmed",
   "recipient_name": "Sarah",
@@ -921,6 +921,16 @@ change; finalize bounded JSON Schema/DTOs before implementation):
 Preserve `inference_result`; do not restore a categorical `possible_fall` event or
 infer one from scores without a separately approved interpretation rule. A
 possible-fall description needs a documented supported fact and explicit review.
+For the staged fall demo, the user approved the shared notification wording:
+"We're contacting you about a possible fall involving [resident] in [room]. Their
+condition has not been confirmed." This describes the operator-reviewed demo
+scenario, not a newly inferred category or calibrated score interpretation. Only
+authorize this template for an intended possible-fall scenario; do not turn every
+inference window into a family alert. The same frozen family summary is spoken
+by the call agent after recipient verification and used in the reviewed post-call
+iMessage. Never upgrade possible to confirmed, assert injury, or invent staff action.
+Previously approved snapshots retain their exact text; new wording requires a new
+review, rather than silently changing queued/previously approved notifications.
 The projection never copies score-bearing operator prose. Its provenance references
 the persisted explanation; a deterministic fallback must not be labeled Gemini.
 Do not fabricate an explanation or imply Gemini ran when output is absent.
@@ -1560,6 +1570,7 @@ documented evidence supports a decision.
 | ADR-027 / 2026-10-17 | Implementation: explicit Gemini 3.5 Flash-Lite, frozen minimal input, constrained schema/wording validation, 30-second leased jobs and atomic explanation/incident-revision publication; live model verified locally, hosted rollout pending | Preserves event/output contracts and single backend; opt-in explanation DTO supports independent frontend/backend rollout |
 | ADR-028 / 2026-10-17 | Approved: bounded conversational family notifications through ElevenLabs Agents and planned Photon SIP; operator approves frozen recipient/context/opening/policy, with one consented primary contact per fictional resident | Supersedes static-text-only authorization and configuration-time destination ban; preserves v2 ingestion, Gemini output/auth/lifecycle. Success is connected plus incident notification spoken, without recipient acknowledgment; provider integration/evidence mapping unverified |
 | ADR-029 / 2026-10-18 | Approved: independently consented Photon-hosted iMessage follow-ups, deterministic call-evidence selection, operator review for unknowns, private durable messages and correlated family replies | One preauthorized initial follow-up per call; separate exact staff-update approval; preserve Gemini/event/voice contracts, no Mac runtime, no autonomous medical advice. Provider assignment and live send/receive require verification |
+| ADR-030 / 2026-10-18 | Approved: use an explicit possible-fall description in the staged demo's operator-reviewed shared family summary for calls and post-call iMessages | User requested stronger language than sensor result. Preserve unknown resident condition, identity checks, exact-text approval, generic missed-call messages, v2 event/Gemini contracts and frozen historical approvals; no score-derived reclassification |
 
 The user explicitly approved this delta after reviewing the proposal. See
 [deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md](deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md)

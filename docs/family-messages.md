@@ -197,3 +197,13 @@ synthetic incident and returned by the authorized history API. This establishes
 real Photon send/receive with the local backend path. A real callback-request reply,
 combined live call/follow-up selection, hosted Realtime display and frontend view
 remain unverified; their synthetic tests are not live provider evidence.
+
+## Shared possible-fall wording
+
+New reviewed post-call summaries use the same family summary as calls:
+"We're contacting you about a possible fall involving [resident] in [room]. Their
+condition has not been confirmed." This is the explicitly approved staged demo
+scenario, with no score-based reclassification or claim of a confirmed fall.
+Missed-call reminders remain generic. Existing frozen approvals retain their
+original wording; changing their text requires a new review. The prior live
+synthetic update/ACK smoke does not verify delivery of this new copy.
