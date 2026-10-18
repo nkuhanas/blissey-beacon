@@ -9,7 +9,13 @@ import type {
 import { withTransaction } from "../db.js";
 import { assigned, bump, incident, member } from "../notifications/access.js";
 import { CallError, digest } from "../notifications/policy.js";
-import { messageCandidates, replyIntent, selectFollowup } from "./policy.js";
+import {
+  messageCandidates,
+  replyIntent,
+  selectFollowup,
+  isAutomaticFollowup,
+  automaticFollowupSelection,
+} from "./policy.js";
 import type { MessageRoute, PhotonMessage } from "./photon.js";
 export async function cancelMessages(c: PoolClient, contactId: string) {
   const changed = await c.query(
@@ -47,7 +53,7 @@ async function contactFor(
 }
 function previewHash(p: Record<string, unknown>) {
   return digest({
-    ...(p.followup_policy === "automatic-v2"
+    ...(isAutomaticFollowup(p.followup_policy)
       ? { followup_policy: p.followup_policy }
       : {}),
     candidates: p.candidates,
@@ -258,7 +264,7 @@ export function createMessageStore(pool: Pool) {
               };
         const p = {
           followup_policy:
-            input.purpose === "followup" ? "automatic-v2" : "manual-v1",
+            input.purpose === "followup" ? "automatic-v3" : "manual-v1",
           candidates,
           route,
           contact_revision: contact.revision,
@@ -408,13 +414,14 @@ export function createMessageStore(pool: Pool) {
         const rows = (
           await c.query(
             `SELECT a.*,p.followup_policy,n.transport_status,n.error_code,n.connected,n.notification_spoken,n.attempt_id,
+              EXISTS(SELECT 1 FROM public.notification_provider_events ae WHERE ae.call_id=n.id AND ae.normalized->>'answered'='true') AS answered_report,
               (SELECT e.normalized FROM public.notification_provider_events e WHERE e.call_id=n.id ORDER BY e.received_at DESC LIMIT 1) AS report
               FROM public.message_authorizations a JOIN public.message_previews p ON p.id=a.preview_id JOIN public.notification_calls n ON n.id=a.call_id
-              WHERE a.state='waiting' AND n.transport_status IN ('completed','failed','unknown') AND (n.transport_status<>'unknown' OR p.followup_policy<>'automatic-v2' OR n.submitted_at<clock_timestamp()-interval '7 minutes') ORDER BY a.created_at LIMIT 20 FOR UPDATE OF a SKIP LOCKED`,
+              WHERE a.state='waiting' AND n.transport_status IN ('completed','failed','unknown') AND (n.transport_status<>'unknown' OR p.followup_policy NOT IN ('automatic-v2','automatic-v3') OR n.submitted_at<clock_timestamp()-interval '7 minutes') ORDER BY a.created_at LIMIT 20 FOR UPDATE OF a SKIP LOCKED`,
           )
         ).rows;
         for (const a of rows) {
-          const automatic = a.followup_policy === "automatic-v2";
+          const automatic = isAutomaticFollowup(a.followup_policy);
           if (automatic && !a.attempt_id) {
             await c.query(
               "UPDATE public.message_authorizations SET state='cancelled',evidence='call:not_submitted',updated_at=now() WHERE id=$1",
@@ -435,9 +442,10 @@ export function createMessageStore(pool: Pool) {
                 ? "communicated"
                 : "unknown";
           const selection = automatic
-            ? evidence === "communicated"
-              ? "summary"
-              : "missed"
+            ? automaticFollowupSelection(a.followup_policy, {
+                ...a.report,
+                answered: a.answered_report,
+              })
             : selectFollowup(evidence, false);
           if (selection === "review")
             await c.query(
@@ -447,7 +455,12 @@ export function createMessageStore(pool: Pool) {
           else {
             await c.query(
               "UPDATE public.message_authorizations SET evidence=$2 WHERE id=$1",
-              [a.id, (automatic ? "automatic:" : "provider:") + evidence],
+              [
+                a.id,
+                a.followup_policy === "automatic-v3" && a.answered_report
+                  ? "automatic:answered"
+                  : (automatic ? "automatic:" : "provider:") + evidence,
+              ],
             );
             await queueSelected(c, a, selection);
           }

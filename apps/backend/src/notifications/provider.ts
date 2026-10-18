@@ -116,6 +116,7 @@ export interface ProviderEvent {
     | "ended_before_message"
     | "unknown";
   recipientVerified?: boolean;
+  answered?: boolean;
 }
 function object(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value)
@@ -225,5 +226,8 @@ export function normalizeProviderResult(
             ? (label as ProviderEvent["outcome"])
             : "unknown",
     recipientVerified: verified,
+    ...(object(object(data.metadata).phone_call).call_result === "answered"
+      ? { answered: true }
+      : {}),
   };
 }
