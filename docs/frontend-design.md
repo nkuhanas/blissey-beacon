@@ -116,6 +116,16 @@ device indicator opens Devices. The sidebar keeps the moonlit logo and landscape
 uses shorter navigation labels, and has no independent scrollbar. At short
 desktop heights it scrolls with the page so every navigation item remains reachable.
 The botanical header ornament and the existing palette and typography remain.
+The workspace fills the browser without an outer framed card, corner rounding or
+exterior margins; content keeps internal spacing.
+
+Unacknowledged possible-fall incidents use a burgundy banner, an explicit
+"Needs review" badge, a stronger callout heading and a matching primary action.
+The active incident count echoes that priority. Acknowledged/responding incidents
+use a softer treatment; resolved incidents use a sage header. Monitoring faults
+use quieter amber surfaces and an offline icon, including the device indicator
+and affected room detail. Status text and symbols distinguish these states in
+addition to color. Visual emphasis does not confirm that a fall or injury occurred.
 
 Overview retains the original illustrated facility map beside the selected room's
 incident card, with their top edges aligned. The map title and zoom controls sit

@@ -336,17 +336,46 @@ export function Dashboard() {
       data-attention={
         incident && incident.status !== "resolved" ? true : undefined
       }
+      data-state={incident?.status ?? (!room.online ? "offline" : "monitoring")}
       ref={detailRef}
       tabIndex={-1}
       aria-labelledby="resident-title"
     >
-      <div className="section-heading">
+      <div className="section-heading incident-signal">
+        <span className="signal-icon" aria-hidden="true">
+          <Icon
+            name={
+              incident
+                ? incident.status === "resolved"
+                  ? "check"
+                  : "alert"
+                : !room.online
+                  ? "offline"
+                  : "residents"
+            }
+            size={18}
+          />
+        </span>
         <p className="eyebrow">
           {incident && incident.status !== "resolved"
-            ? "Needs attention"
-            : "Resident detail"}
+            ? incident.status === "pending"
+              ? "Needs attention"
+              : "Active incident"
+            : !room.online
+              ? "Monitoring interrupted"
+              : "Resident detail"}
         </p>
-        {incident && <span className="small muted">{incident.status}</span>}
+        {incident && (
+          <span className="incident-status">
+            {incident.status === "pending"
+              ? "Needs review"
+              : incident.status === "acknowledged"
+                ? "Acknowledged"
+                : incident.status === "responding"
+                  ? "Responding"
+                  : "Resolved"}
+          </span>
+        )}
       </div>
       <div className="resident-heading">
         <span className="avatar">
@@ -363,12 +392,15 @@ export function Dashboard() {
         </div>
       </div>
       {!room.online && (
-        <div className="notice">
-          <strong>Monitoring interrupted</strong>
+        <div className="notice monitoring-notice">
+          <strong>
+            <Icon name="offline" size={16} /> Sensor offline
+          </strong>
           <p>
             No current sensing data. Check the device connection. Last staged
             data: 2:25 PM.
           </p>
+          <p>Room status cannot be confirmed while the sensor is offline.</p>
         </div>
       )}
       {incident ? (
@@ -440,19 +472,13 @@ export function Dashboard() {
             </button>
           )}
         </>
-      ) : (
+      ) : room.online ? (
         <div className="quiet">
           <Status room={room} incident={null} />
-          <p>
-            {room.online
-              ? "No active incident in this staged scenario."
-              : "Room status cannot be confirmed while the sensor is offline."}
-          </p>
-          <p className="small muted">
-            Last staged data: {room.online ? "2:32 PM" : "2:25 PM"}
-          </p>
+          <p>No active incident in this staged scenario.</p>
+          <p className="small muted">Last staged data: 2:32 PM</p>
         </div>
-      )}
+      ) : null}
       <details className="contact-section" key={room.id}>
         <summary>
           Family notification
@@ -702,7 +728,7 @@ export function Dashboard() {
             </strong>
           </span>
           <button
-            className="status-metric device-warning"
+            className={`status-metric device-warning ${offline.length ? "has-fault" : ""}`}
             onClick={() => {
               setView("devices");
               setMenuOpen(false);

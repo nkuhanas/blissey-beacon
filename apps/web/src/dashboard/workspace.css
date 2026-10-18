@@ -3,17 +3,19 @@ html:has(.dashboard.compact-workspace) {
   scrollbar-gutter: stable;
 }
 .dashboard.compact-workspace {
-  width: calc(100% - 24px);
-  max-width: 1800px;
-  min-height: calc(100dvh - 24px);
-  margin: 12px auto;
+  width: 100%;
+  max-width: none;
+  min-height: 100dvh;
+  margin: 0;
   grid-template-columns: 208px minmax(0, 1fr);
-  border-radius: 20px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 .compact-workspace .sidebar {
   padding: 20px;
   gap: 24px;
-  border-radius: 20px 0 0 20px;
+  border-radius: 0;
   align-self: start;
 }
 .compact-workspace .moonlit-brand {
@@ -71,6 +73,9 @@ html:has(.dashboard.compact-workspace) {
 .compact-workspace .moon-background svg {
   height: auto;
   opacity: 0.45;
+}
+.compact-workspace .moon-background {
+  border-radius: 0;
 }
 .compact-workspace .demo-toolbar {
   display: block;
@@ -161,7 +166,11 @@ html:has(.dashboard.compact-workspace) {
   font-weight: 600;
 }
 .status-metric.attention {
-  color: var(--color-berry);
+  color: white;
+  background: #8e304c;
+  padding: 5px 8px;
+  min-height: 32px;
+  border-radius: 6px;
 }
 .dashboard .status-strip button {
   padding: 0;
@@ -174,6 +183,13 @@ html:has(.dashboard.compact-workspace) {
 }
 .dashboard .status-strip .device-warning {
   color: var(--color-warning);
+}
+.dashboard .status-strip .device-warning.has-fault {
+  min-height: 32px;
+  padding: 5px 8px;
+  border: 1px solid #e8d8b7;
+  border-radius: 6px;
+  background: #fff7e8;
 }
 .last-update {
   margin-left: auto;
@@ -228,6 +244,78 @@ html:has(.dashboard.compact-workspace) {
 .compact-workspace .resident-panel[data-attention="true"] {
   border-top: 3px solid var(--color-berry);
 }
+.compact-workspace .resident-panel[data-state="pending"] {
+  border: 1px solid #ab5269;
+  box-shadow: 0 4px 20px #8e304c12;
+}
+.incident-signal {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 16px;
+  margin: -16px -16px 2px;
+  border-radius: 15px 15px 0 0;
+  background: #f3eef4;
+}
+.signal-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 7px;
+  background: #ffffff80;
+}
+.compact-workspace .incident-signal .eyebrow {
+  flex: 1;
+  font-size: 11px;
+  line-height: 16px;
+  letter-spacing: 0.06em;
+}
+.incident-status {
+  padding: 3px 7px;
+  font-size: 11px;
+  line-height: 18px;
+  font-weight: 600;
+  border: 1px solid #d6c7d2;
+  border-radius: 5px;
+  background: #ffffff80;
+}
+.compact-workspace [data-state="pending"] .incident-signal {
+  color: white;
+  background: #8e304c;
+}
+.compact-workspace [data-state="pending"] .incident-signal .eyebrow {
+  color: white;
+}
+.compact-workspace [data-state="pending"] .signal-icon {
+  background: #ffffff1f;
+}
+.compact-workspace [data-state="pending"] .incident-status {
+  color: #8e304c;
+  background: #fff4f6;
+  border-color: transparent;
+}
+.compact-workspace [data-state="acknowledged"] .incident-signal,
+.compact-workspace [data-state="responding"] .incident-signal {
+  background: #f5e9ee;
+  color: #79354e;
+}
+.compact-workspace [data-state="resolved"] .incident-signal {
+  background: #edf3ed;
+  color: var(--color-sage);
+}
+.compact-workspace [data-state="resolved"] .incident-signal .eyebrow {
+  color: var(--color-sage);
+}
+.compact-workspace [data-state="offline"] .incident-signal {
+  background: #fff7e8;
+  color: var(--color-warning);
+}
+.compact-workspace [data-state="offline"] .incident-signal .eyebrow {
+  color: var(--color-warning);
+}
 .compact-workspace .resident-heading h2 {
   font-size: 28px;
   line-height: 32px;
@@ -248,6 +336,30 @@ html:has(.dashboard.compact-workspace) {
 .compact-workspace .incident-callout h3 {
   font-size: 16px;
   line-height: 22px;
+}
+.compact-workspace [data-state="pending"] .incident-callout {
+  background: #fff0f3;
+  border-left: 3px solid #a4435f;
+}
+.compact-workspace [data-state="pending"] .incident-callout h3 {
+  color: #80263f;
+  font-size: 20px;
+  line-height: 26px;
+}
+.compact-workspace [data-state="pending"] .incident-next-action {
+  background: #8e304c;
+  border-color: #8e304c;
+}
+.compact-workspace [data-state="pending"] .incident-next-action:hover {
+  background: #75243d;
+}
+.monitoring-notice {
+  border: 1px solid #e8d8b7;
+}
+.monitoring-notice strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .compact-workspace .incident-callout p {
   font-size: 13px;
@@ -389,8 +501,8 @@ html:has(.dashboard.compact-workspace) {
 @media (min-width: 1024px) {
   .compact-workspace .sidebar {
     position: sticky;
-    top: 12px;
-    min-height: calc(100dvh - 24px);
+    top: 0;
+    min-height: 100dvh;
     height: auto;
     overflow: visible;
   }
