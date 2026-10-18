@@ -85,6 +85,10 @@ export interface FamilyCallContext {
    * @maxItems 2
    */
   allowed_actions: ["explain_incident" | "request_callback", "explain_incident" | "request_callback"];
+  /**
+   * Persisted incident lifecycle frozen at operator review. Optional for historical contexts; active-alert wording requires pending, acknowledged or responding.
+   */
+  incident_status?: "pending" | "acknowledged" | "responding" | "resolved";
 }
 
 export interface FamilyContactInput {

@@ -936,6 +936,7 @@ change; finalize bounded JSON Schema/DTOs before implementation):
 ```json
 {
   "incident_id": "incident-uuid",
+  "incident_status": "acknowledged",
   "explanation_source": "gemini",
   "event_type": "inference_result",
   "room_label": "Room 102",
@@ -995,6 +996,17 @@ follow-up questions within those facts, state uncertainty, and capture a callbac
 request. It must not reclassify sensor data, infer positions/activities, diagnose
 injury, confirm an unknown condition, invent staff actions or new updates, dispatch
 other notifications, initiate emergency escalation or perform unrelated actions.
+For questions about what is happening or the care team's response, say "This is
+an active alert" when the frozen persisted incident lifecycle is pending,
+acknowledged or responding. Do not describe staff as not responding or their
+response as unknown/unconfirmed. An active alert does not establish that staff are
+present or have acted. Resolved reviews say the alert was marked resolved at review;
+historical contexts without lifecycle facts say the call concerns the recorded
+incident. Do not mislabel resolved/unknown history as active. Store the optional
+`incident_status` in the family-call context and hash so those facts are reviewed
+and frozen; preserve old contexts without it. Resident condition remains unknown
+unless supported facts are supplied; do not diagnose or assert an injury.
+
 There are no live database-query or incident-mutating agent tools in the MVP.
 The provider-native `end_call` control ends the current session after an explicit
 request to stop, a completed closing exchange, or an unverified/wrong recipient or
@@ -1003,8 +1015,10 @@ Say one brief goodbye and disconnect rather than restarting the conversation aft
 a farewell. Providing the incident alone must not cut off a follow-up question.
 Use calm, measured delivery with warmth and restraint; avoid cheerful/excited
 incident announcements. Acknowledgments such as "okay", "great" or "thanks", silence
-and declining a callback do not themselves close a conversation. If closure is
-unclear, ask whether the recipient needs anything else and wait for their answer.
+and declining a callback do not themselves close a conversation. After the
+incident notification or an answer, pause and listen. Do not ask whether the
+recipient needs anything else or append equivalent generic help/wrap-up questions.
+If closure is unclear, wait for the recipient rather than ending the call.
 Configure the native end-call description with the same explicit closing rules
 reviewed in the frozen policy; do not rely on default inferred satisfaction.
 A callback request is recorded for operator review; it does not automatically
@@ -1020,7 +1034,7 @@ that the resident's condition is known. Do not add a specific callback time or a
 unsupported claim about staff response. Preserve the optional callback-request
 flag and operator-review workflow; no automatic staff dispatch is introduced.
 The iMessage templates retain their existing prohibition on callback promises.
-New previews use policy `family-call-v7` and require a fresh policy/hash review;
+New previews use policy `family-call-v8` and require a fresh policy/hash review;
 previously approved calls retain their frozen context and policy.
 
 ### Call status and success evidence
@@ -1277,7 +1291,7 @@ Calling remains disabled unless NOTIFICATION_CALLS_ENABLED=true and all required
 provider variables are configured. Credential presence alone never enables it.
 The backend currently records terminal transport/callback metadata but does not
 infer connected/notification-spoken proof from transcripts or analysis; actual
-provider mapping is an explicit remaining integration gate. Agent policy `family-call-v7`
+provider mapping is an explicit remaining integration gate. Agent policy `family-call-v8`
 permits only the approved fictional-demo callback commitment from §20; it does not
 add callback scheduling or staff dispatch. See docs/family-calls.md for provider
 configuration and real-model text-simulation evidence. No success is claimed
@@ -1635,6 +1649,7 @@ documented evidence supports a decision.
 | ADR-032 / 2026-10-17 | User-directed: Emilia owns frontend design and implementation with Paper assistance; Chace owns application/backend scaffolding and backend/Model 2; Chloe retains Model 1/training/QNX | Supersedes Kiro frontend ownership in ADR-007 and the layout-owner reference in ADR-022; preserve React/Vite, Supabase Auth, API/Realtime boundaries and existing hardware ownership |
 | ADR-031 / 2026-10-18 | Approved: reassuring scripted callback commitment in fictional demo voice calls, with new policy/hash approval | User explicitly approved the demo callback promise after hearing the prior disclaimer. Preserve operator review, consent, immutable approvals, unknown condition/staff response and iMessage restrictions; no actual staff calling/scheduling is added |
 | ADR-033 / 2026-10-18 | Approved: introduce the caller as Blissey Beacon's automated care assistant and use care-notification wording in family iMessages | User approved the proposed call opening and generic missed-call text. Preserve automation disclosure, recipient privacy, fictional-data boundaries, consent/reply controls, callback policy and immutable historical approvals |
+| ADR-034 / 2026-10-18 | Approved: pause for recipient turns without generic wrap-up questions; use reviewed lifecycle-grounded active-alert wording instead of staff-response disclaimers | User requested both changes after a successful live call. Add optional frozen incident_status to the notification context, preserving historical compatibility, explicit closure, unknown resident condition, callback commitment, sensing/Gemini contracts and notification authorization |
 
 The user explicitly approved this delta after reviewing the proposal. See
 [deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md](deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md)

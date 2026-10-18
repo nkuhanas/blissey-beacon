@@ -72,6 +72,15 @@
       "minItems": 2,
       "maxItems": 2,
       "uniqueItems": true
+    },
+    "incident_status": {
+      "description": "Persisted incident lifecycle frozen at operator review. Optional for historical contexts; active-alert wording requires pending, acknowledged or responding.",
+      "enum": [
+        "pending",
+        "acknowledged",
+        "responding",
+        "resolved"
+      ]
     }
   }
 }

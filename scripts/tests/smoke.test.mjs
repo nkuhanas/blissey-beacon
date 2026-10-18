@@ -139,6 +139,18 @@ function setup() {
         };
       if (path.startsWith("/api/operator/family-contacts"))
         return { contacts: [contact] };
+      if (path.endsWith("/messages/preview"))
+        return {
+          preview_id: contactId,
+          context_hash: behavior.messageHash || "b".repeat(64),
+          expected_revision: incident.revision,
+          dispatch_enabled: true,
+          recipient: preview.recipient,
+          candidates: {
+            missed: "Generic missed call. Reply STOP.",
+            summary: preview.context.family_summary,
+          },
+        };
       if (path.endsWith("/notifications/preview"))
         return structuredClone(preview);
       if (path.endsWith("/notifications")) {
@@ -221,6 +233,24 @@ test("synthetic full path uses stable canonical data, dedup, reviewed authorizat
     f.run.monitor({ timeout: 30, requireSpoken: true }),
     /spoken-delivery acceptance/,
   );
+});
+test("joint call/message approval binds both reviewed hashes and cannot silently use call-only approval", async () => {
+  const f = setup();
+  f.state.with_imessage = true;
+  await f.run.prepare();
+  assert.notEqual(f.state.review_hash, f.preview.context_hash);
+  await assert.rejects(f.run.authorize(f.preview.context_hash), /changed/);
+  assert.equal(f.posts.length, 0);
+  const reviewed = f.state.review_hash;
+  f.behavior.messageHash = "c".repeat(64);
+  await assert.rejects(f.run.authorize(reviewed), /changed/);
+  assert.equal(f.posts.length, 0);
+  await f.run.authorize(f.state.review_hash);
+  assert.equal(f.posts.length, 1);
+  assert.equal(f.posts[0].body.message_context_hash, "c".repeat(64));
+  assert.equal(f.posts[0].body.explicit_messaging_authorization, true);
+  await f.run.authorize(f.state.review_hash);
+  assert.equal(f.posts.length, 1);
 });
 test("commit then lost HTTP response recovers existing call through reads without a second POST", async () => {
   const f = setup();

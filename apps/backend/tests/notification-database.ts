@@ -130,6 +130,7 @@ export async function runNotificationTests(t: TestContext, pool: Pool) {
         assert.ok(!JSON.stringify(p.context).includes("confidence"));
         assert.equal(p.context.event_type, "inference_result");
         assert.equal(p.context.resident_condition, "unknown");
+        assert.equal(p.context.incident_status, "pending");
         assert.ok(p.opening.startsWith("Hello"));
         assert.equal(p.recipient.phone_e164, contact.phone_e164);
         await pool.query(
@@ -193,6 +194,14 @@ export async function runNotificationTests(t: TestContext, pool: Pool) {
           );
           const submission = await dispatch.claim();
           assert.equal(submission?.context.resident_name, "Demo Resident 102");
+          assert.equal(submission?.context.incident_status, "pending");
+          await pool.query(
+            "UPDATE public.incidents SET status='resolved',revision=revision+1 WHERE id=$1",
+            [incidentId],
+          );
+          const resolvedPreview = await preview();
+          assert.equal(resolvedPreview.context.incident_status, "resolved");
+          assert.equal(p.context.incident_status, "pending");
           await pool.query(
             "UPDATE public.patients SET display_label='   ' WHERE id='demo_resident_102'",
           );

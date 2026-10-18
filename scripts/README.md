@@ -175,5 +175,20 @@ Automated spoken-delivery evidence remains unverified. Earlier live calls are in
 `sh scripts/imessage-check.sh` verifies the configured Photon sender against
 DEMO_FAMILY_PHONE_E164 and shared-line onboarding. It resolves users/a direct
 conversation but sends no messages. See [family-messages.md](../docs/family-messages.md).
-The existing call smoke does not authorize messaging; joint approval is a separate
-reviewed API flow until frontend controls are available.
+The call smoke can review and preauthorize messaging with `--with-imessage`;
+selection still follows the reviewed evidence policy described below.
+
+## Include a reviewed iMessage after the call
+
+Use `sh scripts/demo.sh smoke --run NAME --call --with-imessage --manage-dispatch`.
+The review shows both the generic missed-call text and the family-safe summary;
+its approval hash binds the voice and messaging hashes. `--with-imessage` on a
+prepare-only run also works, followed by `call --approve` using that combined hash.
+Independent messaging consent and the recipient's verified Photon assignment are
+still required. Existing call-only approvals never acquire messaging implicitly.
+
+A completed call alone does not establish that the summary was spoken. While the
+provider's playback mapping is unverified, the operator classifies communicated
+versus missed evidence through the existing message-review API. Recipient-confirmed
+communication selects the preauthorized summary; voicemail selects the generic
+message. Unknown outcomes wait for review. See [family-messages.md](../docs/family-messages.md).
