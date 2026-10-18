@@ -15,8 +15,9 @@ is the visual source for the next frontend implementation slice.
 
 The Paper artifacts remain editable design drafts and static component specimens.
 A browser-only interactive implementation is now available in `apps/web` at
-`/?demo=1`; the existing authenticated integration shell remains at `/`. The facility plan remains schematic; the
-detailed architectural illustration in the supplied reference is not complete.
+`/?demo=1`; the existing authenticated integration shell remains at `/`. The facility plan now uses an illustrated architectural SVG with furnished rooms,
+shared walls, swinging doors, windows, a corridor, lounge and landscaped grounds.
+It is a fictional layout, not a surveyed facility plan or resident-position estimate.
 The demo includes room/incident selection, staged lifecycle actions, notes, contact
 editing with consent, notification review, history and device views. Sign-in styling,
 full failure-state coverage and backend integration of those views remain pending.
@@ -153,3 +154,34 @@ screenshots were visually reviewed. Demo mode made no operator API or Supabase
 requests and reported no uncaught browser errors. Full VoiceOver, 200% text sizing
 and formal WCAG conformance remain unverified.
 No database migration, hosted rollout, live inference or provider test was performed.
+
+## Illustrated facility map revision
+
+The [Facility map · Illustrated architecture source](https://app.paper.design/file/01M564RV9F6VTR8FYF26BQB6KX/p-1-0/LC-2)
+is a 1000×800 drawing with editable room-status overlays. Its scaled version
+replaces the previous tile diagram in the desktop Paper dashboard. The same
+[SVG source](../design/facility/willow-house.svg) is loaded by
+`apps/web/src/dashboard/FacilityMap.tsx`; geometry was read from Paper's computed
+styles and overlay JSX rather than inferred from screenshots.
+
+The six room buttons use drawing coordinates normalized to percentages and
+remain aligned with the floor plan at 100%, 125% and 150% zoom. The selected room
+has a dashed outline; incident, acknowledged/responding and offline states use
+text and symbols as well as color. Offline rooms have a hatched overlay. An
+incident in Room 104 stays in Room 104; reference-image room labels do not remap
+fixture IDs or event associations. Resolving the staged incident clears its alert
+overlay while retaining history.
+
+The illustration retains a minimum width of 640 CSS px for legible labels and
+scrolls inside its own labeled, keyboard-focusable viewport on small screens.
+The rest of the page reflows normally, and the accessible room list remains
+available. Zoom controls and room buttons exceed 44×44px. This map does not
+introduce an image-generation service, new runtime dependency or data request.
+
+Validation: full `pnpm check` passed (19 tests, types, lint, formatting, contract
+generation and production builds). Chrome checks verified all six map selections,
+overlay alignment, contained labels, minimum target sizes, zoom limits, Enter
+activation, acknowledged/resolved/offline states and absence of page overflow at
+1440/1024/768/390/320 CSS px. The prior incident/contact/navigation browser checks
+also passed. Paper and browser map screenshots were visually reviewed for
+spacing, typography, contrast, alignment and fit.

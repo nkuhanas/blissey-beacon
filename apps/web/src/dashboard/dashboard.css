@@ -352,85 +352,6 @@ dialog .icon-button {
   display: grid;
   gap: 16px;
 }
-.floorplan {
-  padding: 22px;
-  background: #eeeae7;
-  border: 1px solid #e5dde2;
-  border-radius: 12px;
-}
-.map-rooms {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-.dashboard .map-room {
-  position: relative;
-  min-width: 0;
-  min-height: 180px;
-  padding: 16px;
-  border: 2px solid var(--color-border);
-  border-radius: 2px;
-  background: #f7f9f6;
-  display: flex;
-  align-items: stretch;
-  justify-content: flex-start;
-  flex-direction: column;
-  gap: 14px;
-  text-align: left;
-  font-size: 15px;
-  line-height: 22px;
-}
-.map-room-top {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  align-items: center;
-}
-.map-room-top strong {
-  font-size: 26px;
-  line-height: 34px;
-  font-weight: 500;
-  letter-spacing: -0.025em;
-  font-variant-numeric: tabular-nums;
-}
-.map-room-top svg {
-  color: var(--color-sage);
-}
-.dashboard .map-room.room-alert {
-  background: var(--color-blush);
-  border-color: var(--color-berry);
-}
-.dashboard .map-room.room-offline {
-  background: #eeedf0;
-}
-.dashboard .map-room.selected {
-  outline: 3px solid var(--color-berry);
-  outline-offset: 3px;
-}
-.dashboard .map-room:focus-visible {
-  outline: 3px solid var(--color-ink);
-  outline-offset: 3px;
-}
-.map-room > span:nth-child(2) {
-  padding-right: 8px;
-}
-.dashboard .room-geometry {
-  width: 62px;
-  height: 52px;
-  align-self: flex-end;
-  margin-top: auto;
-  opacity: 0.8;
-}
-.corridor {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: center;
-  padding: 26px 8px;
-  color: var(--color-muted);
-  font-size: 14px;
-  line-height: 21px;
-}
 .status {
   display: inline-flex;
   align-items: center;
@@ -447,12 +368,7 @@ dialog .icon-button {
 .status.offline {
   color: var(--color-muted);
 }
-.map-room .status {
-  align-items: flex-start;
-}
-.map-room .status svg {
-  margin-top: 2px;
-}
+
 .dashboard .panel {
   background: white;
   padding: 24px;
@@ -757,12 +673,7 @@ dialog .error {
   .dashboard-main {
     padding: 24px;
   }
-  .floorplan {
-    padding: 16px;
-  }
-  .dashboard .map-room {
-    padding: 12px;
-  }
+
   .page-heading {
     align-items: flex-start;
     flex-direction: column;
@@ -785,16 +696,6 @@ dialog .error {
     flex-direction: column;
     align-items: flex-start;
     gap: 0;
-  }
-  .floorplan {
-    padding: 12px;
-  }
-  .map-rooms {
-    gap: 8px;
-  }
-  .dashboard .map-room {
-    padding: 10px;
-    font-size: 14px;
   }
 }
 @media (max-width: 1023px) {
@@ -849,9 +750,7 @@ dialog .error {
   .map-section {
     order: 2;
   }
-  .map-room {
-    min-height: 180px !important;
-  }
+
   .summary-grid {
     gap: 12px;
   }
@@ -897,29 +796,7 @@ dialog .error {
   .dashboard .panel {
     padding: 20px;
   }
-  .floorplan {
-    padding: 12px;
-  }
-  .map-rooms {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  .dashboard .map-room {
-    min-height: 148px !important;
-    padding: 16px;
-    gap: 8px;
-  }
-  .room-geometry {
-    position: absolute;
-    right: 12px;
-    bottom: 12px;
-  }
-  .map-room > .status {
-    padding-right: 54px;
-  }
-  .corridor {
-    padding: 16px 4px;
-  }
+
   .section-heading {
     flex-wrap: wrap;
   }

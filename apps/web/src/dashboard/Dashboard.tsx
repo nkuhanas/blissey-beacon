@@ -1,7 +1,8 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import logo from "../../../../design/brand/blissey-beacon-logo-v1.png";
-import { Icon, RoomGeometry } from "./Icon";
+import { Icon } from "./Icon";
+import { FacilityMap } from "./FacilityMap";
 import { canReviewCall, createDemo, demoReducer, roomStatus } from "./model";
 import type { Contact, DemoIncident, DemoRoom, Scenario } from "./model";
 import "./dashboard.css";
@@ -665,66 +666,12 @@ export function Dashboard() {
           <div className="overview-grid">
             <div className="facility-column">
               {view === "overview" && (
-                <section className="map-section" aria-labelledby="map-title">
-                  <div className="section-heading">
-                    <h2 id="map-title">Facility map</h2>
-                    <span className="small muted">
-                      Ground floor · Schematic
-                    </span>
-                  </div>
-                  <div className="floorplan">
-                    <div className="map-rooms">
-                      {state.rooms.slice(0, 3).map((r) => (
-                        <button
-                          className={`map-room ${r.online ? "" : "room-offline"} ${r.id === selected ? "selected" : ""}`}
-                          key={r.id}
-                          onClick={() => selectRoom(r.id)}
-                          aria-pressed={r.id === selected}
-                        >
-                          <span className="map-room-top">
-                            <strong>{r.id}</strong>
-                            <Icon
-                              name={r.online ? "wifi" : "offline"}
-                              size={18}
-                            />
-                          </span>
-                          <span>{r.resident}</span>
-                          <Status room={r} incident={state.incident} />
-                          <RoomGeometry />
-                        </button>
-                      ))}
-                    </div>
-                    <div className="corridor">
-                      <span>Willow House</span>
-                      <span>Ground floor</span>
-                    </div>
-                    <div className="map-rooms">
-                      {state.rooms.slice(3).map((r) => (
-                        <button
-                          className={`map-room ${r.id === state.incident?.roomId && active ? "room-alert" : ""} ${!r.online ? "room-offline" : ""} ${r.id === selected ? "selected" : ""}`}
-                          key={r.id}
-                          onClick={() => selectRoom(r.id)}
-                          aria-pressed={r.id === selected}
-                        >
-                          <span className="map-room-top">
-                            <strong>{r.id}</strong>
-                            <Icon
-                              name={r.online ? "wifi" : "offline"}
-                              size={18}
-                            />
-                          </span>
-                          <span>{r.resident}</span>
-                          <Status room={r} incident={state.incident} />
-                          <RoomGeometry />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <p className="map-caption small muted">
-                    Select a room to review its resident and staged events. Room
-                    list available below.
-                  </p>
-                </section>
+                <FacilityMap
+                  rooms={state.rooms}
+                  incident={state.incident}
+                  selected={selected}
+                  onSelect={selectRoom}
+                />
               )}
               <section
                 className="room-list panel"

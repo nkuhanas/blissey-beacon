@@ -31,21 +31,3 @@ export function Icon({ name, size = 20 }: { name: string; size?: number }) {
     </svg>
   );
 }
-export function RoomGeometry() {
-  return (
-    <svg className="room-geometry" viewBox="0 0 62 52" aria-hidden="true">
-      <path
-        d="M28 4h26v34H28z M28 14h26 M32 7h18v5H32z M25 42h32"
-        fill="none"
-        stroke="#B8B0B6"
-        strokeWidth="1.3"
-      />
-      <path
-        d="M2 50V26a24 24 0 0 1 24 24 M2 50h24"
-        fill="none"
-        stroke="#807781"
-        strokeWidth="1.3"
-      />
-    </svg>
-  );
-}
