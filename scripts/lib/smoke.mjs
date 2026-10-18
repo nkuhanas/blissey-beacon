@@ -236,6 +236,9 @@ export class SmokeRun {
           contact_id: contact.id,
           expected_revision: workflow.revision,
           purpose: "followup",
+          ...(this.state.staff_dispatch_confirmed
+            ? { staff_dispatch_confirmed: true }
+            : {}),
         },
       });
       check(
@@ -245,7 +248,12 @@ export class SmokeRun {
           message.expected_revision === workflow.revision &&
           /^[a-f0-9]{64}$/.test(message.context_hash) &&
           typeof message.candidates?.missed === "string" &&
-          message.candidates?.summary?.includes(preview.context.family_summary),
+          message.candidates?.summary?.startsWith(
+            "Blissey Beacon care notification: Thank you for speaking with us.",
+          ) &&
+          message.candidates.summary.includes(
+            "Our care team has been dispatched",
+          ) === Boolean(this.state.staff_dispatch_confirmed),
         "Invalid message review, recipient, dispatch or shared incident facts.",
       );
       this.state.message_preview = message;

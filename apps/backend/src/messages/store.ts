@@ -8,7 +8,7 @@ import type {
 } from "@blissey/contracts";
 import { withTransaction } from "../db.js";
 import { assigned, bump, incident, member } from "../notifications/access.js";
-import { CallError, digest, familyContext } from "../notifications/policy.js";
+import { CallError, digest } from "../notifications/policy.js";
 import { messageCandidates, replyIntent, selectFollowup } from "./policy.js";
 import type { MessageRoute, PhotonMessage } from "./photon.js";
 export async function cancelMessages(c: PoolClient, contactId: string) {
@@ -226,7 +226,7 @@ export function createMessageStore(pool: Pool) {
       route: MessageRoute,
     ) {
       return withTransaction(pool, async (c) => {
-        const { i, contact, resident } = await contactFor(
+        const { i, contact } = await contactFor(
           c,
           subject,
           id,
@@ -242,11 +242,13 @@ export function createMessageStore(pool: Pool) {
             input.verified_facts_confirmed !== true)
         )
           throw new CallError("verified_update_required", 400);
+        if (input.staff_dispatch_confirmed && input.purpose !== "followup")
+          throw new CallError("dispatch_confirmation_requires_followup", 400);
         const candidates =
           input.purpose === "followup"
-            ? messageCandidates(
-                familyContext(i, contact.contact_name, resident),
-              )
+            ? messageCandidates({
+                staffDispatchConfirmed: input.staff_dispatch_confirmed === true,
+              })
             : {
                 update: `Blissey Beacon care update: ${input.update_text!.trim()}`,
               };
@@ -277,6 +279,20 @@ export function createMessageStore(pool: Pool) {
             ],
           )
         ).rows[0];
+        if (input.staff_dispatch_confirmed)
+          await c.query(
+            "INSERT INTO public.operator_audit(facility_id,actor_id,action,target_id,detail) VALUES($1,$2,'staff_dispatch_confirmed',$3,$4)",
+            [
+              i.facility_id,
+              subject,
+              id,
+              {
+                preview_id: row.id,
+                incident_revision: i.revision,
+                staff_dispatch_confirmed: true,
+              },
+            ],
+          );
         return {
           preview_id: row.id,
           expires_at: row.expires_at,

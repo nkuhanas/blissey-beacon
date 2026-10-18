@@ -86,7 +86,10 @@ export async function runMessageTests(t: TestContext, pool: Pool) {
       consent_confirmed: true,
     });
   }
-  async function prepare(purpose: "followup" | "update" = "followup") {
+  async function prepare(
+    purpose: "followup" | "update" = "followup",
+    staffDispatchConfirmed = false,
+  ) {
     return messages.preview(
       subject,
       incidentId,
@@ -94,6 +97,9 @@ export async function runMessageTests(t: TestContext, pool: Pool) {
         contact_id: contactId,
         expected_revision: await revision(),
         purpose,
+        ...(staffDispatchConfirmed
+          ? { staff_dispatch_confirmed: true as const }
+          : {}),
         ...(purpose === "update"
           ? {
               update_text:
@@ -180,6 +186,60 @@ export async function runMessageTests(t: TestContext, pool: Pool) {
     },
   });
   try {
+    await t.test(
+      "post-call acknowledgment requires explicit dispatch confirmation and records its reviewer",
+      async () => {
+        await fresh();
+        await grant();
+        await pool.query(
+          "UPDATE public.incidents SET status='responding',revision=revision+1 WHERE id=$1",
+          [incidentId],
+        );
+        const plain = await prepare();
+        assert.ok(!plain.candidates.summary!.includes("dispatched"));
+        const confirmed = await prepare("followup", true);
+        assert.ok(
+          confirmed.candidates.summary!.includes(
+            "Our care team has been dispatched",
+          ),
+        );
+        assert.notEqual(confirmed.context_hash, plain.context_hash);
+        const audit = (
+          await pool.query(
+            "SELECT actor_id,target_id FROM public.operator_audit WHERE action='staff_dispatch_confirmed' AND detail->>'preview_id'=$1",
+            [confirmed.preview_id],
+          )
+        ).rows;
+        assert.equal(audit.length, 1);
+        assert.equal(audit[0].actor_id, subject);
+        assert.equal(audit[0].target_id, incidentId);
+        assert.ok(
+          !(await prepare()).candidates.summary!.includes("dispatched"),
+        );
+        await assert.rejects(
+          messages.preview(
+            stranger,
+            incidentId,
+            {
+              contact_id: contactId,
+              expected_revision: await revision(),
+              purpose: "followup",
+              staff_dispatch_confirmed: true,
+            },
+            route,
+          ),
+          /not_found|forbidden/,
+        );
+        assert.equal(
+          (
+            await pool.query(
+              "SELECT count(*)::int n FROM public.operator_audit WHERE action='staff_dispatch_confirmed'",
+            )
+          ).rows[0].n,
+          1,
+        );
+      },
+    );
     await t.test(
       "messaging migration is private; voice consent does not authorize messages",
       async () => {
@@ -344,7 +404,7 @@ export async function runMessageTests(t: TestContext, pool: Pool) {
         assert.ok(
           (
             await pool.query("SELECT body FROM public.notification_messages")
-          ).rows[0].body.includes("Demo Resident"),
+          ).rows[0].body.includes("Thank you for speaking with us."),
         );
         await assert.rejects(
           messages.review(subject, a.id, {

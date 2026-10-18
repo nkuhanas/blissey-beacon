@@ -13,8 +13,8 @@ import {
 import {
   validateCallAuthorization,
   validateMessageReview,
+  validateMessagePreviewRequest,
 } from "@blissey/contracts";
-import { familyContext } from "../src/notifications/policy.js";
 const signal = new AbortController().signal;
 const route: MessageRoute = {
   sender_number: "+15555550100",
@@ -47,30 +47,39 @@ test("deterministic follow-up selection requires evidence and verified identity 
   assert.equal(selectFollowup("communicated", true), "summary");
   assert.equal(selectFollowup("communicated", false), "review");
   assert.equal(selectFollowup("unknown", true), "review");
-  const context = familyContext(
-    {
-      id: "11111111-1111-4111-8111-111111111111",
-      label: "Room 102",
-      detected_at: new Date(),
-      source: "gemini",
-    },
-    "Family Contact",
-    "Demo Resident",
-  );
-  const candidates = messageCandidates(context);
+  const candidates = messageCandidates();
   for (const x of ["Demo Resident", "Room 102", "fall", "condition"])
     assert.ok(!candidates.missed.includes(x));
-  assert.ok(candidates.summary.includes(context.family_summary));
+  assert.ok(candidates.summary.includes("Thank you for speaking with us."));
+  assert.ok(!candidates.summary.includes("dispatched"));
+  assert.ok(!candidates.summary.includes("possible fall"));
+  const confirmed = messageCandidates({ staffDispatchConfirmed: true });
   assert.ok(
-    candidates.summary.includes(
-      "a possible fall involving Demo Resident in Room 102",
+    confirmed.summary.includes(
+      "Our care team has been dispatched and will keep you updated as the situation develops.",
     ),
   );
-  assert.ok(
-    candidates.summary.includes("Their condition has not been confirmed."),
+  assert.equal(confirmed.missed, candidates.missed);
+  assert.ok(confirmed.summary.includes("STOP"));
+  assert.ok(!confirmed.summary.includes("does not confirm"));
+  const request = {
+    contact_id: "11111111-1111-4111-8111-111111111111",
+    expected_revision: 1,
+    purpose: "followup",
+    staff_dispatch_confirmed: true,
+  };
+  assert.ok(validateMessagePreviewRequest(request));
+  assert.equal(
+    validateMessagePreviewRequest({
+      ...request,
+      staff_dispatch_confirmed: false,
+    }),
+    false,
   );
-  assert.ok(!candidates.summary.includes("confidence"));
-  assert.ok(!candidates.summary.includes("staff will call. Reply"));
+  assert.equal(
+    validateMessagePreviewRequest({ ...request, purpose: "update" }),
+    false,
+  );
 });
 test("reply commands are conservative; arbitrary family prose always reaches operator review", () => {
   assert.equal(replyIntent("CALLBACK"), "callback_requested");

@@ -181,14 +181,22 @@ selection still follows the reviewed evidence policy described below.
 ## Include a reviewed iMessage after the call
 
 Use `sh scripts/demo.sh smoke --run NAME --call --with-imessage --manage-dispatch`.
-The review shows both the generic missed-call text and the family-safe summary;
+The review shows both the generic missed-call text and the post-call acknowledgment;
 its approval hash binds the voice and messaging hashes. `--with-imessage` on a
 prepare-only run also works, followed by `call --approve` using that combined hash.
 Independent messaging consent and the recipient's verified Photon assignment are
 still required. Existing call-only approvals never acquire messaging implicitly.
 
-A completed call alone does not establish that the summary was spoken. While the
+A completed call alone does not establish that the incident notification was spoken. While the
 provider's playback mapping is unverified, the operator classifies communicated
 versus missed evidence through the existing message-review API. Recipient-confirmed
-communication selects the preauthorized summary; voicemail selects the generic
+communication selects the preauthorized acknowledgment; voicemail selects the generic
 message. Unknown outcomes wait for review. See [family-messages.md](../docs/family-messages.md).
+
+For a confirmed staff dispatch, add `--confirm-staff-dispatch` to the fresh joint
+review (`--with-imessage`). This is an operator assertion that dispatch already
+occurred; it does not dispatch staff. The reviewed successful-call candidate then
+thanks the recipient and states that the care team was dispatched and will provide
+updates. Omit the flag when unconfirmed; an active alert or `responding` state alone
+is insufficient. Both variants replace the incident recap and retain reply/STOP
+instructions. The combined approval hash binds the actual selected text.

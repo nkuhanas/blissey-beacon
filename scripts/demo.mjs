@@ -29,7 +29,7 @@ const help = `Usage: sh scripts/demo.sh <command> [options]
   dispatch restore --run NAME     Restore a journaled flag after interruption
 
 Options: --env FILE (default .env.deploy.local), --run NAME, --call,
-  --manage-dispatch (dedicated demo backend only), --with-imessage (review/preauthorize call follow-ups), --approve FULL_REVIEW_HASH,
+  --manage-dispatch (dedicated demo backend only), --with-imessage (review/preauthorize call follow-ups), --confirm-staff-dispatch (operator-confirmed fact), --approve FULL_REVIEW_HASH,
   --allow-fallback (label deterministic explanation), --require-spoken (strict acceptance),
   --timeout SECONDS (call/callback wait, default 360), --help
 Run journals/locks: .smoke/ (private, Git-ignored). See scripts/README.md.
@@ -48,6 +48,7 @@ try {
       call: { type: "boolean" },
       "manage-dispatch": { type: "boolean" },
       "with-imessage": { type: "boolean" },
+      "confirm-staff-dispatch": { type: "boolean" },
       approve: { type: "string" },
       "allow-fallback": { type: "boolean" },
       "require-spoken": { type: "boolean" },
@@ -221,6 +222,13 @@ try {
               "Existing call-only approval cannot acquire messaging retroactively; authorize a separate reviewed update.",
             );
             if (values["with-imessage"]) state.with_imessage = true;
+            if (values["confirm-staff-dispatch"]) {
+              check(
+                state.with_imessage && !state.authorization,
+                "Staff dispatch confirmation requires a fresh joint message review.",
+              );
+              state.staff_dispatch_confirmed = true;
+            }
             const persist = () => save(file, state);
             const run = new SmokeRun({
               state,
