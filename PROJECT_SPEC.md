@@ -794,9 +794,12 @@ The demo requires Supabase Auth and assigned facility membership. The deployed
 login/room/incident shell has verified synthetic integration, but remains a
 provisional interface. Paper desktop/mobile drafts, an editorial brand/component
 sheet, accessibility annotations and a source handoff are now recorded in
-[docs/frontend-design.md](docs/frontend-design.md). These are static design
-artifacts; application implementation, remaining screens and visual parity are
-not complete. A successful deployment does not complete the Paper-designed
+[docs/frontend-design.md](docs/frontend-design.md). The Paper artifacts are static design sources. A browser-only interactive demo
+in `apps/web` at `/?demo=1` implements the overview, resident/incident selection,
+staged actions/notes, family-contact consent, call review, history and devices.
+All demo data/actions stay in memory and make no operator/provider requests.
+The authenticated UI, backend actions, remaining states and full visual parity
+are not complete. A successful deployment does not complete the Paper-designed
 frontend requirement.
 
 Emilia owns visual design, responsive layouts, reusable UI components and frontend
@@ -810,7 +813,9 @@ are in progress.
 Review the implemented UI against the Paper designs at desktop and mobile sizes
 and verify keyboard access and loading/error states. Paper MCP read/write, native
 logo import and CSS token export are verified for these design artifacts;
-translation into the application and interactive accessibility remain unverified.
+initial demo translation and browser keyboard/reflow checks are recorded in the
+handoff; complete accessibility conformance and authenticated integration remain
+unverified.
 
 | View | Required content/actions |
 | --- | --- |
@@ -1340,7 +1345,7 @@ The previous dataset-access 404 observation has not been retested by this work.
 | [packages/contracts](packages/contracts) | Authoritative JSON Schemas, generated TS, Ajv validators and synthetic event fixtures; native QNX parity unverified |
 | [apps/backend/src](apps/backend/src) | Authenticated device stream, transactional event/incident/job persistence, post-commit ACK/deduplication, health and authorized incident/status read APIs |
 | [apps/web/src](apps/web/src) | Provisional login/room shell and shared-DTO incident list/subscription/refetch; hosted browser login, live arrival and logout verified; Paper design implementation and visual parity remain pending |
-| [docs/frontend-design.md](docs/frontend-design.md), [design/brand](design/brand) | Paper desktop/mobile drafts, editorial identity/component sheet, accessibility handoff, approved raster logo and exported shared tokens; static design evidence, not application behavior |
+| [docs/frontend-design.md](docs/frontend-design.md), [design/brand](design/brand) | Paper desktop/mobile drafts, editorial identity/component sheet, accessibility handoff, approved raster logo and exported shared tokens; Paper source, shared tokens and isolated interactive demo; authenticated action integration pending |
 | [supabase/migrations](supabase/migrations) | Foundation plus Slice 2 credentials/health and incident facility metadata; existing operator RLS/publication retained |
 | [supabase/tests](supabase/tests) | Plain PostgreSQL test-only Supabase role/auth bootstrap; not live Auth/Realtime validation |
 | [Dockerfile](Dockerfile), [compose.yaml](compose.yaml) | Node/pnpm toolchain and disposable PostgreSQL validation; no host Node needed |
