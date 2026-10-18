@@ -1,0 +1,39 @@
+/* Exported from the BlisseyBeacon Paper file, 2026-10-17. Design reference; not loaded by the application. */
+:root {
+  --color-canvas: #FAF8F6;
+  --color-surface: #FFFFFF;
+  --color-ink: #352B34;
+  --color-muted: #665F68;
+  --color-border: #807781;
+  --color-berry: #963D63;
+  --color-blush: #F9EDF2;
+  --color-sage: #426653;
+  --color-warning: #815C20;
+  --font-display: Instrument Serif;
+  --font-body: DM Sans;
+  --text-caption: 14px;
+  --text-body: 16px;
+  --text-section: 28px;
+  --text-display: 56px;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --tracking-normal: 0em;
+  --tracking-display: -0.025em;
+  --leading-caption: 21px;
+  --leading-body: 24px;
+  --leading-display: 60px;
+  --opacity-decoration: 40%;
+  --breakpoint-tablet: 768px;
+  --breakpoint-desktop: 1024px;
+  --container-dashboard: 1440px;
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-12: 48px;
+  --radius-control: 8px;
+  --radius-panel: 12px;
+}

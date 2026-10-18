@@ -28,7 +28,8 @@ explanation DTO, failure/recovery behavior and rollout steps.
 
 Frontend design work must use **Paper**, with linked screen references implemented
 in `apps/web` and deployed to Vercel. The current dashboard is a provisional
-integration shell; the Paper artifact/handoff and design parity remain unverified.
+integration shell. [Paper drafts and the editorial brand handoff](docs/frontend-design.md)
+are available; implementation of those designs and visual parity remain pending.
 
 Demo site: **https://blissey-beacon.health**. For Vercel, Railway, Supabase,
 DNS and per-provider variables, follow [docs/deployment.md](docs/deployment.md) and

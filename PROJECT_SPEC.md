@@ -792,9 +792,12 @@ Keep the Paper design and implemented UI aligned as those views change.
 
 The demo requires Supabase Auth and assigned facility membership. The deployed
 login/room/incident shell has verified synthetic integration, but remains a
-provisional interface. No Paper design artifact, design handoff or visual parity
-is evidenced yet; document access and screen references remain TBD. A successful
-deployment does not complete the Paper-designed frontend requirement.
+provisional interface. Paper desktop/mobile drafts, an editorial brand/component
+sheet, accessibility annotations and a source handoff are now recorded in
+[docs/frontend-design.md](docs/frontend-design.md). These are static design
+artifacts; application implementation, remaining screens and visual parity are
+not complete. A successful deployment does not complete the Paper-designed
+frontend requirement.
 
 Emilia owns visual design, responsive layouts, reusable UI components and frontend
 implementation with Paper's assistance. Chace owns application/backend scaffolding
@@ -805,8 +808,9 @@ can proceed against clearly labeled synthetic fixtures while those components
 are in progress.
 
 Review the implemented UI against the Paper designs at desktop and mobile sizes
-and verify keyboard access and loading/error states. Paper's specific integration
-or export method remains to be verified.
+and verify keyboard access and loading/error states. Paper MCP read/write, native
+logo import and CSS token export are verified for these design artifacts;
+translation into the application and interactive accessibility remain unverified.
 
 | View | Required content/actions |
 | --- | --- |
@@ -995,10 +999,9 @@ Assignments below are confirmed by the complete request, except explicit TBDs.
 
 | Person | Primary ownership | Deliverables / handoff |
 | --- | --- | --- |
-| Emilia | Frontend with Paper; hardware and CSI collection | Working TX/RX, reproducible configuration, timestamped serial stream, recordings and schema evidence to Chloe |
+| Emilia | Frontend with Paper; hardware and CSI collection | Paper document/screen handoff and matching React/Vite UI; authenticated dashboard, incident actions and API/Realtime integration; working TX/RX, reproducible serial stream, recordings and schema evidence to Chloe |
 | Chloe | Model 1 and edge inference | Parsing/preprocessing, CNN training, evaluation, artifacts, QNX runtime, event-producing WSS client |
-| Chace | Model 2 and backend | Gemini explanations and durable jobs, Railway WSS/REST, Supabase persistence, demo notification approval |
-| Emilia | Operator interface | Paper document/screen handoff and matching React/Vite UI, authenticated Vercel dashboard/detail, incident actions and Supabase Realtime/backend integration |
+| Chace | Application/backend scaffolding, backend and Model 2 | Gemini explanations and durable jobs, Railway WSS/REST, Supabase persistence, demo notification approval |
 | TBD | ElevenLabs/Photon provider integration | Agent and conversational LLM configuration, Photon SIP compatibility, signed evidence mapping, consented recipient and real-call test |
 | Entire team | Integration, testing and presentation | End-to-end evidence, honest limitations and demo rehearsal; integration lead TBD |
 
@@ -1336,7 +1339,8 @@ The previous dataset-access 404 observation has not been retested by this work.
 | --- | --- |
 | [packages/contracts](packages/contracts) | Authoritative JSON Schemas, generated TS, Ajv validators and synthetic event fixtures; native QNX parity unverified |
 | [apps/backend/src](apps/backend/src) | Authenticated device stream, transactional event/incident/job persistence, post-commit ACK/deduplication, health and authorized incident/status read APIs |
-| [apps/web/src](apps/web/src) | Provisional login/room shell and shared-DTO incident list/subscription/refetch; hosted browser login, live arrival and logout verified; required Paper artifact/handoff and design parity unverified |
+| [apps/web/src](apps/web/src) | Provisional login/room shell and shared-DTO incident list/subscription/refetch; hosted browser login, live arrival and logout verified; Paper design implementation and visual parity remain pending |
+| [docs/frontend-design.md](docs/frontend-design.md), [design/brand](design/brand) | Paper desktop/mobile drafts, editorial identity/component sheet, accessibility handoff, approved raster logo and exported shared tokens; static design evidence, not application behavior |
 | [supabase/migrations](supabase/migrations) | Foundation plus Slice 2 credentials/health and incident facility metadata; existing operator RLS/publication retained |
 | [supabase/tests](supabase/tests) | Plain PostgreSQL test-only Supabase role/auth bootstrap; not live Auth/Realtime validation |
 | [Dockerfile](Dockerfile), [compose.yaml](compose.yaml) | Node/pnpm toolchain and disposable PostgreSQL validation; no host Node needed |
@@ -1375,7 +1379,7 @@ project uses fictional residents and two staged synthetic events, not live sensi
 | Railway operational limits and failure behavior beyond the hosted synthetic check; remaining lifecycle/API/authorization interfaces | Chace + Emilia |
 | Hosted worker rollout and broader load/failure measurements; local lease/retry/recovery behavior is implemented and tested | Chace |
 | Gemini hosted rollout, broader evaluation, provider limits and retention; initial model and constrained prompt recorded in docs/gemini-pipeline.md | Chace |
-| Paper document access/link and screen references, matching React/Vite implementation and visual comparison; full dashboard/workflow integration | Emilia + Chace |
+| Remaining Paper screen completion/approval, matching React/Vite implementation and visual comparison; full dashboard/workflow and accessibility validation | Emilia + Chace |
 | Static room-layout DTO/coordinate units and historical patient-assignment presentation; no localization inferred | Emilia + Chace |
 | Voice/Photon lead, exact SIP product/trunk/number, ElevenLabs agent/LLM, runtime context limits and consented live test | Team assigns lead + Photon/ElevenLabs mentors |
 | Connected/notification-spoken provider evidence mapping, ambiguous-submit reconciliation, callback identity/replay and post-call data validation | Chace + provider lead |
@@ -1397,7 +1401,7 @@ documented evidence supports a decision.
 | ADR-004 / 2026-10-17 | Historical: seven-field event v1; superseded by ADR-017 | Supersedes partial draft's `p_fall`, `event_kind`, mandatory UUID/envelope/version/window fields; extensions remain optional |
 | ADR-005 / 2026-10-17 | Proposed: `pending → acknowledged → responding → resolved` and `/api/operator/...` routes | Complete request supersedes earlier proposed `open → acknowledged → resolved` and `/v1/...` REST routes; owners finalize bodies |
 | ADR-006 / 2026-10-17 | Confirmed Model 2 example contract: event ID, title, description, recommended action | Supersedes partial draft's proposed summary/limitations output; raw CSI never supplied |
-| ADR-007 / 2026-10-17 | Confirmed named owners: Emilia hardware, Chloe Model 1/QNX, Chace backend/Model 2, Kiro frontend; Photon TBD | Complete request replaces unassigned role placeholders |
+| ADR-007 / 2026-10-17 | Historical ownership; frontend assignment superseded by ADR-029. Originally confirmed named owners: Emilia hardware, Chloe Model 1/QNX, Chace backend/Model 2, Kiro frontend; Photon TBD | Complete request replaces unassigned role placeholders |
 | ADR-008 / 2026-10-17 | Historical: Veri paths; superseded for MVP by ADR-013/016 | Custom CNN training alone does not prove fine-tuning prize qualification |
 | ADR-009 / 2026-10-17 | Historical: authenticated staff review superseded for public demo by ADR-018; consent/content boundaries retained | Scores/CSI remain operator-only; acknowledgement or generation never substitutes for approval |
 | ADR-010 / 2026-10-17 | Confirmed complete-request structure and P0/P1/P2 order; full MVP includes explanations and Photon despite P1 sequencing | Supersedes truncated-request caveat and earlier all-P0 extension classification; no completion claim |
