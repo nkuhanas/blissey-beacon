@@ -195,7 +195,7 @@ setup and optional Realtime checks are covered in the technical documentation.
 
 | Team member | Contributions / ownership |
 | --- | --- |
-| **Emilia** | ESP32 sensing and CSI collection; Paper design and frontend implementation |
+| **Emilia** | ESP32 sensing and CSI collection; Paper design and frontend implementation; PI/QNX Setup |
 | **Chloe** | CSI preprocessing, model training/evaluation and Pi/QNX edge integration |
 | **Chace** | Backend, shared contracts, Supabase, Gemini explanations and family notification orchestration |
 
