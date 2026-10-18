@@ -858,7 +858,15 @@ contract above. Connected mode can instantiate explicitly synthetic backend
 scenarios, persist lifecycle actions/notes and review existing call/message APIs.
 Acknowledgment opens review but never authorizes communications by itself.
 Fictional contacts use a server-configured consented test destination. Synthetic
-scenario devices do not receive Pi credentials or generate health reports.
+scenario devices do not receive Pi credentials or generate physical-device health reports.
+ADR-039 adds a separate repeating synthetic sample feed for unconnected demo rooms,
+excluding room 101 and any room with registered hardware credentials. The latest
+synthetic sample is bounded, explicitly labeled, and does not create healthy incidents.
+Offline scenarios persist until reset or replacement. Room reset archives all existing
+room events/incidents from normal dashboard/history, retaining payloads, deduplication,
+communication records and audits; new Pi events remain visible. Reset restores simulated
+rooms to healthy monitoring, never substitutes synthetic health for room 101. Resolved
+overview cards return to monitoring after sixty seconds; history remains available.
 This integration has source/database tests and local browser verification with
 real Supabase authentication, a durable incident, Gemini explanation and provider
 previews; no new live call or physical Pi verification is claimed. See
@@ -1335,6 +1343,7 @@ provider-signature authentication instead of an operator JWT.
 | Method/path | Behavior |
 | --- | --- |
 | `GET /api/operator/dashboard` | Facility-authorized room/resident/contact-name and actual device-health snapshot; no private phone; scenario availability |
+| `POST /api/operator/rooms/:id/reset` | Facility-authorized idempotent room archive; reset synthetic baseline, preserve Pi health and communication/audit records |
 | `POST /api/operator/demo/scenarios` | Opt-in authenticated synthetic scenario creation, durable idempotency and audit; canonical v2 event/incident/job transaction; no automatic notification |
 | `GET /api/operator/rooms` | Authorized demo room summaries, health, incident and attention counts |
 | `GET /api/operator/rooms/:id` | Demo room/device detail and recent incident references |
@@ -1737,6 +1746,7 @@ documented evidence supports a decision.
 | ADR-035 / 2026-10-18 | Approved: post-call thank-you acknowledgment replaces the incident recap, with dispatched/update commitment gated by explicit audited operator confirmation | User approved the proposed wording and dispatch condition. Preserve communicated/verified-recipient selection, separate consent, exact-text/hash approval, historical messages, generic missed-call privacy and unchanged sensing/voice/Gemini contracts |
 | ADR-036 / 2026-10-18 | Approved: select the Random Forest classifier trained using Veri for CSI Model 1, superseding the Keras CNN/Colab baseline in ADR-002 | User confirmed the actual training use and authorized README/spec reconciliation. Retain binary event/score contracts, frozen features, group-aware evaluation and QNX target. Training artifacts/metrics, runtime compatibility and sponsor eligibility remain unverified here; see deltas/2026-10-18T07-17-29Z-random-forest-product-readme.md |
 | ADR-037 / 2026-10-18 | Team confirms QNX OS on Pi 5 collects ESP32 sensing data and securely transmits results, with python3-tflite-runtime from oss.qnx.com integrated for local inference support | User supplied exact QNX attribution during the README rewrite. Record the module without inferring that the Random Forest executes through it; artifact/runtime compatibility, prediction parity, full live integration and eligibility need evidence; see the ADR-036 delta |
+| ADR-039 / 2026-10-18 | Approved: bounded repeating synthetic healthy samples for demo rooms except 101/hardware-connected rooms; archive-based room reset and sixty-second resolved-card expiry | Separate from Pi health/WSS, preserve deduplication and call/audit records, no automatic notification. See deltas/2026-10-18T18-10-00Z-synthetic-rooms-and-reset.md |
 | ADR-038 / 2026-10-18 | Approved: acknowledgment opens an automatically prepared popup with one combined call/text checkbox; automatic-v2 records provider-reported outcomes and selects exactly one approved text without operator outcome review | Generic fallback for unclear outcomes; old manual-v1 approvals stay frozen. Retain independent consent, explicit authorization, accurate playback evidence, Pi v2/WSS boundaries and no unsupported staff-dispatch claims. See deltas/2026-10-18T15-40-10Z-one-step-family-notifications.md |
 
 The user explicitly approved this delta after reviewing the proposal. See
