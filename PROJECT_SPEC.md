@@ -935,6 +935,11 @@ request. It must not reclassify sensor data, infer positions/activities, diagnos
 injury, confirm an unknown condition, invent staff actions or new updates, dispatch
 other notifications, initiate emergency escalation or perform unrelated actions.
 There are no live database-query or incident-mutating agent tools in the MVP.
+The provider-native `end_call` control ends the current session after an explicit
+request to stop, a completed closing exchange, or an unverified/wrong recipient or
+voicemail greeting. This grants no database access, transfers or further dispatch.
+Say one brief goodbye and disconnect rather than restarting the conversation after
+a farewell. Providing the incident alone must not cut off a follow-up question.
 A callback request is recorded for operator review; it does not automatically
 contact staff or claim a response has occurred.
 

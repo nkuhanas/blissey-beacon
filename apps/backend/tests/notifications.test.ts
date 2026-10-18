@@ -24,7 +24,7 @@ const input = {
   destination: "+15555550123",
   context,
   opening: "Hello, this is an automated demo. May I speak to Demo recipient?",
-  policyVersion: "family-call-v3",
+  policyVersion: "family-call-v4",
 };
 export function sign(
   raw: string,
@@ -43,7 +43,9 @@ test("family projection is neutral, score-free and deterministically hashed; pro
   assert.ok(!context.family_summary.includes(context.recipient_name));
   assert.ok(!JSON.stringify(context).includes("confidence"));
   assert.ok(!context.family_summary.includes("possible fall"));
-  assert.ok(POLICY.includes("No tools"));
+  assert.ok(
+    POLICY.includes("no external, database, notification or incident tools"),
+  );
   assert.equal(digest({ b: 2, a: 1 }), digest({ a: 1, b: 2 }));
   const submit = createElevenLabsSubmit({
     apiKey: "synthetic-key",
