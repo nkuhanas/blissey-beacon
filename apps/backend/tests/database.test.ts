@@ -1,3 +1,4 @@
+import { runDemoTests } from "./demo-database.js";
 import { runMessageTests } from "./message-database.js";
 import { runNotificationTests } from "./notification-database.js";
 import { runExplanationTests } from "./explanation-database.js";
@@ -161,6 +162,16 @@ test("migration, publication, scoped RLS and real multi-statement rollback", asy
     );
     await runNotificationTests(t, pool);
     await runMessageTests(t, pool);
+    await pool.query(
+      await readFile(
+        new URL(
+          "supabase/migrations/20261018080000_dashboard_scenarios.sql",
+          root,
+        ),
+        "utf8",
+      ),
+    );
+    await runDemoTests(t, pool);
   } finally {
     await pool.end();
   }

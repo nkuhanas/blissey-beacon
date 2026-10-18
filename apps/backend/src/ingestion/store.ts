@@ -59,56 +59,7 @@ export function createDeviceStore(pool: Pool): DeviceStore {
     async ingest(hash, event) {
       return withTransaction(pool, async (client) => {
         const identity = await authorize(client, hash, event);
-        // ON CONFLICT waits for concurrent inserts; uniqueness lives in PostgreSQL.
-        const inserted = await client.query(
-          `INSERT INTO public.inference_events(event_id,device_id,room_id,payload,detected_at)
-     VALUES ($1,$2,$3,$4::jsonb,$5) ON CONFLICT(event_id) DO NOTHING RETURNING event_id`,
-          [
-            event.event_id,
-            event.device_id,
-            event.room_id,
-            JSON.stringify(event),
-            event.detected_at,
-          ],
-        );
-        if (inserted.rowCount === 0) {
-          const existing = await client.query<{ id: string; same: boolean }>(
-            `SELECT i.id,
-      (e.device_id=$2 AND e.room_id=$3 AND e.payload=$4::jsonb) AS same
-      FROM public.inference_events e JOIN public.incidents i ON i.event_id=e.event_id WHERE e.event_id=$1`,
-            [
-              event.event_id,
-              event.device_id,
-              event.room_id,
-              JSON.stringify(event),
-            ],
-          );
-          if (!existing.rows[0]?.same)
-            throw new IngestionError("event_id_conflict");
-          return {
-            type: "event_ack",
-            event_id: event.event_id,
-            incident_id: existing.rows[0].id,
-            status: "duplicate",
-          };
-        }
-        const incident = await client.query<{ id: string }>(
-          `INSERT INTO public.incidents(event_id,room_id,facility_id)
-     VALUES ($1,$2,$3) RETURNING id`,
-          [event.event_id, event.room_id, identity.facility_id],
-        );
-        const id = incident.rows[0]!.id;
-        await client.query(
-          "INSERT INTO public.explanation_jobs(incident_id) VALUES ($1)",
-          [id],
-        );
-        // withTransaction resolves only after COMMIT succeeds. Socket ACK is sent by caller.
-        return {
-          type: "event_ack",
-          event_id: event.event_id,
-          incident_id: id,
-          status: "accepted",
-        };
+        return persistInferenceEvent(client, identity, event);
       });
     },
     async health(hash, message) {
@@ -138,5 +89,58 @@ export function createDeviceStore(pool: Pool): DeviceStore {
         );
       });
     },
+  };
+}
+
+// Caller must authenticate/authorize the device or the explicitly synthetic operator scenario,
+// and provide a transaction; this helper never bypasses the WSS authentication route.
+export async function persistInferenceEvent(
+  client: PoolClient,
+  identity: DeviceIdentity,
+  event: InferenceEvent,
+): Promise<EventAck> {
+  // ON CONFLICT waits for concurrent inserts; uniqueness lives in PostgreSQL.
+  const inserted = await client.query(
+    `INSERT INTO public.inference_events(event_id,device_id,room_id,payload,detected_at)
+     VALUES ($1,$2,$3,$4::jsonb,$5) ON CONFLICT(event_id) DO NOTHING RETURNING event_id`,
+    [
+      event.event_id,
+      event.device_id,
+      event.room_id,
+      JSON.stringify(event),
+      event.detected_at,
+    ],
+  );
+  if (inserted.rowCount === 0) {
+    const existing = await client.query<{ id: string; same: boolean }>(
+      `SELECT i.id,
+      (e.device_id=$2 AND e.room_id=$3 AND e.payload=$4::jsonb) AS same
+      FROM public.inference_events e JOIN public.incidents i ON i.event_id=e.event_id WHERE e.event_id=$1`,
+      [event.event_id, event.device_id, event.room_id, JSON.stringify(event)],
+    );
+    if (!existing.rows[0]?.same) throw new IngestionError("event_id_conflict");
+    return {
+      type: "event_ack",
+      event_id: event.event_id,
+      incident_id: existing.rows[0].id,
+      status: "duplicate",
+    };
+  }
+  const incident = await client.query<{ id: string }>(
+    `INSERT INTO public.incidents(event_id,room_id,facility_id)
+     VALUES ($1,$2,$3) RETURNING id`,
+    [event.event_id, event.room_id, identity.facility_id],
+  );
+  const id = incident.rows[0]!.id;
+  await client.query(
+    "INSERT INTO public.explanation_jobs(incident_id) VALUES ($1)",
+    [id],
+  );
+  // withTransaction resolves only after COMMIT succeeds. Socket ACK is sent by caller.
+  return {
+    type: "event_ack",
+    event_id: event.event_id,
+    incident_id: id,
+    status: "accepted",
   };
 }

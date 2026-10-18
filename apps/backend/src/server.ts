@@ -1,4 +1,5 @@
 import { createMessageStore } from "./messages/store.js";
+import { createDemoStore } from "./demo/store.js";
 import { createPhotonProvider } from "./messages/photon.js";
 import { startMessageWorker } from "./messages/worker.js";
 let messageWorker: ReturnType<typeof startMessageWorker> | undefined;
@@ -29,6 +30,10 @@ const messageProvider = config.photon
   ? createPhotonProvider(config.photon)
   : undefined;
 const app = await createApp({
+  demo: {
+    store: createDemoStore(pool, config.demo),
+    enabled: config.demo.enabled,
+  },
   messages: {
     store: createMessageStore(pool),
     provider: messageProvider,

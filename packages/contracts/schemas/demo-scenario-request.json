@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DemoScenarioRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "facility_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "room_id": {
+      "enum": [
+        "101",
+        "102",
+        "103",
+        "104",
+        "105",
+        "106"
+      ]
+    },
+    "scenario": {
+      "enum": [
+        "attention",
+        "ready",
+        "fallback",
+        "offline",
+        "empty"
+      ]
+    }
+  },
+  "required": [
+    "facility_id",
+    "room_id",
+    "scenario"
+  ]
+}
