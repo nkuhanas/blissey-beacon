@@ -11,13 +11,13 @@
 body {
   margin: 0;
 }
-main {
+.auth-shell {
   max-width: 1080px;
   margin: auto;
   padding: 36px 28px;
 }
-header,
-.row {
+.auth-shell header,
+.auth-shell .row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -44,7 +44,7 @@ header,
   letter-spacing: 0.1em;
   color: #4e7266;
 }
-h1 {
+.auth-shell h1 {
   font-family: Manrope, sans-serif;
   font-size: clamp(36px, 6vw, 64px);
   font-weight: 600;
@@ -52,11 +52,11 @@ h1 {
   letter-spacing: -0.045em;
   margin: 20px 0;
 }
-h2 {
+.auth-shell h2 {
   font-size: 22px;
   margin: 0 0 14px;
 }
-h3 {
+.auth-shell h3 {
   margin: 12px 0;
 }
 .muted,
@@ -111,7 +111,7 @@ input:focus-visible {
   gap: 16px;
   margin-top: 24px;
 }
-article {
+.auth-shell article {
   padding: 20px;
   border-radius: 12px;
   background: #f4f6ef;

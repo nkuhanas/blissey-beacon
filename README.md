@@ -35,7 +35,12 @@ explanation DTO, failure/recovery behavior and rollout steps. See
 
 Frontend design work must use **Paper**, with linked screen references implemented
 in `apps/web` and deployed to Vercel. The current dashboard is a provisional
-integration shell; the Paper artifact/handoff and design parity remain unverified.
+integration shell. A [Paper-designed interactive demo](docs/frontend-design.md#run-and-explore-the-interactive-demo)
+is the default public frontend at `/`; `/?demo=1` remains compatible. Operator
+sign-in and the authenticated integration shell are available at `/?operator=1`.
+The public frontend uses browser-only fictional
+fixtures for rooms, incidents, family contacts and notification review. The full
+authenticated frontend and backend action integration remain pending.
 
 Demo site: **https://blissey-beacon.health**. For Vercel, Railway, Supabase,
 DNS and per-provider variables, follow [docs/deployment.md](docs/deployment.md) and
