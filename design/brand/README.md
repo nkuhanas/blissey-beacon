@@ -28,11 +28,13 @@ Constraints: no tagline, no medical cross, no ECG line, no shield, no camera, no
 
 `blissey-beacon-moonlit.png` is the complete user-supplied
 `Blissey_Beacon__Dreamy_Moonlit_Mascot_Logo.png`, copied unchanged (RGB,1254×1254).
-It is the current default demo logo.
+It is retained as the complete original reference, including its cream background.
 
 `blissey-beacon-moonlit-mark.png` is the supplied
 `Firefly_RemoveBackground.png`, copied unchanged (RGBA,1254×1254). The visible
-alpha bounds stop at y=875, excluding the wordmark; retain it as a mascot-only
-source rather than presenting it as the complete logo. Neither image was generated
+alpha bounds stop at y=875, excluding the wordmark. The default demo and Paper
+boards now use this transparent mascot with separate editable DM Sans text:
+“blissey” in plum and “beacon” in dusty rose. CSS/layout frames hide unused
+transparent space without changing the source pixels. Neither image was generated
 or modified by this implementation. The earlier generated logo remains for saved
 themes. `moonlit-tokens.css` is the additive CSS export from Paper.

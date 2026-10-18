@@ -6,7 +6,7 @@ import { FacilityMap } from "./FacilityMap";
 import { SummaryCards } from "./SummaryCards";
 import { SensorHistory } from "./SensorHistory";
 import { MoonlitBackground, MoonlitHills } from "./MoonlitDecor";
-import moonlitLogo from "../../../../design/brand/blissey-beacon-moonlit.png";
+import moonlitLogo from "../../../../design/brand/blissey-beacon-moonlit-mark.png";
 import branch from "../../../../design/ornaments/conservatory-branch.svg";
 import { canReviewCall, createDemo, demoReducer, roomStatus } from "./model";
 import type { Contact, DemoIncident, DemoRoom, Scenario } from "./model";
@@ -565,14 +565,36 @@ export function Dashboard() {
       </a>
       <aside className="sidebar">
         <div className="mobile-brand">
-          <a href="?demo=1" aria-label="Blissey Beacon demo home">
-            <img
-              className="logo"
-              src={moonlit ? moonlitLogo : logo}
-              alt="Blissey Beacon"
-              width="184"
-              height={moonlit ? 184 : 92}
-            />
+          <a
+            href="?demo=1"
+            aria-label="Blissey Beacon demo home"
+            className={moonlit ? "moonlit-brand" : undefined}
+          >
+            {moonlit ? (
+              <>
+                <span className="moonlit-mark">
+                  <img
+                    className="logo"
+                    src={moonlitLogo}
+                    alt=""
+                    width="184"
+                    height="184"
+                  />
+                </span>
+                <span className="moonlit-wordmark">
+                  <span className="brand-blissey">blissey</span>
+                  <span className="brand-beacon">beacon</span>
+                </span>
+              </>
+            ) : (
+              <img
+                className="logo"
+                src={logo}
+                alt="Blissey Beacon"
+                width="184"
+                height={92}
+              />
+            )}
           </a>
           <button
             className="icon-button mobile-menu"

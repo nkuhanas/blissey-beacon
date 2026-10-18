@@ -8,11 +8,11 @@ The editorial base is preserved separately below.
 The [BlisseyBeacon Paper document](https://app.paper.design/file/01M564RV9F6VTR8FYF26BQB6KX/p-1-0)
 is the visual source for the next frontend implementation slice.
 
-| Page | Screen / purpose |
-| --- | --- |
-| [Dashboard & accessibility](https://app.paper.design/file/01M564RV9F6VTR8FYF26BQB6KX/p-1-0) | `Dashboard · Editorial · Desktop` (1440px), `Dashboard · Editorial · Mobile` (390px), and accessibility/interaction specifications |
-| [Brand & components](https://app.paper.design/file/01M564RV9F6VTR8FYF26BQB6KX/p-2-0) | `Brand & interface · Editorial system`: approved logo, typography, semantic swatches, action/focus/unavailable specimens and status specimens |
-| [Archive · Initial exploration](https://app.paper.design/file/01M564RV9F6VTR8FYF26BQB6KX/p-3-0) | Initial desktop exploration, retained for comparison |
+| Page                                                                                            | Screen / purpose                                                                                                                              |
+| ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Dashboard & accessibility](https://app.paper.design/file/01M564RV9F6VTR8FYF26BQB6KX/p-1-0)     | `Dashboard · Editorial · Desktop` (1440px), `Dashboard · Editorial · Mobile` (390px), and accessibility/interaction specifications            |
+| [Brand & components](https://app.paper.design/file/01M564RV9F6VTR8FYF26BQB6KX/p-2-0)            | `Brand & interface · Editorial system`: approved logo, typography, semantic swatches, action/focus/unavailable specimens and status specimens |
+| [Archive · Initial exploration](https://app.paper.design/file/01M564RV9F6VTR8FYF26BQB6KX/p-3-0) | Initial desktop exploration, retained for comparison                                                                                          |
 
 The Paper artifacts remain editable design drafts and static component specimens.
 A browser-only interactive implementation is now available in `apps/web` at
@@ -91,14 +91,14 @@ does not establish conformance of the app.
 
 Checked solid-color contrast ratios using sRGB relative luminance:
 
-| Foreground / background | Ratio |
-| --- | --- |
-| Plum ink / plaster | 12.82:1 |
-| Slate supporting text / plaster | 5.83:1 |
-| White / berry button | 6.68:1 |
-| Berry / blush | 5.86:1 |
-| Sage / pale monitoring surface | 6.09:1 |
-| Border `#807781` / white | 4.31:1 |
+| Foreground / background         | Ratio   |
+| ------------------------------- | ------- |
+| Plum ink / plaster              | 12.82:1 |
+| Slate supporting text / plaster | 5.83:1  |
+| White / berry button            | 6.68:1  |
+| Berry / blush                   | 5.86:1  |
+| Sage / pale monitoring surface  | 6.09:1  |
+| Border `#807781` / white        | 4.31:1  |
 
 Desktop, mobile, identity and accessibility sheets were visually reviewed in
 Paper for hierarchy, spacing, contrast, alignment, wrapping and artboard fit.
@@ -254,12 +254,21 @@ user's supplied Moonlit mascot logo. Paper source:
 and [Dashboard · Moonlit · Mobile](https://app.paper.design/file/01M564RV9F6VTR8FYF26BQB6KX/p-1-0/2GB-0).
 Earlier editorial, conservatory and enriched boards are retained unchanged.
 
-The full logo is `design/brand/blissey-beacon-moonlit.png`, copied unchanged from
-the user's complete supplied PNG. Their background-removed PNG is preserved as
-`blissey-beacon-moonlit-mark.png`; its alpha channel removes the wordmark as well
-as the background, so it is not the full dashboard logo. Paper imports the original
-full PNG and reuses its image fill on desktop/mobile. No image was regenerated or
-retouched. The complete logo retains its supplied cream ground and wordmark.
+The default logo uses `design/brand/blissey-beacon-moonlit-mark.png`, copied
+unchanged from the user's transparent PNG. Its alpha channel removes the original
+wordmark too, so Paper and React supply separate DM Sans lettering: “blissey”
+at 32px/36px, weight 800, and “beacon” at 14px/20px, weight 600. The mascot sits
+above the text on desktop and beside it on mobile (28px/32px main lettering).
+Both parts have transparent backgrounds. The home link has one accessible name;
+the image has empty alt text to avoid duplicate announcements. Layout frames
+exclude unused transparent space without modifying the image. The full original
+`blissey-beacon-moonlit.png` remains as a reference. No image was regenerated or
+retouched.
+
+Transparent-wordmark follow-up validation: web TypeScript/production build passed;
+Chrome verified the source alpha, editable lettering, single accessible home-link
+name and no page overflow at 1440/1024/390/320px. Paper desktop/mobile wordmark
+screenshots and the implemented mobile header were visually reviewed.
 
 Seven additive Paper color tokens are exported in
 `design/brand/moonlit-tokens.css`. The Moonlit root maps these to the existing
