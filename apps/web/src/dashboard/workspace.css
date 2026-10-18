@@ -712,7 +712,7 @@ html:has(.dashboard.compact-workspace) {
   margin-top: 12px;
 }
 
-/* Deliberate slow pulse: urgent pending alerts only, never the whole viewport. */
+/* Prominent localized alert effects: pending only, with reduced-motion support. */
 .fall-alert-banner {
   display: flex;
   align-items: center;
@@ -722,15 +722,34 @@ html:has(.dashboard.compact-workspace) {
   border: 1px solid #a83855;
   border-left: 5px solid #a83855;
   border-radius: 10px;
-  background: #fff0f3;
-  color: #78223d;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: #8e304c;
+  color: #fff;
+  animation: alert-banner-flash 1.8s ease-in-out infinite;
+}
+.fall-alert-banner > * {
+  position: relative;
+  z-index: 1;
+}
+.fall-alert-banner::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 -35%;
+  width: 35%;
+  background: linear-gradient(105deg, transparent, #ffffff30, transparent);
+  transform: skewX(-15deg);
+  pointer-events: none;
+  animation: alert-sweep 3.6s linear infinite;
 }
 .fall-alert-banner > div {
   flex: 1;
 }
 .fall-alert-banner strong {
   display: block;
-  font-size: 16px;
+  font-size: 18px;
+  letter-spacing: 0.01em;
 }
 .fall-alert-banner div > span {
   display: block;
@@ -741,9 +760,9 @@ html:has(.dashboard.compact-workspace) {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #8e304c;
-  color: white;
-  border-color: #8e304c;
+  background: #fff;
+  color: #8e304c;
+  border-color: #fff;
   padding: 9px 12px;
   font-size: 13px;
 }
@@ -756,24 +775,62 @@ html:has(.dashboard.compact-workspace) {
   border-radius: 50%;
   background: #f5c9d4;
   flex-shrink: 0;
-  animation: alert-beacon 2.4s ease-in-out infinite;
+  animation: alert-beacon 1.8s ease-in-out infinite;
 }
 .compact-workspace .resident-panel[data-state="pending"] {
   border: 2px solid #a83855;
-  animation: incident-glow 2.4s ease-in-out infinite;
+  animation: incident-glow 1.8s ease-in-out infinite;
 }
 .dashboard .room-hotspot.attention {
-  outline: 3px solid #a83855;
+  outline: 4px solid #bf234b;
   outline-offset: -3px;
-  animation: incident-glow 2.4s ease-in-out infinite;
+  animation:
+    incident-glow 1.8s ease-in-out infinite,
+    room-alert-flash 1.8s ease-in-out infinite;
+}
+.compact-workspace .resident-panel[data-state="pending"] .incident-signal {
+  animation: alert-banner-flash 1.8s ease-in-out infinite;
+}
+@keyframes alert-banner-flash {
+  0%,
+  100% {
+    background-color: #8e304c;
+    box-shadow: 0 0 0 0 #d62c5540;
+  }
+  50% {
+    background-color: #bc2147;
+    box-shadow:
+      0 0 0 4px #d62c5525,
+      0 0 24px #d62c5535;
+  }
+}
+@keyframes alert-sweep {
+  0% {
+    left: -35%;
+  }
+  60%,
+  100% {
+    left: 110%;
+  }
+}
+@keyframes room-alert-flash {
+  0%,
+  100% {
+    background-color: #bf234b18;
+    outline-color: #9e3454;
+  }
+  50% {
+    background-color: #e3326352;
+    outline-color: #e02b57;
+  }
 }
 @keyframes alert-beacon {
   0%,
   100% {
-    box-shadow: 0 0 0 0 #a8385530;
+    box-shadow: 0 0 0 0 #ffffff65;
   }
   50% {
-    box-shadow: 0 0 0 7px #a838550a;
+    box-shadow: 0 0 0 12px #ffffff08;
   }
 }
 @keyframes incident-glow {
@@ -785,12 +842,15 @@ html:has(.dashboard.compact-workspace) {
   }
   50% {
     box-shadow:
-      0 0 0 4px #a838552b,
-      0 4px 22px #a8385525;
+      0 0 0 6px #d62c5540,
+      0 4px 32px #d62c5560;
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .fall-alert-banner,
+  .fall-alert-banner::before,
   .fall-alert-beacon,
+  .compact-workspace .resident-panel[data-state="pending"] .incident-signal,
   .compact-workspace .resident-panel[data-state="pending"],
   .dashboard .room-hotspot.attention {
     animation: none;
