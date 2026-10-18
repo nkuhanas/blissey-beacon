@@ -1034,8 +1034,7 @@ follow-up questions within those facts, state uncertainty, and capture a callbac
 request. It must not reclassify sensor data, infer positions/activities, diagnose
 injury, confirm an unknown condition, invent staff actions or new updates, dispatch
 other notifications, initiate emergency escalation or perform unrelated actions.
-For questions about what is happening or the care team's response, say "This is
-an active alert" when the frozen persisted incident lifecycle is pending,
+For questions about what is happening or the care team's response, say "This is an active alert. We do not have all the details of the situation at this time" when the frozen persisted incident lifecycle is pending,
 acknowledged or responding. Do not describe staff as not responding or their
 response as unknown/unconfirmed. An active alert does not establish that staff are
 present or have acted. Resolved reviews say the alert was marked resolved at review;
@@ -1072,8 +1071,32 @@ that the resident's condition is known. Do not add a specific callback time or a
 unsupported claim about staff response. Preserve the optional callback-request
 flag and operator-review workflow; no automatic staff dispatch is introduced.
 The iMessage templates retain their existing prohibition on callback promises.
-New previews use policy `family-call-v8` and require a fresh policy/hash review;
+For “what happened” questions, restate the approved possible-fall summary and then the active-alert/uncertainty wording. Ignore brief background noise and listening acknowledgments as interruptions; recover an unfinished answer after an interruption instead of remaining silent. Preserve genuine questions and explicit-only closing.
+
+New previews use policy `family-call-v9` and require a fresh policy/hash review;
 previously approved calls retain their frozen context and policy.
+
+### One-step operator authorization and automatic follow-up (ADR-038)
+
+On acknowledgment, automatically prepare the family notification popup from persisted
+facts. Show the fictional recipient, concise call context and both exact possible
+texts, with one unchecked checkbox explicitly authorizing the call and its
+follow-up text, and one “Yes, notify family” action. Keep detailed policy available
+under details. Do not add a separate preparation button or post-call outcome review.
+Keep independent voice/messaging consent and server-side checks. The default simple
+flow does not assert staff dispatch without independent recorded confirmation.
+
+Freeze `automatic-v2` in new follow-up previews/hashes. Older approvals remain
+`manual-v1`; do not release historical held work under new rules. Use validated
+signed provider results or authenticated provider-status recovery to persist minimal
+reported outcomes. Provider-reported verified recipient plus communicated incident
+selects the approved acknowledgment; all other terminal/irrecoverably uncertain
+outcomes select the approved generic candidate. Missing callbacks trigger bounded,
+leased recovery and a generic fallback after a bounded deadline, never a redial.
+No operator outcome confirmation is required for these new approvals. Do not label
+model-reported conversation analysis as verified playback or medical truth.
+Preserve one initial follow-up per call, dispatch-time consent/version/assignment
+checks, immutable text, stable provider idempotency and uncertain-send reconciliation.
 
 ### Call status and success evidence
 
@@ -1184,12 +1207,12 @@ Select at most one preauthorized initial follow-up per call, deterministically:
 | --- | --- |
 | No answer, busy, voicemail, or ended before incident communication | Generic missed-call notification with no resident/room/incident details |
 | Verified intended recipient and incident communicated, including an early hangup afterward | Approved post-call acknowledgment; dispatch sentence only with recorded operator confirmation |
-| Uncertain, conflicting, or incomplete evidence | Hold for explicit operator review; no automatic message |
+| Uncertain, conflicting, or incomplete terminal evidence | Under new automatic-v2 approvals, send the preauthorized generic privacy-safe candidate; old manual-v1 approvals remain held |
 
 A connected call, transcript, model analysis, completed session or lack of recipient
 acknowledgment alone does not prove incident communication. Preserve the existing
 connected/spoken evidence boundary. A scoped operator may explicitly classify/review
-an uncertain call and authorize the appropriate candidate; record evidence and actor.
+an uncertain historical manual-v1 call and authorize the appropriate candidate; record evidence and actor. New automatic-v2 approvals record provider-reported outcomes separately from verified playback and do not require a post-call operator review.
 No automatic "possible fall" claim may be derived from experimental scores.
 
 Freeze exact candidate text, destination, contact revision, policy and approver in a
@@ -1217,7 +1240,7 @@ No automatic medical advice, promises of staff action or autonomous calls/messag
 Stop/unsubscribe replies revoke messaging consent and cancel unsent messages.
 
 Required interfaces include scoped messaging-consent management, preview/authorization
-of call-follow-up candidates, explicit uncertain-outcome review, exact staff-update
+of call-follow-up candidates, automatic outcome/follow-up processing for new approvals (manual review only for historical approvals), exact staff-update
 authorization, incident messaging history and a reply review inbox. Frontend owner
 receives shared contracts and a handoff; new/material UI must follow §19's Paper
 workflow. Backend delivery does not establish frontend completion.
@@ -1705,7 +1728,7 @@ documented evidence supports a decision.
 | ADR-026 / 2026-10-17 | Confirmed target: blissey-beacon.health website, planned api.blissey-beacon.health backend, provider-assigned Supabase project URL | User supplied domain; deployment manifests/env examples and setup handoff prepared; no DNS/TLS/production changes claimed |
 | ADR-027 / 2026-10-17 | Implementation: explicit Gemini 3.5 Flash-Lite, frozen minimal input, constrained schema/wording validation, 30-second leased jobs and atomic explanation/incident-revision publication; live model verified locally, hosted rollout pending | Preserves event/output contracts and single backend; opt-in explanation DTO supports independent frontend/backend rollout |
 | ADR-028 / 2026-10-17 | Approved: bounded conversational family notifications through ElevenLabs Agents and planned Photon SIP; operator approves frozen recipient/context/opening/policy, with one consented primary contact per fictional resident | Supersedes static-text-only authorization and configuration-time destination ban; preserves v2 ingestion, Gemini output/auth/lifecycle. Success is connected plus incident notification spoken, without recipient acknowledgment; provider integration/evidence mapping unverified |
-| ADR-029 / 2026-10-18 | Approved: independently consented Photon-hosted iMessage follow-ups, deterministic call-evidence selection, operator review for unknowns, private durable messages and correlated family replies | One preauthorized initial follow-up per call; separate exact staff-update approval; preserve Gemini/event/voice contracts, no Mac runtime, no autonomous medical advice. Provider assignment and live send/receive require verification |
+| ADR-029 / 2026-10-18 | Approved: independently consented Photon-hosted iMessage follow-ups, deterministic call-evidence selection, operator review for unknowns (superseded for new approvals by ADR-038), private durable messages and correlated family replies | One preauthorized initial follow-up per call; separate exact staff-update approval; preserve Gemini/event/voice contracts, no Mac runtime, no autonomous medical advice. Provider assignment and live send/receive require verification |
 | ADR-030 / 2026-10-18 | Approved: use an explicit possible-fall description in the staged demo's operator-reviewed shared family summary for calls and post-call iMessages | User requested stronger language than sensor result. Preserve unknown resident condition, identity checks, exact-text approval, generic missed-call messages, v2 event/Gemini contracts and frozen historical approvals; no score-derived reclassification |
 | ADR-032 / 2026-10-17 | User-directed: Emilia owns frontend design and implementation with Paper assistance; Chace owns application/backend scaffolding and backend/Model 2; Chloe retains Model 1/training/QNX | Supersedes Kiro frontend ownership in ADR-007 and the layout-owner reference in ADR-022; preserve React/Vite, Supabase Auth, API/Realtime boundaries and existing hardware ownership |
 | ADR-031 / 2026-10-18 | Approved: reassuring scripted callback commitment in fictional demo voice calls, with new policy/hash approval | User explicitly approved the demo callback promise after hearing the prior disclaimer. Preserve operator review, consent, immutable approvals, unknown condition/staff response and iMessage restrictions; no actual staff calling/scheduling is added |
@@ -1714,6 +1737,7 @@ documented evidence supports a decision.
 | ADR-035 / 2026-10-18 | Approved: post-call thank-you acknowledgment replaces the incident recap, with dispatched/update commitment gated by explicit audited operator confirmation | User approved the proposed wording and dispatch condition. Preserve communicated/verified-recipient selection, separate consent, exact-text/hash approval, historical messages, generic missed-call privacy and unchanged sensing/voice/Gemini contracts |
 | ADR-036 / 2026-10-18 | Approved: select the Random Forest classifier trained using Veri for CSI Model 1, superseding the Keras CNN/Colab baseline in ADR-002 | User confirmed the actual training use and authorized README/spec reconciliation. Retain binary event/score contracts, frozen features, group-aware evaluation and QNX target. Training artifacts/metrics, runtime compatibility and sponsor eligibility remain unverified here; see deltas/2026-10-18T07-17-29Z-random-forest-product-readme.md |
 | ADR-037 / 2026-10-18 | Team confirms QNX OS on Pi 5 collects ESP32 sensing data and securely transmits results, with python3-tflite-runtime from oss.qnx.com integrated for local inference support | User supplied exact QNX attribution during the README rewrite. Record the module without inferring that the Random Forest executes through it; artifact/runtime compatibility, prediction parity, full live integration and eligibility need evidence; see the ADR-036 delta |
+| ADR-038 / 2026-10-18 | Approved: acknowledgment opens an automatically prepared popup with one combined call/text checkbox; automatic-v2 records provider-reported outcomes and selects exactly one approved text without operator outcome review | Generic fallback for unclear outcomes; old manual-v1 approvals stay frozen. Retain independent consent, explicit authorization, accurate playback evidence, Pi v2/WSS boundaries and no unsupported staff-dispatch claims. See deltas/2026-10-18T15-40-10Z-one-step-family-notifications.md |
 
 The user explicitly approved this delta after reviewing the proposal. See
 [deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md](deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md)
@@ -1728,6 +1752,7 @@ The approved conversational-call delta and success-criterion clarification are r
 
 The user-directed Paper/frontend ownership amendment is recorded in
 [deltas/2026-10-17T22-30-10Z-paper-frontend-ownership.md](deltas/2026-10-17T22-30-10Z-paper-frontend-ownership.md).
+
 
 ## 32. How to Maintain This Specification
 
