@@ -13,7 +13,7 @@ import type { Contact, DemoIncident, DemoRoom, Scenario } from "./model";
 import "./dashboard.css";
 import "./refinement.css";
 import "./moonlit.css";
-import "./overview.css";
+import "./workspace.css";
 
 type View = "overview" | "residents" | "history" | "devices";
 const navigation: { id: View; label: string }[] = [
@@ -469,11 +469,7 @@ export function Dashboard() {
           </p>
         </div>
       )}
-      <details
-        className="contact-section"
-        key={`${view}-${room.id}`}
-        open={view === "overview" ? undefined : true}
-      >
+      <details className="contact-section" key={room.id}>
         <summary>
           Family contact
           <span className="small muted">
@@ -574,7 +570,7 @@ export function Dashboard() {
   );
   return (
     <div
-      className={`dashboard ${refined ? "conservatory" : ""} ${moonlit ? "moonlit" : ""} ${view === "overview" ? "overview-workspace" : ""}`}
+      className={`dashboard compact-workspace ${refined ? "conservatory" : ""} ${moonlit ? "moonlit" : ""}`}
     >
       <a className="skip-link" href="#dashboard-main">
         Skip to dashboard
@@ -676,20 +672,6 @@ export function Dashboard() {
             Reset demo
           </button>
         </div>
-        {view !== "overview" && (
-          <header className="topbar">
-            <div className={online < 6 ? "notice" : "quiet"}>
-              <strong>
-                {online < 6 ? "Monitoring interrupted" : "Monitoring"}
-              </strong>
-              <span>
-                {online} of 6 staged devices connected
-                {online === 5 ? " · Room 106 offline" : ""}
-              </span>
-            </div>
-            <span className="workspace-label">Demo workspace</span>
-          </header>
-        )}
         <div className="page-heading">
           {refined && (
             <>
@@ -739,27 +721,25 @@ export function Dashboard() {
           online={online}
           refined={refined}
         />
-        {view === "overview" && (
-          <div className="overview-health" role="status">
+        <div className="workspace-health" role="status">
+          <span>
+            <Icon
+              name={online < state.rooms.length ? "offline" : "check"}
+              size={16}
+            />
+            <strong>
+              {online < state.rooms.length
+                ? "Monitoring interrupted"
+                : "Monitoring connected"}
+            </strong>
             <span>
-              <Icon
-                name={online < state.rooms.length ? "offline" : "check"}
-                size={16}
-              />
-              <strong>
-                {online < state.rooms.length
-                  ? "Monitoring interrupted"
-                  : "Monitoring connected"}
-              </strong>
-              <span>
-                {online === 5
-                  ? "Room 106 offline"
-                  : `${online} of ${state.rooms.length} staged devices connected`}
-              </span>
+              {online === 5
+                ? "Room 106 offline"
+                : `${online} of ${state.rooms.length} staged devices connected`}
             </span>
-            <span className="small muted">Last staged data · 2:32 PM</span>
-          </div>
-        )}
+          </span>
+          <span className="small muted">Last staged data · 2:32 PM</span>
+        </div>
         {(view === "overview" || view === "residents") && (
           <div className="overview-grid">
             <div className="facility-column">
@@ -790,12 +770,10 @@ export function Dashboard() {
                     <span className="room-person">
                       <strong>{r.resident}</strong>
                       <Status room={r} incident={state.incident} />
-                      {view === "overview" && (
-                        <span className="room-telemetry">
-                          {r.device} · Last data{" "}
-                          {r.online ? "2:32 PM" : "2:25 PM"}
-                        </span>
-                      )}
+                      <span className="room-telemetry">
+                        {r.device} · Last data{" "}
+                        {r.online ? "2:32 PM" : "2:25 PM"}
+                      </span>
                     </span>
                     <Icon name="arrow" size={18} />
                   </button>

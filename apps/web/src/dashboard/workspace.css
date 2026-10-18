@@ -1,6 +1,9 @@
-/* The overview prioritizes the map and incident actions over display space.
-   Other tabs retain their existing editorial layouts. */
-.dashboard.overview-workspace {
+html:has(.dashboard.compact-workspace) {
+  scrollbar-gutter: stable;
+}
+/* Shared density and sizing for every dashboard tab. View content changes;
+   the sidebar, heading, summary cards and monitoring strip stay in place. */
+.dashboard.compact-workspace {
   width: calc(100% - 24px);
   max-width: 1920px;
   min-height: calc(100vh - 24px);
@@ -8,96 +11,99 @@
   grid-template-columns: 200px minmax(0, 1fr);
   border-radius: 20px;
 }
-.overview-workspace .sidebar {
+.compact-workspace .sidebar {
   padding: 20px 16px;
   gap: 24px;
   border-radius: 20px 0 0 20px;
 }
-.overview-workspace .moonlit-brand {
+.compact-workspace .moonlit-brand {
   width: 168px;
   height: 184px;
   flex-direction: column;
   justify-content: center;
   gap: 0;
 }
-.overview-workspace .moonlit-mark {
+.compact-workspace .moonlit-mark {
   width: 168px;
   height: 116px;
 }
-.overview-workspace .moonlit-mark .logo {
+.compact-workspace .moonlit-mark .logo {
   width: 168px;
   height: 168px;
   position: static;
 }
-.overview-workspace .moonlit-wordmark {
+.compact-workspace .moonlit-wordmark {
   align-items: center;
 }
-.overview-workspace .brand-blissey {
+.compact-workspace .brand-blissey {
   font-size: 32px;
   line-height: 36px;
 }
-.overview-workspace .brand-beacon {
+.compact-workspace .brand-beacon {
   font-size: 14px;
   line-height: 20px;
 }
-.overview-workspace .sidebar nav button {
+.compact-workspace .sidebar nav button {
   padding: 12px;
   gap: 10px;
   font-size: 14px;
 }
-.overview-workspace .moon-hills {
+.compact-workspace .moon-hills {
   width: 100%;
   height: 176px;
 }
-.overview-workspace .sidebar-bottom {
+.compact-workspace .sidebar-bottom {
   padding-top: 32px;
 }
-.dashboard.overview-workspace .dashboard-main {
+.dashboard.compact-workspace .dashboard-main {
   max-width: none;
   margin: 0;
   padding: 16px 24px 24px;
   gap: 16px;
 }
-.overview-workspace .demo-toolbar {
+.compact-workspace .moon-background svg {
+  height: auto;
+}
+.compact-workspace .demo-toolbar {
   padding-bottom: 10px;
   font-size: 12px;
   gap: 12px;
 }
-.overview-workspace .page-heading {
+.compact-workspace .page-heading {
   flex-direction: row;
   align-items: center;
   padding: 22px 0 0;
   border: 0;
   gap: 16px;
 }
-.overview-workspace .workspace-eyebrow {
+.compact-workspace .workspace-eyebrow {
   font-size: 10px;
   line-height: 14px;
 }
-.overview-workspace h1 {
+.compact-workspace h1 {
   font-size: 38px;
   line-height: 42px;
 }
-.overview-workspace .page-heading p:not(.workspace-eyebrow) {
+.compact-workspace .page-heading p:not(.workspace-eyebrow) {
   font-size: 14px;
   line-height: 21px;
   margin-top: 4px;
 }
-.overview-workspace .header-ornament {
+.compact-workspace .header-ornament {
   width: 160px;
   height: 120px;
   top: -16px;
   right: 250px;
 }
-.overview-workspace .scenario-label {
+.compact-workspace .scenario-label {
   position: relative;
   font-size: 12px;
   margin: 0;
 }
-.overview-workspace .summary-grid {
+.compact-workspace .summary-grid {
   gap: 12px;
 }
-.overview-workspace .refined-summary > div {
+.compact-workspace .refined-summary > div {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   grid-template-rows: auto auto;
@@ -107,42 +113,42 @@
   padding: 14px 64px 14px 16px;
   border-radius: 20px 20px 20px 6px;
 }
-.overview-workspace .refined-summary .summary-alert {
+.compact-workspace .refined-summary .summary-alert {
   border-top-width: 1px;
   border-left: 3px solid var(--color-berry);
   padding-left: 14px;
 }
-.overview-workspace .summary-grid strong {
+.compact-workspace .summary-grid strong {
   grid-row: 1 / 3;
   font-size: 36px;
   line-height: 44px;
 }
-.overview-workspace .refined-summary > div > span:not(.summary-emblem) {
+.compact-workspace .refined-summary > div > span:not(.summary-emblem) {
   grid-column: 2;
   font-size: 14px;
   line-height: 20px;
 }
-.overview-workspace .summary-caption {
+.compact-workspace .summary-caption {
   grid-column: 2;
   padding: 0;
   font-size: 12px;
   line-height: 18px;
 }
-.overview-workspace .summary-emblem,
-.overview-workspace .connectivity-ring {
+.compact-workspace .summary-emblem,
+.compact-workspace .connectivity-ring {
   width: 32px;
   height: 32px;
   right: 16px;
   top: calc(50% - 16px);
 }
-.overview-health,
-.overview-health > span {
+.workspace-health,
+.workspace-health > span {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
 }
-.overview-health {
+.workspace-health {
   justify-content: space-between;
   padding: 8px 12px;
   border: 1px solid #e9ddc2;
@@ -152,68 +158,68 @@
   font-size: 12px;
   line-height: 20px;
 }
-.overview-health .small {
+.workspace-health .small {
   font-size: 12px;
 }
-.overview-workspace .overview-grid {
+.compact-workspace .overview-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.65fr) minmax(330px, 1fr);
   gap: 20px;
 }
-.overview-workspace .facility-column,
-.overview-workspace .dashboard-right-column {
+.compact-workspace .facility-column,
+.compact-workspace .dashboard-right-column {
   gap: 16px;
 }
-.overview-workspace .map-section {
+.compact-workspace .map-section {
   gap: 10px;
 }
-.overview-workspace h2 {
+.compact-workspace h2 {
   font-size: 26px;
   line-height: 30px;
 }
-.overview-workspace .map-legend {
+.compact-workspace .map-legend {
   font-size: 12px;
   line-height: 18px;
   gap: 6px 12px;
 }
-.overview-workspace .floorplan-artwork {
+.compact-workspace .floorplan-artwork {
   min-width: 520px;
 }
-.overview-workspace .map-room-status {
+.compact-workspace .map-room-status {
   font-size: 12px;
   line-height: 18px;
 }
-.overview-workspace .map-caption {
+.compact-workspace .map-caption {
   font-size: 12px;
   line-height: 18px;
 }
-.overview-workspace .panel {
+.compact-workspace .panel {
   padding: 18px;
   border-radius: 24px 24px 24px 6px;
 }
-.overview-workspace .resident-panel {
+.compact-workspace .resident-panel {
   gap: 12px;
 }
-.overview-workspace .resident-heading h2 {
+.compact-workspace .resident-heading h2 {
   font-size: 28px;
   line-height: 32px;
 }
-.overview-workspace .incident-callout {
+.compact-workspace .incident-callout {
   padding: 14px;
   gap: 6px;
 }
-.overview-workspace .incident-callout h3 {
+.compact-workspace .incident-callout h3 {
   font-size: 16px;
   line-height: 22px;
 }
-.overview-workspace .incident-callout > p:not(.small) {
+.compact-workspace .incident-callout > p:not(.small) {
   font-size: 14px;
   line-height: 21px;
 }
-.overview-workspace .resident-panel .actions {
+.compact-workspace .resident-panel .actions {
   gap: 8px;
 }
-.overview-workspace .resident-panel .actions button {
+.compact-workspace .resident-panel .actions button {
   font-size: 14px;
   padding: 10px;
 }
@@ -232,33 +238,30 @@
   display: grid;
   gap: 14px;
 }
-.dashboard:not(.overview-workspace) .contact-section > summary {
-  display: none;
-}
-.overview-workspace .contact-section {
+.compact-workspace .contact-section {
   display: block;
   padding-top: 4px;
 }
-.overview-workspace .incident-details {
+.compact-workspace .incident-details {
   padding-top: 0;
 }
-.overview-workspace .room-list {
+.compact-workspace .room-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   column-gap: 16px;
 }
-.overview-workspace .room-list > .section-heading {
+.compact-workspace .room-list > .section-heading {
   grid-column: 1 / -1;
   padding-bottom: 10px;
 }
-.overview-workspace .room-row {
+.compact-workspace .room-row {
   padding: 10px 4px;
   gap: 10px;
 }
-.overview-workspace .room-number {
+.compact-workspace .room-number {
   width: 32px;
 }
-.overview-workspace .room-person {
+.compact-workspace .room-person {
   gap: 2px;
 }
 .room-telemetry {
@@ -266,20 +269,20 @@
   font-size: 11px;
   line-height: 16px;
 }
-.overview-workspace .sensor-history {
+.compact-workspace .sensor-history {
   padding: 20px;
   gap: 12px;
   border-radius: 24px 24px 24px 6px;
 }
-.overview-workspace .sensor-history h2 {
+.compact-workspace .sensor-history h2 {
   font-size: 26px;
   line-height: 30px;
 }
-.overview-workspace footer {
+.compact-workspace footer {
   margin-top: 0;
 }
 @media (min-width: 1024px) {
-  .overview-workspace .sidebar {
+  .compact-workspace .sidebar {
     position: sticky;
     top: 12px;
     height: calc(100vh - 24px);
@@ -287,124 +290,124 @@
   }
 }
 @media (max-width: 1350px) {
-  .overview-workspace .refined-summary > div {
+  .compact-workspace .refined-summary > div {
     padding-right: 16px;
     gap: 0 10px;
   }
-  .overview-workspace .summary-emblem,
-  .overview-workspace .connectivity-ring {
+  .compact-workspace .summary-emblem,
+  .compact-workspace .connectivity-ring {
     display: none;
   }
 }
 @media (max-width: 1150px) and (min-width: 1024px) {
-  .overview-workspace .header-ornament {
+  .compact-workspace .header-ornament {
     display: none;
   }
-  .dashboard.overview-workspace {
+  .dashboard.compact-workspace {
     grid-template-columns: 180px minmax(0, 1fr);
   }
-  .overview-workspace .sidebar {
+  .compact-workspace .sidebar {
     padding: 16px 10px;
   }
-  .overview-workspace .overview-grid {
+  .compact-workspace .overview-grid {
     grid-template-columns: minmax(0, 1fr) 310px;
     gap: 16px;
   }
-  .overview-workspace .summary-grid strong {
+  .compact-workspace .summary-grid strong {
     font-size: 30px;
   }
-  .overview-workspace .summary-caption {
+  .compact-workspace .summary-caption {
     display: none;
   }
-  .overview-workspace .room-list {
+  .compact-workspace .room-list {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 @media (max-width: 1023px) {
-  .dashboard.overview-workspace {
+  .dashboard.compact-workspace {
     width: 100%;
     margin: 0;
     border: 0;
     border-radius: 0;
   }
-  .overview-workspace .sidebar {
+  .compact-workspace .sidebar {
     padding: 10px 20px;
     border-radius: 0;
   }
-  .overview-workspace .moonlit-brand {
+  .compact-workspace .moonlit-brand {
     height: 64px;
     width: 216px;
     flex-direction: row;
     gap: 10px;
   }
-  .overview-workspace .moonlit-mark {
+  .compact-workspace .moonlit-mark {
     width: 64px;
     height: 58px;
   }
-  .overview-workspace .moonlit-mark .logo {
+  .compact-workspace .moonlit-mark .logo {
     width: 80px;
     height: 80px;
     position: relative;
     left: -8px;
   }
-  .overview-workspace .moonlit-wordmark {
+  .compact-workspace .moonlit-wordmark {
     align-items: flex-start;
   }
-  .overview-workspace .brand-blissey {
+  .compact-workspace .brand-blissey {
     font-size: 28px;
     line-height: 32px;
   }
-  .overview-workspace .overview-grid {
+  .compact-workspace .overview-grid {
     grid-template-columns: minmax(0, 1fr);
   }
-  .overview-workspace .facility-column {
+  .compact-workspace .facility-column {
     grid-row: 2;
   }
-  .overview-workspace .resident-panel {
+  .compact-workspace .resident-panel {
     grid-row: 1;
   }
-  .overview-workspace .map-section {
+  .compact-workspace .map-section {
     order: 0;
   }
 }
 @media (max-width: 600px) {
-  .dashboard.overview-workspace .dashboard-main {
+  .dashboard.compact-workspace .dashboard-main {
     padding: 12px 16px 20px;
     gap: 12px;
   }
-  .overview-workspace .page-heading {
+  .compact-workspace .page-heading {
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
   }
-  .overview-workspace h1 {
+  .compact-workspace h1 {
     font-size: 34px;
     line-height: 38px;
   }
-  .overview-workspace .refined-summary > div {
+  .compact-workspace .refined-summary > div {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     padding: 10px;
     gap: 2px;
   }
-  .overview-workspace .summary-grid {
+  .compact-workspace .summary-grid {
     gap: 8px;
   }
-  .overview-workspace .summary-grid strong {
+  .compact-workspace .summary-grid strong {
     font-size: 28px;
     line-height: 34px;
   }
-  .overview-workspace .summary-caption {
+  .compact-workspace .summary-caption {
     display: none;
   }
-  .overview-workspace .room-list {
+  .compact-workspace .room-list {
     grid-template-columns: minmax(0, 1fr);
   }
-  .overview-workspace .resident-panel .actions {
+  .compact-workspace .resident-panel .actions {
     flex-direction: column;
   }
-  .overview-workspace .demo-toolbar > span {
+  .compact-workspace .demo-toolbar > span {
     max-width: none;
   }
 }
