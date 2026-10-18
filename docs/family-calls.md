@@ -17,7 +17,10 @@ must be present when the flag is true. No second backend service is needed.
 
 The user's consented real test destination is held only in ignored local deployment
 configuration. It is not a seed, fixture, source default or browser build variable.
-The new migration has not been applied to the hosted demo by this implementation PR.
+The family-call migration was subsequently applied to the approved hosted demo
+after a private schema/data snapshot. The merged backend is deployed with dispatch
+disabled; contact configuration and review previews were verified without authorizing
+a call. Frontend controls remain pending.
 
 ## Shared contracts and API sequence
 
@@ -203,3 +206,65 @@ Photon API credentials are administrative setup inputs. Runtime dispatch needs
 only the ElevenLabs key, configured agent/number IDs and HMAC secret. Keep
 `NOTIFICATION_CALLS_ENABLED=false` during rollout and until an explicitly reviewed
 first-call test. Neither populated credentials nor this verification initiates a call.
+
+## Hosted contact/review rollout — 2026-10-18 UTC
+
+PR #8 merged at `d6f96b1` after all checks passed, including the revised policy.
+Only `20261018022000_family_calls.sql` was applied after a private snapshot, and
+its version recorded. Existing incidents/explanations were preserved. Railway's
+server-only ElevenLabs variables were staged with live dispatch false, then the
+merged revision deployed successfully. Photon API/SIP credentials were not copied
+to the backend runtime or browser.
+
+The authenticated operator API saved the explicitly consented test contact against
+the fictional resident, resolved historical room assignment and produced a
+`family-call-v2` review preview with dispatch disabled. Anonymous history and an
+invalidly signed callback both returned 401. The deployed database had zero
+notification authorizations and zero dispatch attempts after this check. No
+telephone request was made, and actual callback delivery, SIP digest negotiation,
+connected/spoken evidence and live voice remain unverified. Private contact/preview
+receipts are kept in the ignored verification folder. Do not commit the number.
+
+A live test still requires explicit approval of the intended recipient, opening,
+family-safe context and bounded policy. Merely providing provider credentials or
+consenting to be the demo recipient does not authorize an incident-specific call.
+
+## First consented live smoke — 2026-10-18 UTC
+
+At the user's explicit request, an authenticated synthetic v2 high-fall-score
+event created an active incident, received a persisted Gemini explanation, and
+was acknowledged through a simulated operator action with an honest audit note.
+The operator API then reviewed and authorized one frozen `family-call-v2` session
+to the user's saved, consented test contact. This was a synthetic incident, not
+evidence of a physical fall or QNX hardware integration.
+
+ElevenLabs accepted the outbound SIP request through the configured Photon trunk.
+The user confirmed receiving the call. The provider reported a 63-second session
+ending with `Client disconnected: 1000`, no provider error, and a 15-turn transcript.
+After an initial voicemail greeting, the live recipient identified themselves and
+the agent stated the approved Room 102 sensor summary and unknown resident
+condition. The user reported that the conversation was imperfect but useful.
+
+The signed provider callback persisted `completed` in Supabase. Exactly one call
+authorization and one dispatch attempt exist for this incident. Live dispatch was
+then disabled again, and Railway successfully deployed that configuration. No
+second call was placed.
+
+Observed limitations:
+
+- The generic sensor summary did not explain what happened when the recipient
+  asked for clarification. A supported, reviewed possible-fall interpretation still
+  needs its own approved rule; do not silently reinterpret confidence scores.
+- The agent treated an ambiguous closing response as a callback request, and the
+  callback flag was persisted. It was not an explicit callback request and must
+  not be counted as successful callback extraction or automatic staff dispatch.
+- The recipient reported hearing the call, and the transcript contains the incident
+  summary followed by their question. Automated playback-evidence mapping remains
+  unverified: `connected` and `notification_spoken` remain false in the database,
+  so `notification_success` is not established automatically. Do not replace these
+  evidence checks with transcript text or session completion alone.
+- Frontend contact/call controls and result presentation remain pending.
+
+The full transcript and private provider receipts remain in ignored local
+verification storage, not repository source or the application database. Provider
+retention/deletion settings remain as documented above.

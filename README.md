@@ -9,7 +9,8 @@ Supabase Auth and facility membership protect operator data/actions. A shared de
 operator account is acceptable. Notifications require explicit review and a
 saved consented demo contact. Planned conversational calls use ElevenLabs Agents
 through Photon SIP, with operator-approved frozen context and opening; this
-provider integration remains unverified. Backend call orchestration is implemented
+provider path passed one consented live synthetic-incident smoke. Automated
+spoken-notification evidence mapping remains unverified. Backend call orchestration is implemented
 with dispatch disabled by default. No developer laptop is required at runtime.
 
 This repository implements **Slice 2 plus the explanation pipeline**: authenticated device WebSocket ingestion,
@@ -18,8 +19,10 @@ operator incident reads, a canonical-fixture simulator and minimal incident
 Realtime subscriptions. Durable Gemini processing and persisted explanation reads
 are implemented; live Gemini with local PostgreSQL/Realtime and the hosted
 synthetic Railway/Supabase path were verified. Contact configuration, reviewed call authorization, incident actions and signed
-callback handling now exist in backend source with synthetic tests; their hosted
-rollout and frontend controls remain pending. Actual ElevenLabs/Photon calls are unverified. Hosted synthetic
+callback handling now exist with synthetic tests. Hosted contact/review APIs were
+verified with call dispatch disabled; frontend controls remain pending. One
+ElevenLabs/Photon call reached the consented test recipient, with completed status
+persisted; dispatch was disabled again afterward. Hosted synthetic
 integration and dashboard sign-in/live updates were verified on 2026-10-17;
 actual QNX integration remains unverified. See the
 [deployment verification record](docs/deployment-verification.md), [PROJECT_SPEC.md](PROJECT_SPEC.md)
