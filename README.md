@@ -15,8 +15,8 @@ This repository implements **Slice 2 plus the explanation pipeline**: authentica
 transactional event/incident/job persistence, durable deduplication, device health,
 operator incident reads, a canonical-fixture simulator and minimal incident
 Realtime subscriptions. Durable Gemini processing and persisted explanation reads
-are implemented; live Gemini with local PostgreSQL/Realtime was verified. Hosted
-worker rollout is pending. ElevenLabs/Photon calls and incident actions remain unimplemented. Hosted synthetic
+are implemented; live Gemini with local PostgreSQL/Realtime and the hosted
+synthetic Railway/Supabase path were verified. ElevenLabs/Photon calls and incident actions remain unimplemented. Hosted synthetic
 integration and dashboard sign-in/live updates were verified on 2026-10-17;
 actual QNX integration remains unverified. See the
 [deployment verification record](docs/deployment-verification.md), [PROJECT_SPEC.md](PROJECT_SPEC.md)
