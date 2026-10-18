@@ -297,6 +297,11 @@ action was performed by this design revision.
 
 ## Moonlit logo and reviewed enriched design
 
+The sidebar landscape now sits directly on the sidebar surface: no separate
+gradient card or rounded frame. It extends to both sidebar edges and fades into
+the lavender surface at the bottom. It remains decorative, ignores pointer input,
+and stays hidden on mobile and in forced-color mode.
+
 The current default preview implements the reviewed enriched direction with the
 user's supplied Moonlit mascot logo. Paper source:
 [Dashboard · Moonlit · Desktop](https://app.paper.design/file/01M564RV9F6VTR8FYF26BQB6KX/p-1-0/20L-0)
