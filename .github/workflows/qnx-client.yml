@@ -1,0 +1,19 @@
+name: QNX client
+on:
+  pull_request:
+    paths: ["edge/qnx/**", "packages/contracts/**", ".github/workflows/qnx-client.yml"]
+  push:
+    branches: [main]
+    paths: ["edge/qnx/**", "packages/contracts/**", ".github/workflows/qnx-client.yml"]
+permissions:
+  contents: read
+jobs:
+  python-transport:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - run: python -m pip install -r edge/qnx/requirements.txt
+      - run: PYTHONPATH=edge/qnx python -m unittest discover -s edge/qnx/tests -v
