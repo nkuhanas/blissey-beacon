@@ -48,6 +48,12 @@ automatically. There is no laptop intermediary at runtime.
   Outboxes are bound to a device/room pair; reassignment requires a separate
   database and explicit handling of the prior queue.
 
+## ESP32 USB startup
+
+The Pi’s USB-only boot supervisor, installation layout, checks and rollback are
+documented in [boot/README.md](boot/README.md). It starts the CP2102 serial driver
+at 921600 baud and recovers driver exits; inference and transport remain separate.
+
 ## Install on QNX
 
 Requires Python 3.10+, `ssl`, `sqlite3`, `fcntl`, writable persistent storage and
