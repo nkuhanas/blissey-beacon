@@ -45,10 +45,9 @@ test("revoking family consent blocks call review and contacts belong to their re
 test("offline sensing never becomes a monitoring label and no-incident scenario stays empty", () => {
   const state = createDemo("offline");
   assert.ok(
-    state.rooms.every(
-      (room) => roomStatus(room, state.incident) === "Sensor offline",
-    ),
+    state.rooms.every((room) => roomStatus(room, null) === "Sensor offline"),
   );
+  assert.match(roomStatus(state.rooms[3]!, state.incident), /^Possible fall/);
   assert.equal(createDemo("empty").incident, null);
 });
 test("notes and false alarm are retained, and reset clears contact changes and actions", () => {

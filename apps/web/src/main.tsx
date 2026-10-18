@@ -4,7 +4,7 @@ import { Dashboard } from "./dashboard/Dashboard";
 import "./style.css";
 const OperatorApp = lazy(() => import("./OperatorApp"));
 const params = new URLSearchParams(window.location.search);
-const operator = params.get("operator") === "1" || params.get("demo") === "0";
+const operator = params.get("legacy") === "1";
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     {operator ? (

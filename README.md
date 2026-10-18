@@ -9,12 +9,12 @@ experience.
 
 Built for **LA Hacks 2026 · Beyond the Digital**.
 
-**[Explore the interactive demo →](https://blissey-beacon.health)**
+**[Explore the interactive demo →](https://blissey-beacon.health/?demo=1)**
 
 ![Blissey Beacon dashboard showing an illustrated facility map, room monitoring states, and a possible-fall incident awaiting caregiver review.](docs/images/dashboard.png)
 
 *Actual dashboard running the fictional “Possible fall · Pending” scenario.
-The public demo uses browser fixtures; its actions do not place calls or send messages.*
+The browser-only demo at `/?demo=1` uses fixtures; its actions do not place calls or send messages.*
 
 ## Why we built it
 
@@ -30,7 +30,7 @@ and notification approval.
 
 The data path separates offline training, edge sensing and cloud incident
 processing. The team has integrated QNX sensing/transport and its inference
-runtime; classifier deployment/parity and the full dashboard action integration
+runtime; classifier deployment/parity and the complete physical sensing flow
 remain under validation.
 
 ```mermaid
@@ -53,8 +53,9 @@ not evidence that the trained forest executes through it.
 
 Veri is used for offline training. Raw CSI stays local at runtime, and Gemini
 receives only structured incident facts. Incidents are persisted and published
-before explanations finish. The public Paper-designed dashboard uses browser
-fixtures; connecting its complete action workflow to the backend is still in progress.
+before explanations finish. The dashboard preserves a browser-only fixture mode at `/?demo=1`. Its authenticated
+workspace now connects scenarios and incident actions to the existing backend;
+see the [connected dashboard guide](docs/connected-dashboard.md) for configuration and verification limits.
 
 ### Reviewed family communication
 
@@ -72,7 +73,7 @@ flowchart TD
 Voice and messaging have separate consent and authorization. iMessage follows the
 backend-to-Photon path, independently of ElevenLabs. Call callbacks and polled
 message replies return through the backend and are stored against the incident;
-the complete dashboard presentation of those replies is still being integrated.
+authenticated operators can view call, message and reply history in the family notification review.
 The provider tests used synthetic incidents and consented recipients, separately
 from the public fixture demo.
 
@@ -110,17 +111,20 @@ or completed sponsor submissions here.
 
 ## Explore the demo
 
-At **[blissey-beacon.health](https://blissey-beacon.health)**, select a room on the
-facility map, review a staged incident, acknowledge it, and explore the family
-notification review. Switch scenarios to compare pending or ready explanations,
-fallback behavior, offline sensing and an empty incident state.
+At **[blissey-beacon.health/?demo=1](https://blissey-beacon.health/?demo=1)**, explore
+fictional browser scenarios without credentials, hardware or real communications.
+The six-room floor plan does not represent demonstrated multi-room sensing.
 
-The six-room floor plan and residents are fictional; they do not represent
-demonstrated multi-room sensing. Public interactions run in browser memory and
-reset with the demo. They do not invoke Gemini or dispatch real communications.
+The authenticated workspace at `/` uses the same visual interface. Sign in with
+a provisioned operator account, select a room, then **Instantiate** to persist a
+synthetic incident through the backend and Gemini pipeline. **Acknowledge incident**
+saves the action and opens call review; separate explicit approvals are required
+to dispatch a real call and its potential iMessage follow-up. Fictional contacts
+route to the backend's registered consented test phone.
 
-The separate [operator sign-in](https://blissey-beacon.health/?operator=1) exposes
-the authenticated integration shell and requires a provisioned demo account.
+See [connected dashboard](docs/connected-dashboard.md) before enabling scenarios
+or notifications. Source integration and local browser checks do not establish a
+production deployment or live Pi verification.
 
 ## Prototype status
 
@@ -136,9 +140,10 @@ and iMessage integrations:
 - **Messaging:** a real Photon iMessage was delivered and an incoming ACK was
   persisted and correlated with its synthetic incident, using an isolated local
   backend/database.
-- **Interface:** the Paper-designed interactive frontend demonstrates the caregiver
-  experience with fictional browser scenarios. Complete authenticated action
-  integration and the hosted messaging workflow remain pending.
+- **Interface:** the styled dashboard supports authenticated backend scenarios,
+  incident actions and notification reviews. Local browser verification used real
+  Supabase authentication, durable incidents and call/message previews without
+  authorizing a call. The pure browser demo remains available at `/?demo=1`.
 - **Model and edge:** the team confirms Random Forest training using Veri,
   QNX OS sensing/transport on Pi 5, and integration of QNX's `python3-tflite-runtime`.
   Training/evaluation artifacts and hardware logs are not reproduced here.
@@ -160,7 +165,7 @@ docker compose run --rm toolchain
 docker compose up web
 ```
 
-Open **[localhost:5173](http://localhost:5173)**. This launches the interactive
+Open **[localhost:5173/?demo=1](http://localhost:5173/?demo=1)**. This launches the interactive
 fixture dashboard without Supabase credentials, hardware, or provider keys.
 The toolchain step installs pinned dependencies, checks the project and builds
 the shared contracts; `up web` starts the actual Vite development server.
@@ -178,6 +183,7 @@ setup and optional Realtime checks are covered in the technical documentation.
 | --- | --- |
 | [Project specification](PROJECT_SPEC.md) | Architecture, model decision, interfaces, ownership and acceptance requirements |
 | [Development](docs/development.md) | Docker toolchain, authenticated backend setup and isolated database checks |
+| [Connected dashboard](docs/connected-dashboard.md) | Backend scenarios, incident actions, call/text review and Pi readiness |
 | [Frontend design](docs/frontend-design.md) | Paper sources, identity provenance, interaction design and browser verification |
 | [Gemini pipeline](docs/gemini-pipeline.md) | Grounded explanations, durable jobs, retries and deterministic fallback |
 | [Family calls](docs/family-calls.md) / [family messages](docs/family-messages.md) | Consent, review, provider integration and live-test evidence |

@@ -673,3 +673,20 @@ html:has(.dashboard.compact-workspace) {
     border-left: 3px solid CanvasText;
   }
 }
+
+.operator-connection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+.operator-connection .text-button {
+  margin: 0;
+  padding: 4px;
+}
+.notification-results .note {
+  margin-block: 12px;
+}

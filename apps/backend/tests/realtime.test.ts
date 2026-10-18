@@ -1,3 +1,4 @@
+import { createDemoStore } from "../src/demo/store.js";
 import { randomUUID, createHmac } from "node:crypto";
 import { createCallStore } from "../src/notifications/store.js";
 import {
@@ -56,6 +57,14 @@ test(
     const callStore = createCallStore(pool);
     const dispatch = createDispatchStore(pool);
     const app = await createApp({
+      demo: {
+        enabled: true,
+        store: createDemoStore(pool, {
+          enabled: true,
+          facilityId: "demo_facility",
+          phone: "+15555550123",
+        }),
+      },
       calls: {
         store: callStore,
         dispatch,
@@ -376,6 +385,50 @@ test(
       assert.equal(callResult.calls[0]!.callback_requested, true);
       assert.equal(callResult.calls[0]!.notification_success, false);
       assert.equal(leaked, 0);
+      const scenarioHeaders = {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+        "Idempotency-Key": randomUUID(),
+      };
+      let scenarioId: string | undefined;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const response = await fetch(
+          `http://127.0.0.1:${port}/api/operator/demo/scenarios`,
+          {
+            method: "POST",
+            headers: scenarioHeaders,
+            body: JSON.stringify({
+              facility_id: "demo_facility",
+              room_id: "104",
+              scenario: "attention",
+            }),
+          },
+        );
+        assert.equal(response.status, 201);
+        const scenario = (await response.json()) as { incident_id: string };
+        if (scenarioId) assert.equal(scenario.incident_id, scenarioId);
+        scenarioId = scenario.incident_id;
+      }
+      for (let n = 0; n < 100 && observed < 2; n++) await sleep(100);
+      assert.equal(
+        observed,
+        2,
+        "One UI scenario creates one additional actual Realtime incident notification",
+      );
+      assert.equal(leaked, 0);
+      const scenarioDetail = await fetch(
+        `http://127.0.0.1:${port}/api/operator/incidents/${scenarioId}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } },
+      );
+      assert.equal(scenarioDetail.status, 200);
+      assert.ok(
+        validateIncident(
+          ((await scenarioDetail.json()) as { incident: unknown }).incident,
+        ),
+      );
+      console.log(
+        "PASS: authenticated UI scenario -> exactly one durable incident -> actual scoped Supabase Realtime + authorized REST; no hardware health or provider dispatch fabricated.",
+      );
       console.log(
         "PASS: synthetic call authorization → durable attempt → synthetic ElevenLabs response → signed synthetic webhook → actual local Realtime + authorized REST. No real call or playback evidence claimed.",
       );

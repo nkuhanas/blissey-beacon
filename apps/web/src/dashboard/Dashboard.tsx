@@ -1,5 +1,9 @@
-import { useEffect, useReducer, useRef, useState } from "react";
-import type { FormEvent, ReactNode } from "react";
+import { supabase } from "../client";
+import { Modal } from "./Modal";
+import { OperatorLogin, LiveCallReview } from "./LiveNotifications";
+import { useOperatorDashboard } from "./useOperatorDashboard";
+import { useReducer, useRef, useState } from "react";
+import type { FormEvent } from "react";
 import logo from "../../../../design/brand/blissey-beacon-logo-v1.png";
 import { Icon } from "./Icon";
 import { FacilityMap } from "./FacilityMap";
@@ -28,11 +32,12 @@ function Status({
   room: DemoRoom;
   incident: DemoIncident | null;
 }) {
-  const tone = !room.online
-    ? "offline"
-    : incident?.roomId === room.id && incident.status !== "resolved"
+  const tone =
+    incident?.roomId === room.id && incident.status !== "resolved"
       ? "attention"
-      : "monitoring";
+      : !room.online
+        ? "offline"
+        : "monitoring";
   return (
     <span className={`status ${tone}`}>
       <Icon
@@ -47,65 +52,6 @@ function Status({
       />
       {roomStatus(room, incident)}
     </span>
-  );
-}
-function Modal({
-  title,
-  children,
-  onClose,
-}: {
-  title: string;
-  children: ReactNode;
-  onClose: () => void;
-}) {
-  const dialog = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
-    const element = dialog.current;
-    element?.showModal();
-    return () => {
-      element?.close();
-      previous?.focus();
-    };
-  }, []);
-  return (
-    <dialog
-      ref={dialog}
-      aria-labelledby="dialog-title"
-      onCancel={onClose}
-      onKeyDown={(event) => {
-        if (event.key !== "Tab") return;
-        const controls = Array.from(
-          event.currentTarget.querySelectorAll<HTMLElement>(
-            'button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), a[href], [tabindex="0"]',
-          ),
-        ).filter((element) => element.getClientRects().length > 0);
-        const first = controls[0];
-        const last = controls[controls.length - 1];
-        if (event.shiftKey && document.activeElement === first) {
-          event.preventDefault();
-          last?.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault();
-          first?.focus();
-        }
-      }}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <div className="dialog-header">
-        <h2 id="dialog-title">{title}</h2>
-        <button
-          className="icon-button"
-          aria-label="Close dialog"
-          onClick={onClose}
-        >
-          <Icon name="close" />
-        </button>
-      </div>
-      {children}
-    </dialog>
   );
 }
 function ContactForm({
@@ -290,28 +236,70 @@ export function Dashboard() {
   const moonlit =
     refined &&
     new URLSearchParams(window.location.search).get("style") !== "conservatory";
-  const [state, dispatch] = useReducer(demoReducer, undefined, () =>
+  const [demoState, dispatchDemo] = useReducer(demoReducer, undefined, () =>
     createDemo(),
   );
   const [selected, setSelected] = useState("104");
+  const connected =
+    new URLSearchParams(window.location.search).get("demo") !== "1";
+  const live = useOperatorDashboard(connected, selected);
+  const state = connected && live.session ? live.state : demoState;
+  async function dispatch(action: import("./model").DemoAction) {
+    if (!connected) {
+      dispatchDemo(action);
+      return true;
+    }
+    if (!live.session) {
+      setModal("login");
+      return false;
+    }
+    try {
+      await live.dispatch(action);
+      if (action.type === "advance" && action.status === "acknowledged")
+        setModal("call");
+      return true;
+    } catch {
+      return false;
+    }
+  }
   const [view, setView] = useState<View>("overview");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [modal, setModal] = useState<"contact" | "call" | null>(null);
+  const [modal, setModal] = useState<"contact" | "call" | "login" | null>(
+    new URLSearchParams(window.location.search).get("operator") === "1"
+      ? "login"
+      : null,
+  );
   const [note, setNote] = useState("");
   const [announcement, setAnnouncement] = useState("");
   const [scenario, setScenario] = useState<Scenario>("attention");
   const detailRef = useRef<HTMLElement>(null);
   const room = state.rooms.find((r) => r.id === selected)!;
   const incident = state.incident?.roomId === selected ? state.incident : null;
-  const active = state.incident && state.incident.status !== "resolved" ? 1 : 0;
+  const active =
+    connected && live.session
+      ? live.records.filter((i) => i.status !== "resolved").length
+      : state.incident && state.incident.status !== "resolved"
+        ? 1
+        : 0;
   const offline = state.rooms.filter((r) => !r.online);
   const sorted = [...state.rooms].sort((a, b) => {
     const rank = (r: DemoRoom) =>
-      state.incident?.roomId === r.id && active ? 0 : !r.online ? 1 : 2;
+      (
+        connected && live.session
+          ? live.records.some(
+              (i) => i.room_id === r.id && i.status !== "resolved",
+            )
+          : state.incident?.roomId === r.id && active
+      )
+        ? 0
+        : !r.online
+          ? 1
+          : 2;
     return rank(a) - rank(b) || a.id.localeCompare(b.id);
   });
   function selectRoom(id: string) {
     setSelected(id);
+    if (connected) live.focus(null);
     setNote("");
     setAnnouncement(`Room ${id} selected.`);
     if (window.innerWidth < 1024) {
@@ -330,6 +318,19 @@ export function Dashboard() {
     setModal(null);
     setAnnouncement("Demo reset. All changes cleared.");
   }
+  const triggerTime = incident?.record
+    ? new Date(incident.record.detected_at).toLocaleTimeString([], {
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    : "2:32 PM";
+  const triggerDate = incident?.record
+    ? new Date(incident.record.detected_at).toLocaleDateString([], {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : "October 17, 2026";
   const detail = (
     <section
       className="resident-panel panel"
@@ -394,11 +395,15 @@ export function Dashboard() {
       {!room.online && (
         <div className="notice monitoring-notice">
           <strong>
-            <Icon name="offline" size={16} /> Sensor offline
+            <Icon name="offline" size={16} />{" "}
+            {room.monitoringStatus === "degraded"
+              ? "Monitoring degraded"
+              : "Sensor offline"}
           </strong>
           <p>
-            No current sensing data. Check the device connection. Last staged
-            data: 2:25 PM.
+            {connected && live.session
+              ? `No current sensing data. Last telemetry: ${room.lastDataAt ? new Date(room.lastDataAt).toLocaleString() : "not received"}.`
+              : "No current sensing data. Last staged data: 2:25 PM."}
           </p>
           <p>Room status cannot be confirmed while the sensor is offline.</p>
         </div>
@@ -415,13 +420,20 @@ export function Dashboard() {
             </h3>
             <p>
               {incident.status === "resolved"
-                ? "This staged incident remains in the demo history."
+                ? incident.record
+                  ? "This incident remains in persisted history."
+                  : "This staged incident remains in the demo history."
                 : `Check on the resident in Room ${room.id}.`}
             </p>
             <p className="small muted">
-              Trigger time 2:32 PM · October 17, 2026
+              Trigger time {triggerTime} · {triggerDate}
               <br />
-              Explanation {incident.explanation} · Staged event
+              Explanation {incident.explanation} ·{" "}
+              {incident.record
+                ? incident.record.event_id.startsWith("synthetic_")
+                  ? "Synthetic event"
+                  : "Device event"
+                : "Staged event"}
             </p>
           </div>
           {incident.explanation !== "pending" && (
@@ -429,18 +441,24 @@ export function Dashboard() {
               <h3>
                 {incident.explanation === "fallback"
                   ? "Explanation unavailable"
-                  : "Sample explanation"}
+                  : incident.record
+                    ? "Incident explanation"
+                    : "Sample explanation"}
               </h3>
               <p>
                 {incident.explanation === "fallback"
                   ? "The explanation could not be generated. The incident is still available for review."
-                  : "The staged sensor event indicates a possible fall. Check on the resident; this sample does not confirm a fall or injury."}
+                  : (incident.record?.explanation?.description ??
+                    "The staged sensor event indicates a possible fall. Check on the resident; this sample does not confirm a fall or injury.")}
               </p>
             </div>
           )}
           {incident.status !== "resolved" && (
             <button
               className="primary full incident-next-action"
+              disabled={
+                connected && (live.session ? live.busy || live.stale : false)
+              }
               onClick={() => {
                 const next =
                   incident.status === "pending"
@@ -449,7 +467,8 @@ export function Dashboard() {
                       ? "responding"
                       : "resolved";
                 dispatch({ type: "advance", status: next });
-                setAnnouncement(`Demo incident marked ${next}.`);
+                if (!connected)
+                  setAnnouncement(`Demo incident marked ${next}.`);
               }}
             >
               {incident.status === "pending"
@@ -460,17 +479,31 @@ export function Dashboard() {
               <Icon name="arrow" size={16} />
             </button>
           )}
-          {incident.status !== "resolved" && (
-            <button
-              className="text-button"
-              onClick={() => {
-                dispatch({ type: "false-alarm" });
-                setAnnouncement("Demo incident resolved as a false alarm.");
-              }}
-            >
-              Mark as false alarm
-            </button>
-          )}
+          {incident.status !== "resolved" &&
+            (!connected ||
+              !live.session ||
+              incident.status === "responding") && (
+              <button
+                className="text-button"
+                disabled={
+                  connected &&
+                  !!live.session &&
+                  (incident.status !== "responding" || live.busy || live.stale)
+                }
+                title={
+                  connected
+                    ? "Mark responding before resolving as a false alarm"
+                    : undefined
+                }
+                onClick={() => {
+                  dispatch({ type: "false-alarm" });
+                  if (!connected)
+                    setAnnouncement("Demo incident resolved as a false alarm.");
+                }}
+              >
+                Mark as false alarm
+              </button>
+            )}
         </>
       ) : room.online ? (
         <div className="quiet">
@@ -489,7 +522,16 @@ export function Dashboard() {
         <div className="contact-content">
           <div className="section-heading">
             <h3>Family contact</h3>
-            <button className="compact" onClick={() => setModal("contact")}>
+            <button
+              className="compact"
+              disabled={connected}
+              title={
+                connected
+                  ? "Test contact routing is configured on the backend"
+                  : undefined
+              }
+              onClick={() => setModal("contact")}
+            >
               {room.contact ? "Edit" : "Add"}
               <span className="sr-only">
                 {" "}
@@ -506,7 +548,11 @@ export function Dashboard() {
                 </div>
                 <div>
                   <dt>Contact information</dt>
-                  <dd>Phone ending {room.contact.phone.slice(-4)}</dd>
+                  <dd>
+                    {connected
+                      ? "Registered test phone (fictional contact)"
+                      : `Phone ending ${room.contact.phone.slice(-4)}`}
+                  </dd>
                 </div>
               </dl>
               <p
@@ -524,9 +570,12 @@ export function Dashboard() {
           <button
             className="full"
             disabled={!canReviewCall(room, incident)}
-            onClick={() => setModal("call")}
+            onClick={() =>
+              setModal(connected && !live.session ? "login" : "call")
+            }
           >
-            Review notification <Icon name="arrow" size={16} />
+            {connected ? "Review call & text" : "Review notification"}{" "}
+            <Icon name="arrow" size={16} />
           </button>
           <p className="small muted">
             {!incident
@@ -545,9 +594,17 @@ export function Dashboard() {
               <li key={i}>{entry}</li>
             ))}
           </ol>
+          {incident.record && (
+            <p className="small muted">
+              Event {incident.record.event_id} · Source device{" "}
+              {incident.record.device_id}
+            </p>
+          )}
           <p className="small muted">
-            Sample model scores: fall 0.91 · non-fall 0.09. Experimental scores,
-            not clinical probabilities.
+            {incident.record
+              ? `Recorded scores: fall ${incident.record.confidence_scores.fall} · non-fall ${incident.record.confidence_scores.non_fall}.`
+              : "Sample model scores: fall 0.91 · non-fall 0.09."}{" "}
+            Experimental scores, not clinical probabilities.
           </p>
           {incident.notes.map((text, i) => (
             <p className="note" key={i}>
@@ -558,9 +615,12 @@ export function Dashboard() {
             onSubmit={(event) => {
               event.preventDefault();
               if (note.trim()) {
-                dispatch({ type: "note", text: note });
-                setNote("");
-                setAnnouncement("Demo note added.");
+                void dispatch({ type: "note", text: note }).then((ok) => {
+                  if (ok) {
+                    setNote("");
+                    if (!connected) setAnnouncement("Demo note added.");
+                  }
+                });
               }
             }}
           >
@@ -572,7 +632,13 @@ export function Dashboard() {
               onChange={(e) => setNote(e.target.value)}
               placeholder="Use fictional details only"
             />
-            <button disabled={!note.trim()}>Add note</button>
+            <button
+              disabled={
+                !note.trim() || (connected && (live.busy || live.stale))
+              }
+            >
+              Add note
+            </button>
           </form>
         </details>
       )}
@@ -588,7 +654,7 @@ export function Dashboard() {
       <aside className="sidebar">
         <div className="mobile-brand">
           <a
-            href="?demo=1"
+            href={connected ? "/" : "?demo=1"}
             aria-label="Blissey Beacon demo home"
             className={moonlit ? "moonlit-brand" : undefined}
           >
@@ -653,8 +719,9 @@ export function Dashboard() {
               <MoonlitHills />
             </div>
           )}
-          <a href="/?operator=1">
-            Operator sign-in <Icon name="arrow" size={16} />
+          <a href={live.session ? "/?demo=1" : "/?operator=1"}>
+            {live.session ? "Browser-only demo" : "Operator sign-in"}{" "}
+            <Icon name="arrow" size={16} />
           </a>
         </div>
       </aside>
@@ -680,8 +747,13 @@ export function Dashboard() {
             </div>
             <p className="demo-toolbar">
               <span>
-                <strong>Interactive demo</strong> · Fictional data. No live
-                sensing or calls.
+                <strong>
+                  {connected ? "Operator workspace" : "Interactive demo"}
+                </strong>{" "}
+                ·{" "}
+                {connected
+                  ? "Fictional residents. Calls and texts require explicit approval."
+                  : "Fictional data. No live sensing or calls."}
               </span>
             </p>
           </div>
@@ -702,24 +774,88 @@ export function Dashboard() {
                 id="demo-scenario"
                 aria-label="Scenario"
                 value={scenario}
-                onChange={(e) => reset(e.target.value as Scenario)}
+                onChange={(e) =>
+                  connected
+                    ? setScenario(e.target.value as Scenario)
+                    : reset(e.target.value as Scenario)
+                }
               >
-                <option value="attention">Possible fall · Pending</option>
-                <option value="ready">Sample explanation</option>
-                <option value="fallback">Explanation unavailable</option>
-                <option value="offline">All devices offline</option>
-                <option value="empty">No incidents</option>
+                <option value="attention">
+                  {connected ? "Possible fall" : "Possible fall · Pending"}
+                </option>
+                {!connected && (
+                  <option value="ready">Sample explanation</option>
+                )}
+                <option value="fallback">
+                  {connected
+                    ? "Deterministic fallback"
+                    : "Explanation unavailable"}
+                </option>
+                <option value="offline">
+                  {connected
+                    ? "Monitoring outage rehearsal"
+                    : "All devices offline"}
+                </option>
+                <option value="empty">
+                  {connected ? "No new incident" : "No incidents"}
+                </option>
               </select>
             </label>
             <button
               className="compact"
-              onClick={() => reset(scenario)}
-              aria-label="Reset demo"
+              onClick={() => {
+                if (!connected) reset(scenario);
+                else if (!live.session) setModal("login");
+                else void live.instantiate(scenario).catch(() => {});
+              }}
+              disabled={
+                connected &&
+                (live.busy ||
+                  (!!live.session &&
+                    (!live.scenariosEnabled ||
+                      live.stale ||
+                      !["101", "102", "103", "104", "105", "106"].includes(
+                        selected,
+                      ))))
+              }
+              aria-label={connected ? "Instantiate scenario" : "Reset demo"}
             >
-              Reset
+              {connected ? (live.busy ? "Working…" : "Instantiate") : "Reset"}
             </button>
           </div>
         </header>
+        {connected && (
+          <div className="operator-connection">
+            <span>
+              {live.session
+                ? live.stale
+                  ? "Refreshing backend state…"
+                  : "Backend connected · Pi telemetry shown when received"
+                : "Sign in, then instantiate a persisted scenario to use real calls and messages."}
+            </span>
+            <button
+              className="text-button"
+              onClick={() =>
+                live.session ? void supabase?.auth.signOut() : setModal("login")
+              }
+            >
+              {live.session ? "Sign out" : "Operator sign-in"}
+            </button>
+          </div>
+        )}
+        {connected && live.error && (
+          <p className="error" role="alert">
+            {live.error}. Refresh and review the current incident before
+            retrying.
+          </p>
+        )}
+        {connected && live.marker && (
+          <p className="notice">
+            {live.marker === "offline"
+              ? "Outage rehearsal recorded; hardware health has not been changed."
+              : "No-event rehearsal recorded; existing incident history is preserved."}
+          </p>
+        )}
         <div className="status-strip" aria-label="Facility status">
           <span className={`status-metric ${active ? "attention" : ""}`}>
             <Icon name={active ? "alert" : "check"} size={16} />
@@ -737,7 +873,10 @@ export function Dashboard() {
             <Icon name={offline.length ? "offline" : "wifi"} size={16} />
             <span>
               <strong>
-                {offline.length} offline{" "}
+                {offline.length}{" "}
+                {state.rooms.some((r) => r.monitoringStatus === "degraded")
+                  ? "unavailable"
+                  : "offline"}{" "}
                 {offline.length === 1 ? "device" : "devices"}
               </strong>
               {offline.length === 1 ? ` · Room ${offline[0]!.id}` : ""}
@@ -748,7 +887,11 @@ export function Dashboard() {
             <Icon name="overview" size={16} />
             <strong>{state.rooms.length} rooms</strong>
           </span>
-          <span className="last-update">Last staged data · 2:32 PM</span>
+          <span className="last-update">
+            {connected && live.session
+              ? "Health reflects received telemetry"
+              : "Last staged data · 2:32 PM"}
+          </span>
         </div>
         {(view === "overview" || view === "residents") && (
           <div className="overview-grid">
@@ -757,6 +900,9 @@ export function Dashboard() {
                 <FacilityMap
                   rooms={state.rooms}
                   incident={state.incident}
+                  incidents={
+                    connected && live.session ? live.incidents : undefined
+                  }
                   selected={selected}
                   onSelect={selectRoom}
                 />
@@ -805,14 +951,39 @@ export function Dashboard() {
                             <td>
                               {r.resident}
                               <span className="mobile-last-seen">
-                                {r.online ? "2:32 PM" : "2:25 PM"}
+                                {connected && live.session
+                                  ? r.lastDataAt
+                                    ? new Date(
+                                        r.lastDataAt,
+                                      ).toLocaleTimeString()
+                                    : "Not received"
+                                  : r.online
+                                    ? "2:32 PM"
+                                    : "2:25 PM"}
                               </span>
                             </td>
                             <td>
-                              <Status room={r} incident={state.incident} />
+                              <Status
+                                room={r}
+                                incident={
+                                  connected && live.session
+                                    ? (live.incidents.find(
+                                        (i) =>
+                                          i.roomId === r.id &&
+                                          i.status !== "resolved",
+                                      ) ?? null)
+                                    : state.incident
+                                }
+                              />
                             </td>
                             <td className="last-seen">
-                              {r.online ? "2:32 PM" : "2:25 PM"}
+                              {connected && live.session
+                                ? r.lastDataAt
+                                  ? new Date(r.lastDataAt).toLocaleTimeString()
+                                  : "Not received"
+                                : r.online
+                                  ? "2:32 PM"
+                                  : "2:25 PM"}
                             </td>
                           </tr>
                         ))}
@@ -833,9 +1004,37 @@ export function Dashboard() {
           <section className="panel">
             <h2>Recent incidents</h2>
             <p className="muted">
-              Staged events and actions from this demo session.
+              {connected && live.session
+                ? "Persisted incidents, including synthetic scenarios and device events."
+                : "Staged events and actions from this demo session."}
             </p>
-            {state.incident ? (
+            {connected && live.session ? (
+              <div>
+                {live.records.map((i) => (
+                  <button
+                    className="history-row"
+                    key={i.id}
+                    onClick={() => {
+                      setSelected(i.room_id);
+                      live.focus(i.id);
+                      setView("overview");
+                    }}
+                  >
+                    <span>
+                      <strong>
+                        Room {i.room_id} · {i.status}
+                      </strong>
+                      <br />
+                      {new Date(i.detected_at).toLocaleString()} ·{" "}
+                      {i.event_id.startsWith("synthetic_")
+                        ? "Synthetic scenario"
+                        : "Device event"}
+                    </span>
+                    <Icon name="arrow" />
+                  </button>
+                ))}
+              </div>
+            ) : state.incident ? (
               <>
                 <button
                   className="history-row"
@@ -876,8 +1075,9 @@ export function Dashboard() {
             <section className="panel">
               <h2>Device connections</h2>
               <p className="muted">
-                Illustrative device health, not a connection to your Raspberry
-                Pi.
+                {connected && live.session
+                  ? "Current health from received device telemetry. Scenario events do not bring the Pi online."
+                  : "Illustrative device health, not a connection to your Raspberry Pi."}
               </p>
               <div className="device-list">
                 {state.rooms.map((r) => (
@@ -886,8 +1086,17 @@ export function Dashboard() {
                     <div>
                       <strong>{r.device}</strong>
                       <p className="small muted">
-                        Room {r.id} · Last staged data{" "}
-                        {r.online ? "2:32 PM" : "2:25 PM"}
+                        Room {r.id} ·{" "}
+                        {connected && live.session
+                          ? "Last telemetry"
+                          : "Last staged data"}{" "}
+                        {connected && live.session
+                          ? r.lastDataAt
+                            ? new Date(r.lastDataAt).toLocaleTimeString()
+                            : "Not received"
+                          : r.online
+                            ? "2:32 PM"
+                            : "2:25 PM"}
                       </p>
                     </div>
                     <span
@@ -900,7 +1109,7 @@ export function Dashboard() {
                 ))}
               </div>
             </section>
-            {moonlit && <SensorHistory rooms={state.rooms} />}
+            {moonlit && !connected && <SensorHistory rooms={state.rooms} />}
           </div>
         )}
         <p className="sr-only" role="status" aria-live="polite">
@@ -911,6 +1120,9 @@ export function Dashboard() {
           or emergency response device.
         </footer>
       </main>
+      {modal === "login" && !live.session && (
+        <OperatorLogin onClose={() => setModal(null)} />
+      )}
       {modal === "contact" && (
         <ContactForm
           room={room}
@@ -922,13 +1134,25 @@ export function Dashboard() {
           }}
         />
       )}{" "}
-      {modal === "call" && incident && canReviewCall(room, incident) && (
-        <CallReview
-          room={room}
-          incident={incident}
+      {modal === "call" && connected && live.api && live.record && (
+        <LiveCallReview
+          key={live.record.id}
+          api={live.api}
+          incidentId={live.record.id}
           onClose={() => setModal(null)}
+          onUpdated={() => void live.refresh()}
         />
       )}
+      {modal === "call" &&
+        !connected &&
+        incident &&
+        canReviewCall(room, incident) && (
+          <CallReview
+            room={room}
+            incident={incident}
+            onClose={() => setModal(null)}
+          />
+        )}
     </div>
   );
 }
