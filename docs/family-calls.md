@@ -27,14 +27,18 @@ explicitly. Under `conversation_config.agent.prompt`, configure:
     "end_call": {
       "type": "system",
       "name": "end_call",
-      "description": "",
+      "description": "COPY THE CURRENT SOURCE END_CALL_DESCRIPTION HERE",
       "params": { "system_tool_type": "end_call" }
     }
   }
 }
 ```
 
-Use the current source `POLICY` and `family-call-v4`. A natural-language goodbye
+Use the current source `POLICY`, `END_CALL_DESCRIPTION` and `family-call-v5`. The
+description placeholder above must be replaced, not submitted literally. Its
+exact text is included in the frozen policy's `Call ending:` paragraph so the
+smoke CLI can verify provider readback. Do not leave the permissive default blank
+description enabled. A natural-language goodbye
 alone does not disconnect telephony. After an explicit request to end or a closing
 exchange, the agent must invoke `end_call`; it must not return to a silence prompt.
 Wrong/unverified recipients and voicemail get a brief goodbye with no incident
@@ -86,7 +90,7 @@ following additions are implemented in the backend source:
    and `expected_revision`. It requires a persisted explanation and consented,
    historically associated contact. The server builds a neutral score-free
    projection and stores the complete reviewed snapshot for ten minutes. New
-   `family-call-v3` previews include `context.resident_name`, taken from the fictional
+   previews since `family-call-v3` include `context.resident_name`, taken from the fictional
    patient's saved display label at the incident-time room assignment. Show this
    name with the review, separately from the recipient. The incident summary names
    the resident after recipient verification; the agent can answer identity questions
@@ -376,3 +380,31 @@ model; this does not place a phone call or verify the sound after Photon/carrier
 audio compression. Private preview/configuration receipts remain ignored local
 artifacts. Dispatch remains disabled; evaluating the new voice over a real call
 requires another explicitly authorized smoke test.
+
+## Scripted smoke and delivery correction — 2026-10-18 UTC
+
+The new `scripts/demo.sh` preparation command verified synthetic authenticated
+ingestion, duplicate ACK identity, a real Gemini explanation, authorized REST and
+actual Supabase Realtime. At the user's subsequent explicit request, its `call`
+command authorized the reviewed incident with `--manage-dispatch`. Exactly one
+call/attempt was persisted. The provider reported a 56-second conversation,
+`end_call tool was called.`, and successful end-call tool execution; the signed
+callback persisted completion. The script restored dispatch to disabled, waited
+for the successful Railway deployment and exited zero. This verifies the scripted
+phone path and native SIP termination, not automatic playback-evidence mapping.
+
+The recipient reported two defects: cheerful delivery (the transcript contained a
+`[happy]` tag), and termination after "Okay, great" without a clear goodbye.
+`family-call-v5` now requires calm, measured delivery with warmth and restraint.
+Sarah and the conversational speech model remain selected, but automatic expressive
+mode is off. The native end-call description is explicitly restricted to clear
+closure/stop requests or wrong/unverified recipients and voicemail; acknowledgments,
+silence, declining a callback and inferred satisfaction are insufficient. If closure
+is unclear, ask and wait. `END_CALL_DESCRIPTION` is included verbatim in the frozen
+policy and provider configuration, and the smoke readback verifies both match.
+
+Provider readback confirmed these changes. Text-only checks kept the conversation
+open after "Okay, great", answered the resident question without cheerful tags, and
+still invoked `end_call` after an explicit goodbye. No further telephone call was
+placed. Listener evaluation of the corrected delivery and closing behavior remains
+pending another explicitly authorized live test; it is not established by text alone.

@@ -215,10 +215,17 @@ export async function checkAgent(config, preview) {
       prompt?.built_in_tools?.end_call,
       "Reviewed policy requires an unconfigured end-call control.",
     );
+  const ending = preview?.policy.match(/(?:^|\n)Call ending: ([^\n]+)/)?.[1];
+  if (ending)
+    check(
+      prompt?.built_in_tools?.end_call?.description === ending,
+      "Live end-call control does not match the reviewed closing rules.",
+    );
   return {
     checked: true,
     model: agent.conversation_config?.tts?.model_id,
     voice_id: agent.conversation_config?.tts?.voice_id,
+    expressive_mode: agent.conversation_config?.tts?.expressive_mode,
     end_call: Boolean(prompt?.built_in_tools?.end_call),
   };
 }

@@ -77,7 +77,8 @@ Use a fresh descriptive run name for a deliberately new scenario. The command:
 6. Requires the terminal user to type `CALL <hash prefix>` after reviewing those
    inputs. This is the specification's explicit call authorization gate.
 7. If ElevenLabs admin credentials are available, verifies the actual agent prompt
-   matches the reviewed backend policy, and checks the required hang-up control.
+   matches the reviewed backend policy, and checks the required hang-up control,
+   including its explicit closing description when included in the policy.
 8. With `--manage-dispatch`, enables Railway's flag if previously disabled, waits
    for deployment and a call-enabled preview, then submits **one** authorization.
 9. Saves the authorization intent/idempotency key before POST and polls call status
@@ -146,7 +147,9 @@ pixels, QNX hardware, a physical fall, clinical validity, or recipient action.
 ## Verification record — 2026-10-18 UTC
 
 The local Docker verification wrapper passed repository lint/format, generated
-contracts, typechecking, unit tests/builds, 12 script tests and 28 database tests.
+contracts, typechecking, unit tests/builds, 12 initial script tests and 28 database tests.
+A further regression test covers a permissive end-call description even when the
+main prompt matches.
 The script tests cover lost authorization responses, no-effect ambiguous submissions,
 changed reviews/consent/destinations, duplicate runs, deployment waiting, cleanup
 failure recovery, private journals/locking and credential/redirect boundaries.
