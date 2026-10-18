@@ -7,14 +7,16 @@ QNX, with a planned Railway Node.js/TypeScript backend, Supabase PostgreSQL and
 Realtime, Gemini API explanations, and an authenticated React/Vite demo dashboard.
 Supabase Auth and facility membership protect operator data/actions. A shared demo
 operator account is acceptable. Notifications require explicit review and a
-preconfigured consented demo recipient. No developer laptop is required at runtime.
+saved consented demo contact. Planned conversational calls use ElevenLabs Agents
+through Photon SIP, with operator-approved frozen context and opening; this
+integration remains unimplemented. No developer laptop is required at runtime.
 
 This repository implements **Slice 2 plus the explanation pipeline**: authenticated device WebSocket ingestion,
 transactional event/incident/job persistence, durable deduplication, device health,
 operator incident reads, a canonical-fixture simulator and minimal incident
 Realtime subscriptions. Durable Gemini processing and persisted explanation reads
 are implemented; live Gemini with local PostgreSQL/Realtime was verified. Hosted
-worker rollout is pending. Photon and incident actions remain unimplemented. Hosted synthetic
+worker rollout is pending. ElevenLabs/Photon calls and incident actions remain unimplemented. Hosted synthetic
 integration and dashboard sign-in/live updates were verified on 2026-10-17;
 actual QNX integration remains unverified. See the
 [deployment verification record](docs/deployment-verification.md), [PROJECT_SPEC.md](PROJECT_SPEC.md)
