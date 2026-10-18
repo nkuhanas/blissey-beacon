@@ -43,6 +43,28 @@ export function registerDemoRoutes(
         };
       },
     );
+    routes.post<{ Params: { id: string }; Body: { facility_id?: string } }>(
+      "/api/operator/rooms/:id/reset",
+      async (req) => {
+        const facility = req.body?.facility_id,
+          key = req.headers["idempotency-key"];
+        if (
+          typeof facility !== "string" ||
+          !facility ||
+          facility.length > 128 ||
+          req.params.id.length > 128
+        )
+          throw new CallError("invalid_reset", 400);
+        if (typeof key !== "string" || !/^[-a-zA-Z0-9_:.]{8,128}$/.test(key))
+          throw new CallError("idempotency_key_required", 400);
+        return options.store.reset(
+          subjects.get(req)!,
+          key,
+          req.params.id,
+          facility,
+        );
+      },
+    );
     routes.post("/api/operator/demo/scenarios", async (req, reply) => {
       if (!validateDemoScenarioRequest(req.body))
         throw new CallError("invalid_scenario", 400);

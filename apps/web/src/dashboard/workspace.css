@@ -711,3 +711,96 @@ html:has(.dashboard.compact-workspace) {
   justify-content: flex-start;
   margin-top: 12px;
 }
+
+/* Deliberate slow pulse: urgent pending alerts only, never the whole viewport. */
+.fall-alert-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0;
+  padding: 12px 16px;
+  border: 1px solid #a83855;
+  border-left: 5px solid #a83855;
+  border-radius: 10px;
+  background: #fff0f3;
+  color: #78223d;
+}
+.fall-alert-banner > div {
+  flex: 1;
+}
+.fall-alert-banner strong {
+  display: block;
+  font-size: 16px;
+}
+.fall-alert-banner div > span {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+}
+.fall-alert-banner button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #8e304c;
+  color: white;
+  border-color: #8e304c;
+  padding: 9px 12px;
+  font-size: 13px;
+}
+.fall-alert-beacon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #f5c9d4;
+  flex-shrink: 0;
+  animation: alert-beacon 2.4s ease-in-out infinite;
+}
+.compact-workspace .resident-panel[data-state="pending"] {
+  border: 2px solid #a83855;
+  animation: incident-glow 2.4s ease-in-out infinite;
+}
+.dashboard .room-hotspot.attention {
+  outline: 3px solid #a83855;
+  outline-offset: -3px;
+  animation: incident-glow 2.4s ease-in-out infinite;
+}
+@keyframes alert-beacon {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 #a8385530;
+  }
+  50% {
+    box-shadow: 0 0 0 7px #a838550a;
+  }
+}
+@keyframes incident-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 0 #a8385520,
+      0 3px 12px #a8385510;
+  }
+  50% {
+    box-shadow:
+      0 0 0 4px #a838552b,
+      0 4px 22px #a8385525;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fall-alert-beacon,
+  .compact-workspace .resident-panel[data-state="pending"],
+  .dashboard .room-hotspot.attention {
+    animation: none;
+  }
+}
+@media (max-width: 600px) {
+  .fall-alert-banner {
+    flex-wrap: wrap;
+  }
+  .fall-alert-banner button {
+    margin-left: 50px;
+  }
+}

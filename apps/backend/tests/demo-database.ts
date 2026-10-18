@@ -1,3 +1,9 @@
+import { tickDemoStreams } from "../src/demo/stream.js";
+import {
+  persistInferenceEvent,
+  createDeviceStore,
+  credentialHash,
+} from "../src/ingestion/store.js";
 import assert from "node:assert/strict";
 import type { TestContext } from "node:test";
 import type { Pool } from "pg";
@@ -194,7 +200,7 @@ export async function runDemoTests(t: TestContext, pool: Pool) {
         );
         assert.equal(
           rooms.find((r: { id: string }) => r.id === "104").monitoring_status,
-          "offline",
+          "monitoring",
         );
         assert.ok(!snapshot.body.includes(options.phone));
       },
@@ -283,6 +289,247 @@ export async function runDemoTests(t: TestContext, pool: Pool) {
             )
           ).rows[0].n,
           before,
+        );
+      },
+    );
+    await t.test(
+      "looped healthy streams are bounded, distinguish synthetic data, respect offline overrides and never touch room 101",
+      async () => {
+        const before = (
+          await pool.query("SELECT count(*)::int AS n FROM public.incidents")
+        ).rows[0].n;
+        const health = (
+          await pool.query(
+            "SELECT * FROM public.device_health ORDER BY device_id",
+          )
+        ).rows;
+        await pool.query(
+          "UPDATE public.demo_room_streams SET mode='healthy',sampled_at=NULL",
+        );
+        await tickDemoStreams(pool, options.facilityId);
+        let rooms = await store.rooms(subject, options.facilityId);
+        assert.equal(rooms.find((r) => r.id === "101")?.data_source, "device");
+        assert.ok(
+          rooms
+            .filter((r) => ["102", "103", "104", "105", "106"].includes(r.id))
+            .every(
+              (r) =>
+                r.data_source === "synthetic" &&
+                r.monitoring_status === "monitoring",
+            ),
+        );
+        assert.equal(
+          (
+            await pool.query(
+              "SELECT count(*)::int AS n FROM public.demo_room_streams",
+            )
+          ).rows[0].n,
+          5,
+        );
+        for (let i = 0; i < 7; i++) {
+          await pool.query(
+            "UPDATE public.demo_room_streams SET sampled_at=now()-interval '20 seconds'",
+          );
+          await tickDemoStreams(pool, options.facilityId);
+        }
+        assert.equal(
+          (await pool.query("SELECT count(*)::int AS n FROM public.incidents"))
+            .rows[0].n,
+          before,
+        );
+        assert.deepEqual(
+          (
+            await pool.query(
+              "SELECT * FROM public.device_health ORDER BY device_id",
+            )
+          ).rows,
+          health,
+        );
+        await pool.query(
+          "UPDATE public.demo_room_streams SET mode='offline' WHERE room_id='106'",
+        );
+        await tickDemoStreams(pool, options.facilityId);
+        assert.equal(
+          (await store.rooms(subject, options.facilityId)).find(
+            (r) => r.id === "106",
+          )?.monitoring_status,
+          "offline",
+        );
+        await store.reset(subject, randomUUID(), "106", options.facilityId);
+        assert.equal(
+          (await store.rooms(subject, options.facilityId)).find(
+            (r) => r.id === "106",
+          )?.monitoring_status,
+          "monitoring",
+        );
+        // A newly registered physical device immediately wins over an existing synthetic stream.
+        await pool.query(
+          "INSERT INTO public.devices(id,room_id) VALUES('real_105','105')",
+        );
+        await pool.query(
+          "INSERT INTO public.device_credentials(token_hash,device_id) VALUES($1,'real_105')",
+          [credentialHash("hardware-test")],
+        );
+        rooms = await store.rooms(subject, options.facilityId);
+        assert.equal(rooms.find((r) => r.id === "105")?.data_source, "device");
+        assert.equal(
+          rooms.find((r) => r.id === "105")?.monitoring_status,
+          "offline",
+        );
+        await assert.rejects(
+          withTransaction(pool, async (c) => {
+            await c.query("SET LOCAL ROLE authenticated");
+            await c.query("SELECT * FROM public.demo_room_streams");
+          }),
+          /permission denied/,
+        );
+      },
+    );
+    await t.test(
+      "room archive is scoped, atomic, authorized and idempotent; Pi retry IDs stay deduplicated and new events survive",
+      async () => {
+        await pool.query(
+          "INSERT INTO public.devices(id,room_id) VALUES('reset_pi','101')",
+        );
+        const hash = credentialHash("reset-device-test");
+        await pool.query(
+          "INSERT INTO public.device_credentials(token_hash,device_id) VALUES($1,'reset_pi')",
+          [hash],
+        );
+        const devices = createDeviceStore(pool);
+        const event = {
+          event_id: "reset_pi_event",
+          device_id: "reset_pi",
+          room_id: "101",
+          event_type: "inference_result",
+          confidence_scores: { fall: 0.91, non_fall: 0.09 },
+          detected_at: new Date().toISOString(),
+          sensor_status: "connected",
+        } as const;
+        const ack = await devices.ingest(hash, event);
+        const other = await withTransaction(pool, (c) =>
+          persistInferenceEvent(
+            c,
+            {
+              device_id: "dashboard_sim_104",
+              room_id: "104",
+              facility_id: options.facilityId,
+            },
+            {
+              ...event,
+              event_id: "other_room_preserved",
+              device_id: "dashboard_sim_104",
+              room_id: "104",
+            },
+          ),
+        );
+        const key = randomUUID();
+        assert.equal(
+          (
+            await app.inject({
+              method: "POST",
+              url: "/api/operator/rooms/101/reset",
+              payload: { facility_id: options.facilityId },
+            })
+          ).statusCode,
+          401,
+        );
+        await assert.rejects(
+          store.reset(
+            "22222222-2222-4222-8222-222222222222",
+            randomUUID(),
+            "101",
+            options.facilityId,
+          ),
+          /forbidden/,
+        );
+        const result = await store.reset(
+          subject,
+          key,
+          "101",
+          options.facilityId,
+        );
+        assert.ok((result.archived_incidents ?? 0) >= 1);
+        assert.deepEqual(
+          await store.reset(subject, key, "101", options.facilityId),
+          result,
+        );
+        assert.equal(
+          await createStore(pool).getIncident(subject, ack.incident_id),
+          null,
+        );
+        assert.ok(
+          await createStore(pool).getIncident(subject, other.incident_id),
+        );
+        assert.equal((await devices.ingest(hash, event)).status, "duplicate");
+        const next = await devices.ingest(hash, {
+          ...event,
+          event_id: "reset_pi_next_event",
+        });
+        assert.ok(
+          await createStore(pool).getIncident(subject, next.incident_id),
+        );
+        assert.deepEqual(
+          await store.reset(subject, key, "101", options.facilityId),
+          result,
+        );
+        assert.ok(
+          await createStore(pool).getIncident(subject, next.incident_id),
+        );
+        assert.equal(
+          (
+            await pool.query(
+              "SELECT count(*)::int AS n FROM public.demo_room_streams WHERE room_id='101'",
+            )
+          ).rows[0].n,
+          0,
+        );
+        await withTransaction(pool, async (c) => {
+          await c.query("SET LOCAL ROLE authenticated");
+          await c.query("SELECT set_config('request.jwt.claim.sub',$1,true)", [
+            subject,
+          ]);
+          assert.equal(
+            (
+              await c.query("SELECT id FROM public.incidents WHERE id=$1", [
+                ack.incident_id,
+              ])
+            ).rowCount,
+            0,
+          );
+        });
+        await pool.query(
+          "CREATE FUNCTION public.fail_reset_test() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.action='room_reset' THEN RAISE EXCEPTION 'reset rollback'; END IF; RETURN NEW; END $$; CREATE TRIGGER fail_reset_test BEFORE INSERT ON public.operator_audit FOR EACH ROW EXECUTE FUNCTION public.fail_reset_test()",
+        );
+        try {
+          await assert.rejects(
+            store.reset(subject, randomUUID(), "101", options.facilityId),
+            /reset rollback/,
+          );
+        } finally {
+          await pool.query(
+            "DROP TRIGGER fail_reset_test ON public.operator_audit; DROP FUNCTION public.fail_reset_test()",
+          );
+        }
+        assert.ok(
+          await createStore(pool).getIncident(subject, next.incident_id),
+        );
+        assert.equal(
+          (
+            await pool.query(
+              "SELECT count(*)::int AS n FROM public.notification_calls WHERE incident_id=ANY($1::uuid[])",
+              [[ack.incident_id, next.incident_id]],
+            )
+          ).rows[0].n,
+          0,
+        );
+        await pool.query(
+          "UPDATE public.incidents SET status='resolved' WHERE id=$1",
+          [next.incident_id],
+        );
+        assert.ok(
+          (await createStore(pool).getIncident(subject, next.incident_id))
+            ?.resolved_at,
         );
       },
     );

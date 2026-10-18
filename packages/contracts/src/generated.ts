@@ -44,6 +44,11 @@ export interface DashboardRoom {
   contact_id: string | null;
   voice_consent: boolean;
   messaging_consent: boolean;
+  data_source?: "synthetic" | "device";
+  confidence_scores?: {
+    fall: number;
+    non_fall: number;
+  } | null;
 }
 
 export interface DemoScenarioRequest {
@@ -192,6 +197,7 @@ export interface Incident {
    */
   allowed_actions: [];
   explanation?: Explanation | null;
+  resolved_at?: string | null;
 }
 
 export interface InferenceEvent {

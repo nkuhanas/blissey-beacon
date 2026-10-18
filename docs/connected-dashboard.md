@@ -98,8 +98,26 @@ after writes. Realtime acceptance additionally exercises UI scenario creation,
 idempotent replay, a single actual incident INSERT notification, authorized REST
 reads and exclusion of an unrelated identity using disposable Supabase Realtime.
 
-**Reset room alerts** resolves a snapshot of the selected room's active incidents
-using the existing authenticated lifecycle API, including revision checks and an
-explicit reset note. It preserves device monitoring, credentials and all history,
-and does not authorize calls/texts. New detections can create fresh alerts afterward.
-A room reset is separate from the collapsed synthetic Scenario controls.
+## Continuous synthetic rooms and reset
+
+With `DEMO_SCENARIOS_ENABLED=true`, Railway updates one persisted synthetic sample
+per unconnected demo room every ten seconds. Room 101 is always excluded; rooms
+with active registered device credentials also use real telemetry. The six-sample
+healthy confidence pattern loops without creating incidents, explanation work,
+calls or texts. The Devices tab labels synthetic feeds separately. A stopped
+worker becomes stale after thirty seconds rather than pretending to stay online.
+Scenario controls stay collapsed at the bottom. Offline scenarios pause the
+selected synthetic feed until a healthy scenario or reset.
+
+**Reset room alerts** now archives that room's existing events and incidents from
+normal dashboard/history reads, including resolved incidents. It is one atomic,
+idempotent, facility-authorized request. Original payloads, retry/deduplication
+identities, provider results and audit evidence remain durable. Reset never sends
+a call/text or alters Pi credentials/health. New Pi events after reset remain
+visible. Synthetic rooms return to their healthy baseline. A normally resolved
+overview card clears after sixty seconds; its history entry remains until reset.
+
+The demonstration facility is labeled **James West Alumni Center at UCLA**.
+Residents and the illustrated room layout remain fictional. Pending possible-fall
+alerts show a persistent review banner and slow pulsing card/map outlines. The
+pulse stops after acknowledgment and is disabled for reduced-motion preferences.

@@ -870,7 +870,10 @@ overview cards return to monitoring after sixty seconds; history remains availab
 This integration has source/database tests and local browser verification with
 real Supabase authentication, a durable incident, Gemini explanation and provider
 previews; no new live call or physical Pi verification is claimed. See
-[connected dashboard](docs/connected-dashboard.md). Existing UI contact editing and
+[connected dashboard](docs/connected-dashboard.md). The facility is displayed as James West Alumni Center at UCLA, with fictional
+residents/layout. Pending possible-fall alerts have a persistent review banner and
+slow pulsing map/card emphasis that stops after acknowledgment and respects
+reduced-motion preferences. Existing UI contact editing and
 explicit retry controls remain in scope for later connected-interface work.
 
 Emilia owns visual design, responsive layouts, reusable UI components and frontend

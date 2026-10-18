@@ -1,5 +1,7 @@
 import { createCallLookup, recoverCallOnce } from "./notifications/recovery.js";
 import { createMessageStore } from "./messages/store.js";
+import { startDemoStreams } from "./demo/stream.js";
+let demoWorker: ReturnType<typeof startDemoStreams> | undefined;
 import { createDemoStore } from "./demo/store.js";
 import { createPhotonProvider } from "./messages/photon.js";
 import { startMessageWorker } from "./messages/worker.js";
@@ -62,6 +64,7 @@ const app = await createApp({
 app.addHook("onClose", async () => {
   await Promise.all([
     worker?.stop(),
+    demoWorker?.stop(),
     callWorker?.stop(),
     messageWorker?.stop(),
   ]);
@@ -75,6 +78,8 @@ for (const signal of ["SIGINT", "SIGTERM"])
   });
 try {
   await app.listen({ port: config.port, host: "0.0.0.0" });
+  if (config.demo.enabled)
+    demoWorker = startDemoStreams(pool, config.demo.facilityId, app.log);
   if (config.messagesEnabled && messageProvider)
     messageWorker = startMessageWorker(
       pool,

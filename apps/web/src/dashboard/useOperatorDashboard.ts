@@ -1,3 +1,4 @@
+import { overviewIncident } from "./incident-selection";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import type {
@@ -7,7 +8,7 @@ import type {
   DemoScenarioRequest,
 } from "@blissey/contracts";
 import { apiUrl, facilityId, supabase } from "../client";
-import { createOperatorApi, resetRoomAlerts } from "../operator-api";
+import { createOperatorApi } from "../operator-api";
 import { subscribeToIncidents } from "../incidents";
 import { createDemo } from "./model";
 import type { DemoAction, DemoIncident, DemoState, Scenario } from "./model";
@@ -33,10 +34,7 @@ export function useOperatorDashboard(enabled: boolean, selected: string) {
     () => (session ? createOperatorApi(apiUrl, session.access_token) : null),
     [session],
   );
-  const record =
-    records.find((x) => x.id === focused && x.room_id === selected) ??
-    records.find((x) => x.room_id === selected && x.status !== "resolved") ??
-    records.find((x) => x.room_id === selected);
+  const record = overviewIncident(records, selected, Date.now(), focused);
   const refresh = useCallback(async () => {
     if (!api) return;
     const revision = ++generation.current;
@@ -45,14 +43,12 @@ export function useOperatorDashboard(enabled: boolean, selected: string) {
         api.dashboard(facilityId),
         api.incidents(facilityId),
       ]);
-      const chosen =
-        history.incidents.find(
-          (x) => x.id === focused && x.room_id === selected,
-        ) ??
-        history.incidents.find(
-          (x) => x.room_id === selected && x.status !== "resolved",
-        ) ??
-        history.incidents.find((x) => x.room_id === selected);
+      const chosen = overviewIncident(
+        history.incidents,
+        selected,
+        Date.now(),
+        focused,
+      );
       const nextWorkflow = chosen ? await api.workflow(chosen.id) : null;
       if (revision !== generation.current) return;
       setRooms(snapshot.rooms);
@@ -138,7 +134,7 @@ export function useOperatorDashboard(enabled: boolean, selected: string) {
         },
         scenarioRequest.current.key,
       );
-      setFocused(result.incident_id);
+      setFocused(null);
       setMarker(result.incident_id ? null : scenario);
       sessionStorage.removeItem(
         `scenario-intent:${facilityId}:${selected}:${scenario}`,
@@ -207,7 +203,11 @@ export function useOperatorDashboard(enabled: boolean, selected: string) {
     setBusy(true);
     setActionError("");
     try {
-      await resetRoomAlerts(api, facilityId, selected);
+      const storageKey = `room-reset:${facilityId}:${selected}`;
+      const key = sessionStorage.getItem(storageKey) ?? crypto.randomUUID();
+      sessionStorage.setItem(storageKey, key);
+      await api.resetRoom(facilityId, selected, key);
+      sessionStorage.removeItem(storageKey);
       setMarker(null);
       setFocused(null);
       await refresh();
@@ -242,6 +242,7 @@ export function useOperatorDashboard(enabled: boolean, selected: string) {
           resident: actual?.resident ?? r.resident,
           device: actual?.device_id ?? "Not registered",
           lastDataAt: actual?.last_data_at ?? null,
+          dataSource: actual?.data_source,
           contact: actual?.contact_id
             ? {
                 name: actual.contact_name ?? "Family contact",
@@ -263,6 +264,7 @@ export function useOperatorDashboard(enabled: boolean, selected: string) {
             online: r.monitoring_status === "monitoring",
             monitoringStatus: r.monitoring_status,
             lastDataAt: r.last_data_at,
+            dataSource: r.data_source,
             contact: r.contact_id
               ? {
                   name: r.contact_name ?? "Family contact",

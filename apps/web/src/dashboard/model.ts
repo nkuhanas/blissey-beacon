@@ -9,6 +9,7 @@ export type DemoRoom = {
   online: boolean;
   contact: Contact | null;
   lastDataAt?: string | null;
+  dataSource?: "synthetic" | "device";
   monitoringStatus?: "offline" | "degraded" | "monitoring";
 };
 export type DemoIncident = {

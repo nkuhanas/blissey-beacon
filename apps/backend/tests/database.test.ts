@@ -146,8 +146,7 @@ test("migration, publication, scoped RLS and real multi-statement rollback", asy
         "utf8",
       ),
     );
-    await runIngestionTests(t, pool);
-    await runExplanationTests(t, pool);
+
     await pool.query(
       await readFile(
         new URL("supabase/migrations/20261018022000_family_calls.sql", root),
@@ -169,6 +168,14 @@ test("migration, publication, scoped RLS and real multi-statement rollback", asy
         "utf8",
       ),
     );
+    await pool.query(
+      await readFile(
+        new URL("supabase/migrations/20261018181000_room_streams.sql", root),
+        "utf8",
+      ),
+    );
+    await runIngestionTests(t, pool);
+    await runExplanationTests(t, pool);
     await runNotificationTests(t, pool);
     await runMessageTests(t, pool);
     await pool.query(
