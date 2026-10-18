@@ -163,3 +163,43 @@ Realtime observed synthetic call-state commits and authorized REST returned the
 redacted history; the no-membership client observed no updates. Live voice, SIP,
 recipient verification, spoken-message evidence mapping and frontend screens remain
 unverified. The hosted Gemini rollout was separately verified with the real provider.
+
+## Provider configuration verification — 2026-10-18 UTC
+
+The supplied Photon project/API credentials were verified against the official API.
+The configured caller number belongs to the project, its assigned SIP profile has
+outbound SHA-256 digest authentication, and its username matches the local setup.
+The SIP endpoint certificate validated over TLS on port 5061. The user explicitly
+approved storing the SIP username/password in ElevenLabs for outbound authentication.
+
+A dedicated ElevenLabs agent, HMAC webhook and imported Photon outbound number were
+created and read back successfully. Generated IDs and the webhook secret are saved
+in ignored local deployment configuration. The imported trunk uses TLS with media
+encryption allowed and the configured agent assignment. Configuration acceptance
+and TLS reachability do not prove successful SIP digest negotiation or a phone call.
+
+Verified agent configuration:
+
+- Conversation model: `gemini-3.5-flash-lite`.
+- English speech model: `eleven_flash_v2` (the provider rejected `eleven_flash_v2_5`
+  for this English-agent setup).
+- Post-call analysis: `gemini-2.5-flash`; the provider rejected the conversation
+  model for its separate analysis role. Analysis only extracts optional callback
+  metadata; it is not incident classification or proof of notification success.
+- No tools, database retrieval or knowledge base; five-minute maximum duration.
+- Concurrency one, daily conversation cap ten, bursting disabled.
+- Voice recording disabled; one-day provider retention with audio and transcript/PII
+  deletion configured. Backend callbacks exclude full transcripts and audio.
+
+Two real-provider text simulations used fictional data and made no telephone
+request. The initial callback response incorrectly promised staff would respond
+soon. `family-call-v2` now requires a bounded acknowledgment with no promise of
+contact or timing. Retests communicated unknown condition/staff response, extracted
+an explicitly requested callback, and disclosed no incident details to the wrong
+recipient. These are text/model behavior checks, not live voice, recipient
+verification, SIP compatibility or audio-playback evidence.
+
+Photon API credentials are administrative setup inputs. Runtime dispatch needs
+only the ElevenLabs key, configured agent/number IDs and HMAC secret. Keep
+`NOTIFICATION_CALLS_ENABLED=false` during rollout and until an explicitly reviewed
+first-call test. Neither populated credentials nor this verification initiates a call.

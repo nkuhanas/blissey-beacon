@@ -828,7 +828,9 @@ The binary classifier cannot support detailed activity or physical-position clai
 Provider integration owner: **TBD**. Chace owns backend authorization/orchestration;
 a named lead must own ElevenLabs agent configuration, Photon SIP setup and
 consented live testing. Backend orchestration/adapter source and synthetic tests
-exist; actual ElevenLabs agent/Photon SIP configuration and calls remain unverified.
+exist. ElevenLabs agent/webhook/Photon-trunk configuration and bounded fictional
+text simulations were verified on 2026-10-18 UTC; actual SIP calling, live recipient
+verification and spoken-notification evidence remain unverified.
 No separate voice-processing/backend deployment is required.
 
 Approved flow: persisted incident → validated Gemini explanation → family-safe
@@ -1099,7 +1101,9 @@ Calling remains disabled unless NOTIFICATION_CALLS_ENABLED=true and all required
 provider variables are configured. Credential presence alone never enables it.
 The backend currently records terminal transport/callback metadata but does not
 infer connected/notification-spoken proof from transcripts or analysis; actual
-provider mapping is an explicit remaining integration gate. No success is claimed
+provider mapping is an explicit remaining integration gate. Agent policy family-call-v2
+forbids callback timing/fulfillment promises; see docs/family-calls.md for provider
+configuration and real-model text-simulation evidence. No success is claimed
 without that evidence. A retry must not duplicate a note or notification. A successful incident response includes ID, room,
 status, revision, detection/receipt times, explanation status and allowed actions;
 final detailed response schemas remain proposed and require Chace/Kiro agreement.

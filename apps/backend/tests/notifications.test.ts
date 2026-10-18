@@ -22,7 +22,7 @@ const input = {
   destination: "+15555550123",
   context,
   opening: "Hello, this is an automated demo. May I speak to Demo recipient?",
-  policyVersion: "family-call-v1",
+  policyVersion: "family-call-v2",
 };
 export function sign(
   raw: string,
