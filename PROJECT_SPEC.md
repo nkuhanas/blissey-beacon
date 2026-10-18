@@ -19,7 +19,8 @@ Vercel demo dashboard shows incidents; Gemini API generates grounded explanation
 asynchronously. Operators review and authorize bounded conversational family calls: Railway
 freezes a family-safe context and opening message, ElevenLabs Agents conducts the
 conversation, and Photon supplies the planned outbound SIP telephony connection.
-Supabase Auth operator login and facility membership are required.
+Independently consented Photon-hosted iMessage adds a reviewed call follow-up,
+written updates and family replies; see §20. Supabase Auth operator login and facility membership are required.
 
 The MVP uses one room and one person with controlled staged falls and normal
 movement. This is an experimental proof of concept, not a clinically validated
@@ -47,7 +48,8 @@ and exact verification limits.
 One ESP32 transmitter, one ESP32 receiver, one Pi 5 running QNX, one monitored room,
 one person, one local neural network, one incident-explanation language model,
 a cloud backend, an operator website, and one operator-authorized conversational
-family-call flow through ElevenLabs and Photon. One primary consented contact per
+family-call flow through ElevenLabs and Photon, with independently authorized
+iMessage follow-ups and a family reply inbox. One primary consented contact per
 fictional resident and one outbound call per incident/contact define the MVP unless
 an operator explicitly authorizes a retry. The conversational LLM is configurable;
 Gemini Flash is the preferred candidate, with voice-agent compatibility unverified.
@@ -108,6 +110,8 @@ flowchart TD
     FAMILY -->|Conversation| VOICE
     VOICE -->|Signed provider callbacks| CALLBACK
     CALLBACK -->|Call evidence, optional callback request| DB
+    REVIEW -->|Preauthorized follow-up or exact staff update| IMESSAGE[Photon hosted iMessage]
+    IMESSAGE -->|Private delivery evidence and family replies| CALLBACK
     REVIEW -->|Approval and durable call attempts| DB
 ```
 
@@ -180,12 +184,17 @@ selected providers are not evidence of deployment or integration.
 | Model 2 | Hosted Google Gemini API, configured `gemini-3.5-flash-lite` | Live model/local path and hosted synthetic Railway/Supabase/Realtime path verified |
 | Optional sponsor effort | Veri Studio with a compatible open-source model | Separate from MVP Gemini inference; eligibility unverified |
 | Conversational voice | ElevenLabs Agents; configurable conversational LLM, Gemini Flash preferred | Agent configuration and one consented live synthetic-incident conversation verified; automated spoken-evidence mapping pending |
+| Family messaging | Photon hosted iMessage via Railway | Assignment/onboarding and one isolated Docker + real Photon message delivery verified; inbound reply and hosted rollout pending |
 | Family telephony | Photon outbound SIP trunk connected to ElevenLabs | One consented outbound call verified through the configured trunk; broader failure/recovery coverage pending |
 
 TypeScript dependency versions are pinned in pnpm-lock.yaml and the Docker
 toolchain. Setup/check commands are documented in docs/development.md. Training,
 QNX configuration remains unverified; hosted demo settings and limits are recorded
 in docs/deployment-verification.md.
+
+Hosted iMessage is a separate Photon channel managed by the Railway backend;
+PHOTON_PROJECT_ID/PHOTON_API_KEY and PHOTON_IMESSAGE_SENDER_NUMBER are server-only.
+No Mac-local messaging package is permitted at runtime.
 
 ## 7. Dataset Format and Collection
 
@@ -1304,6 +1313,10 @@ Veri eligibility is tracked separately from
 core product functionality. A mock, replay or deterministic template must be
 labeled and cannot establish a live integration it replaces.
 
+The approved messaging extension additionally requires consented live send/receive,
+exactly one authorized call follow-up, and a correlated reply/callback request
+available through scoped operator interfaces. These criteria remain unverified.
+
 ## 26. Testing and Validation
 
 The validation matrix below defines required integration evidence. Foundation
@@ -1333,6 +1346,10 @@ trigger on a healthy network, excluding collection window and asynchronous LLM.
 Agree target with the team before acceptance use. Report p50/p95 stage latencies,
 observed duration, hardware/software versions and limitations.
 
+Messaging verification additionally covers independent consent, assignment/onboarding,
+atomic joint approval, deterministic evidence selection, ambiguous external outcomes,
+reply deduplication/correlation and restart-safe polling. See §20 and docs/family-messages.md.
+
 ## 27. Risks and Fallbacks
 
 | Risk | Explicit fallback and limit |
@@ -1355,6 +1372,10 @@ observed duration, hardware/software versions and limitations.
 Export feasibility and serial access are early critical-path gates. Stretch features
 must not consume time needed to prove local sensing, durable incidents and reviewed
 contact. No fallback justifies unsupported medical or sponsor-success claims.
+
+Messaging risks include missing project scopes, recipient-specific sender assignment,
+unverified voicemail/spoken mappings and ambiguous multi-incident replies. Hold unknown
+outcomes for review, retain durable evidence, and never fall back to SMS without approval.
 
 ## 28. Implementation Roadmap
 
@@ -1470,6 +1491,15 @@ See docs/gemini-pipeline.md for the later live-model/local database and Realtime
 verification and the separate hosted rollout record. See docs/slice-2.md for local test scope and results, and
 docs/deployment-verification.md for the separate hosted evidence. The hosted
 project uses fictional residents and staged synthetic events, not live sensing.
+
+Messaging source: `apps/backend/src/messages`, shared request/history/reply schemas,
+`20261018043000_family_messages.sql` and frontend data helpers. Docker verification
+passed with 44 PostgreSQL checks plus the existing scoped Realtime test. Photon
+Node authentication, the configured sender/recipient assignment and inbound
+onboarding were verified. One clearly labeled synthetic update was sent through
+the actual authorization/worker path against isolated Docker PostgreSQL; Photon
+reported delivery. Inbound reply evidence and hosted rollout remain pending.
+Paper work was stopped at the user's request; no new dashboard view is claimed.
 
 ## 30. Open Questions and Decisions
 

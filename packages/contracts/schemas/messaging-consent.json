@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MessagingConsent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "expected_revision",
+    "consent_status",
+    "consent_confirmed"
+  ],
+  "properties": {
+    "expected_revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "consent_status": {
+      "enum": [
+        "granted",
+        "revoked"
+      ]
+    },
+    "consent_confirmed": {
+      "const": true
+    }
+  }
+}

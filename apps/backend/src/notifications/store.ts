@@ -1,4 +1,6 @@
-import type { Pool, PoolClient } from "pg";
+import { member, incident, assigned, bump } from "./access.js";
+import { authorizeMessagePreview } from "../messages/store.js";
+import type { Pool } from "pg";
 import type {
   CallAuthorization,
   FamilyContactInput,
@@ -14,50 +16,7 @@ import {
   POLICY_VERSION,
 } from "./policy.js";
 const contactProjection =
-  "id,facility_id,patient_id,contact_name,relationship,phone_e164,consent_status,revision,consented_at,consent_revoked_at";
-async function member(c: PoolClient, subject: string, facility: string) {
-  if (
-    !(
-      await c.query(
-        "SELECT 1 FROM public.facility_memberships WHERE user_id=$1 AND facility_id=$2 FOR SHARE",
-        [subject, facility],
-      )
-    ).rowCount
-  )
-    throw new CallError("forbidden", 403);
-}
-async function incident(c: PoolClient, subject: string, id: string) {
-  const r = await c.query(
-    `SELECT i.*,e.detected_at,r.label,x.source FROM public.incidents i
-    JOIN public.facility_memberships m ON m.facility_id=i.facility_id AND m.user_id=$1
-    JOIN public.inference_events e ON e.event_id=i.event_id JOIN public.rooms r ON r.id=i.room_id
-    LEFT JOIN public.explanations x ON x.incident_id=i.id WHERE i.id=$2 FOR UPDATE OF i`,
-    [subject, id],
-  );
-  if (!r.rows[0]) throw new CallError("not_found", 404);
-  return r.rows[0];
-}
-async function assigned(
-  c: PoolClient,
-  i: { room_id: string; detected_at: Date; facility_id: string },
-  patient: string,
-) {
-  const r = await c.query(
-    `SELECT a.patient_id,p.display_label FROM public.room_assignments a
-    JOIN public.patients p ON p.id=a.patient_id AND p.facility_id=a.facility_id
-    WHERE a.room_id=$1 AND a.facility_id=$2
-    AND a.assigned_at<=$3 AND (a.released_at IS NULL OR a.released_at>$3) FOR SHARE OF a,p`,
-    [i.room_id, i.facility_id, i.detected_at],
-  );
-  if (r.rowCount !== 1 || r.rows[0].patient_id !== patient)
-    throw new CallError("historical_patient_mismatch");
-  return r.rows[0].display_label as string;
-}
-async function bump(c: PoolClient, id: string) {
-  await c.query("UPDATE public.incidents SET revision=revision+1 WHERE id=$1", [
-    id,
-  ]);
-}
+  "id,facility_id,patient_id,contact_name,relationship,phone_e164,consent_status,imessage_consent_status,revision,consented_at,consent_revoked_at";
 function callDto(row: Record<string, unknown>): NotificationCall {
   return {
     id: row.id as string,
@@ -312,6 +271,21 @@ export function createCallStore(pool: Pool) {
             input.retry_of ?? null,
           ],
         );
+        if (input.message_preview_id) {
+          await authorizeMessagePreview(
+            c,
+            subject,
+            id,
+            "call:" + key,
+            {
+              preview_id: input.message_preview_id,
+              context_hash: input.message_context_hash!,
+              expected_revision: input.expected_revision,
+              explicit_authorization: input.explicit_messaging_authorization!,
+            },
+            { id: r.rows[0].id, contact_id: contact.id },
+          );
+        }
         await c.query(
           "INSERT INTO public.operator_audit(facility_id,actor_id,action,target_id,detail) VALUES($1,$2,'call_authorized',$3,$4)",
           [

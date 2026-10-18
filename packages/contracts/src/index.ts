@@ -1,3 +1,10 @@
+import familyReplySchema from "../schemas/family-reply.json" with { type: "json" };
+import messageHistorySchema from "../schemas/message-history.json" with { type: "json" };
+import replyReviewSchema from "../schemas/reply-review.json" with { type: "json" };
+import messageReviewSchema from "../schemas/message-review.json" with { type: "json" };
+import messageAuthorizationSchema from "../schemas/message-authorization.json" with { type: "json" };
+import messagePreviewRequestSchema from "../schemas/message-preview-request.json" with { type: "json" };
+import messagingConsentSchema from "../schemas/messaging-consent.json" with { type: "json" };
 import incidentWorkflowSchema from "../schemas/incident-workflow.json" with { type: "json" };
 import callPreviewSchema from "../schemas/call-preview.json" with { type: "json" };
 import incidentActionSchema from "../schemas/incident-action.json" with { type: "json" };
@@ -83,3 +90,31 @@ export const validateCallPreview: ValidateFunction<
 export const validateIncidentWorkflow: ValidateFunction<
   import("./generated.js").IncidentWorkflow
 > = ajv.compile(incidentWorkflowSchema);
+
+export const validateMessagingConsent: ValidateFunction<
+  import("./generated.js").MessagingConsent
+> = ajv.compile(messagingConsentSchema);
+
+export const validateMessagePreviewRequest: ValidateFunction<
+  import("./generated.js").MessagePreviewRequest
+> = ajv.compile(messagePreviewRequestSchema);
+
+export const validateMessageAuthorization: ValidateFunction<
+  import("./generated.js").MessageAuthorization
+> = ajv.compile(messageAuthorizationSchema);
+
+export const validateMessageReview: ValidateFunction<
+  import("./generated.js").MessageReview
+> = ajv.compile(messageReviewSchema);
+
+export const validateReplyReview: ValidateFunction<
+  import("./generated.js").ReplyReview
+> = ajv.compile(replyReviewSchema);
+
+ajv.addSchema(familyReplySchema, "family-reply.json");
+export const validateFamilyReply: ValidateFunction<
+  import("./generated.js").FamilyReply
+> = ajv.compile(familyReplySchema);
+export const validateMessageHistory: ValidateFunction<
+  import("./generated.js").MessageHistory
+> = ajv.compile(messageHistorySchema);

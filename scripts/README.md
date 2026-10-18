@@ -169,3 +169,11 @@ exiting successfully. The recipient reported overly cheerful delivery and a
 premature hang-up; these are conversation defects, not evidence of a flawless demo.
 Automated spoken-delivery evidence remains unverified. Earlier live calls are in
 [the family-call record](../docs/family-calls.md).
+
+## iMessage routing check
+
+`sh scripts/imessage-check.sh` verifies the configured Photon sender against
+DEMO_FAMILY_PHONE_E164 and shared-line onboarding. It resolves users/a direct
+conversation but sends no messages. See [family-messages.md](../docs/family-messages.md).
+The existing call smoke does not authorize messaging; joint approval is a separate
+reviewed API flow until frontend controls are available.

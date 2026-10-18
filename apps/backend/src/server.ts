@@ -1,3 +1,7 @@
+import { createMessageStore } from "./messages/store.js";
+import { createPhotonProvider } from "./messages/photon.js";
+import { startMessageWorker } from "./messages/worker.js";
+let messageWorker: ReturnType<typeof startMessageWorker> | undefined;
 import { createCallStore } from "./notifications/store.js";
 import {
   createDispatchStore,
@@ -21,7 +25,15 @@ const pool = new Pool({
   max: 10,
   connectionTimeoutMillis: 5000,
 });
+const messageProvider = config.photon
+  ? createPhotonProvider(config.photon)
+  : undefined;
 const app = await createApp({
+  messages: {
+    store: createMessageStore(pool),
+    provider: messageProvider,
+    enabled: config.messagesEnabled,
+  },
   verifyOperator: createOperatorVerifier(config.issuer, config.audience),
   store: createStore(pool),
   webOrigin: config.webOrigin,
@@ -30,6 +42,7 @@ const app = await createApp({
     store: createCallStore(pool),
     dispatch: createDispatchStore(pool),
     enabled: config.callsEnabled,
+    messagesEnabled: config.messagesEnabled,
     ...(config.voice.secret && config.voice.agentId
       ? {
           webhook: {
@@ -41,7 +54,11 @@ const app = await createApp({
   },
 });
 app.addHook("onClose", async () => {
-  await Promise.all([worker?.stop(), callWorker?.stop()]);
+  await Promise.all([
+    worker?.stop(),
+    callWorker?.stop(),
+    messageWorker?.stop(),
+  ]);
   await pool.end();
 });
 for (const signal of ["SIGINT", "SIGTERM"])
@@ -52,6 +69,8 @@ for (const signal of ["SIGINT", "SIGTERM"])
   });
 try {
   await app.listen({ port: config.port, host: "0.0.0.0" });
+  if (config.messagesEnabled && messageProvider)
+    messageWorker = startMessageWorker(pool, messageProvider, app.log);
   if (config.callsEnabled)
     callWorker = startCallWorker(
       createDispatchStore(pool),

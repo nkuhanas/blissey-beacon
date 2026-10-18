@@ -5,6 +5,9 @@ export interface CallAuthorization {
   expected_revision: number;
   explicit_authorization: true;
   retry_of?: string | null;
+  message_preview_id?: string;
+  message_context_hash?: string;
+  explicit_messaging_authorization?: true;
 }
 
 export interface CallPreviewRequest {
@@ -106,6 +109,17 @@ export interface FamilyContact {
   revision: number;
   consented_at: string | null;
   consent_revoked_at: string | null;
+  imessage_consent_status?: "granted" | "revoked";
+}
+
+export interface FamilyReply {
+  id: string;
+  incident_id: string | null;
+  contact_id: string;
+  body: string;
+  intent: "acknowledged" | "callback_requested" | "stop" | "operator_review";
+  review_status: "pending" | "reviewed";
+  received_at: string;
 }
 
 export interface IncidentAction {
@@ -169,6 +183,66 @@ export interface InferenceEvent {
   sensor_status: "connected";
 }
 
+export interface MessageAuthorization {
+  preview_id: string;
+  context_hash: string;
+  expected_revision: number;
+  explicit_authorization: true;
+}
+
+export interface MessageHistory {
+  /**
+   * @maxItems 100
+   */
+  authorizations: {
+    id: string;
+    call_id: string | null;
+    state: "waiting" | "review" | "queued" | "cancelled" | "submitted";
+    selection: ("missed" | "summary" | "update") | null;
+    evidence: string | null;
+    created_at: string;
+    updated_at: string;
+  }[];
+  /**
+   * @maxItems 100
+   */
+  messages: {
+    id: string;
+    authorization_id: string;
+    body: string;
+    state: "queued" | "initiating" | "accepted" | "delivered" | "read" | "failed" | "unknown" | "cancelled";
+    error_code: string | null;
+    created_at: string;
+    updated_at: string;
+  }[];
+  /**
+   * @maxItems 100
+   */
+  replies: FamilyReply[];
+}
+
+export interface MessagePreviewRequest {
+  contact_id: string;
+  expected_revision: number;
+  purpose: "followup" | "update";
+  update_text?: string;
+  verified_facts_confirmed?: true;
+}
+
+export interface MessageReview {
+  expected_revision: number;
+  evidence: "no_answer" | "busy" | "voicemail" | "ended_before_message" | "communicated";
+  recipient_verified: boolean;
+  note: string;
+  explicit_authorization: true;
+}
+
+export interface MessagingConsent {
+  expected_revision: number;
+  consent_status: "granted" | "revoked";
+  consent_confirmed: true;
+}
+
 export interface NotificationCall {
   id: string;
   incident_id: string;
@@ -182,6 +256,12 @@ export interface NotificationCall {
   error_code: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface ReplyReview {
+  incident_id?: string;
+  intent?: "acknowledged" | "callback_requested" | "operator_review";
+  explicit_review: true;
 }
 
 export interface Room {

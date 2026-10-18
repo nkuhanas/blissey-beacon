@@ -17,6 +17,7 @@ export function registerCallRoutes(
     store: CallStore;
     dispatch: DispatchStore;
     enabled: boolean;
+    messagesEnabled?: boolean;
     webhook?: { secret: string; agentId: string };
   },
 ) {
@@ -125,6 +126,8 @@ export function registerCallRoutes(
         if (!validateCallAuthorization(req.body))
           throw new CallError("invalid_authorization", 400);
         if (!options.enabled) throw new CallError("calls_not_configured", 503);
+        if (req.body.message_preview_id && !options.messagesEnabled)
+          throw new CallError("messages_not_enabled", 503);
         const call = await options.store.authorize(
           subjects.get(req)!,
           id(req.params.id),
