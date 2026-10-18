@@ -14,6 +14,20 @@
 Do not commit secrets, credentials, local configuration, or generated artifacts
 unless the repository explicitly tracks them.
 
+## Changes to the specification
+
+If proposed work contradicts [PROJECT_SPEC.md](PROJECT_SPEC.md), pause the
+conflicting work and first propose a specification change and a timestamped
+Markdown delta in `deltas/` (for example,
+`deltas/2026-10-18T07-17-29Z-random-forest-product-readme.md`). Describe the affected
+sections, previous and revised requirements, and rationale. Obtain explicit user
+approval before editing the spec, creating the delta, or implementing the
+conflicting work.
+
+Once approved, update the specification, timestamped delta and architecture
+decision log together, then implement the approved work. Preserve historical
+decisions and mark superseded requirements clearly.
+
 ## Branches and pull requests
 
 - Never force push to `main`, including with `--force-with-lease`.

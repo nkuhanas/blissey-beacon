@@ -2,7 +2,7 @@
 
 Event: LA Hacks 2026. Last updated: 2026-10-18.
 Document steward: Chloe (proposed); component owners review their contracts.
-Status: authoritative implementation specification; hosted synthetic Slice 2 verified; hardware integration unverified.
+Status: authoritative specification; cloud/provider evidence recorded; team confirms QNX sensing/transport and inference-runtime integration; full hardware/model parity unverified here.
 
 **Confirmed** means selected in the complete team request, not proven operational.
 **Proposed** means an implementation detail awaiting owner agreement. **TBD / Not
@@ -12,9 +12,12 @@ planned component should be interpreted as working software.
 ## 1. Executive Summary
 
 Blissey Beacon explores camera-free possible-fall detection for senior living
-facilities. ESP32 Wi-Fi Channel State Information (CSI) feeds a supervised neural
-network running locally on a Raspberry Pi 5 with QNX. Structured events travel over
-WSS to a Railway Node.js/TypeScript backend backed by Supabase PostgreSQL. An authenticated
+facilities. ESP32 Wi-Fi Channel State Information (CSI) feeds a Random Forest
+classifier trained using Veri. Local inference on a Raspberry Pi 5 with QNX is the
+target architecture. The team confirms QNX OS sensing/transport on Pi 5 and
+integration of QNX's python3-tflite-runtime from oss.qnx.com; execution/parity of the
+trained forest through that runtime remains unverified here. Structured
+events travel over WSS to a Railway Node.js/TypeScript backend backed by Supabase PostgreSQL. An authenticated
 Vercel demo dashboard shows incidents; Gemini API generates grounded explanations
 asynchronously. Operators review and authorize bounded conversational family calls: Railway
 freezes a family-safe context and opening message, ElevenLabs Agents conducts the
@@ -46,7 +49,7 @@ and exact verification limits.
 ### Confirmed scope
 
 One ESP32 transmitter, one ESP32 receiver, one Pi 5 running QNX, one monitored room,
-one person, one local neural network, one incident-explanation language model,
+one person, one local Random Forest classifier, one incident-explanation language model,
 a cloud backend, an operator website, and one operator-authorized conversational
 family-call flow through ElevenLabs and Photon, with independently authorized
 iMessage follow-ups and a family reply inbox. One primary consented contact per
@@ -84,8 +87,8 @@ flowchart TD
     TX[ESP32 transmitter] -->|Wi-Fi sensing| RX[ESP32 receiver]
     RX -->|USB serial| PRE
     subgraph PI["Raspberry Pi 5 / QNX"]
-        PRE[Preprocessing and windows] --> CNN[Local binary CNN]
-        CNN --> EVENT[Temporal event grouping and outbox]
+        PRE[Preprocessing, windows and saved features] --> MODEL["Random Forest: target QNX runtime"]
+        MODEL --> EVENT[Temporal event grouping and outbox]
     end
     EVENT -->|Authenticated persistent WSS: events and health| INGEST
     subgraph BACKEND["Railway / Node.js / TypeScript"]
@@ -170,10 +173,11 @@ selected providers are not evidence of deployment or integration.
 | Layer | Decision | Status |
 | --- | --- | --- |
 | Sensing | ESP32 transmitter and receiver | Confirmed; boards/firmware TBD |
-| Edge hardware/OS | Raspberry Pi 5, QNX | Confirmed; image/BSP/toolchain TBD |
-| Model 1 training | Google Colab, Python, NumPy, TensorFlow/Keras, Scikit-learn | Confirmed; versions TBD |
-| Model 1 baseline | Custom lightweight 1D CNN, random initialization | Confirmed; no pretrained checkpoint |
-| Edge inference format | LiteRT/TensorFlow Lite if supported; ONNX alternative | Candidates; QNX runtime/operator support not yet verified |
+| Edge hardware/OS | Raspberry Pi 5, QNX OS | Team confirms ESP32 sensing collection and secure result transmission; image/BSP/toolchain and actual logs not inspected here |
+| Model 1 training | Veri | Team confirms Random Forest training on CSI data; job/configuration/evaluation artifacts not inspected in this repository |
+| Model 1 baseline | Random Forest classifier | Selected by the team; supersedes the proposed Keras 1D CNN; implementation/library and hyperparameters TBD |
+| Edge inference format | Versioned Random Forest artifact and frozen feature pipeline | Export format, eligible QNX module and runtime compatibility not yet verified |
+| QNX inference runtime | python3-tflite-runtime from oss.qnx.com | Team confirms runtime integration to support local fall-detection inference; trained-forest export/execution/parity and sponsor eligibility not established here |
 | Backend hosting/runtime | Railway, Node.js / TypeScript, Fastify + `@fastify/websocket`; single deployment | Docker deployment and synthetic WSS/REST verified; actual QNX unverified |
 | Database | Supabase PostgreSQL | Four migrations applied to approved demo project; synthetic event/incident/job persistence and deduplication verified |
 | Realtime | Supabase Realtime with operator JWT and facility RLS | Hosted authorized delivery and dashboard live update verified |
@@ -182,7 +186,7 @@ selected providers are not evidence of deployment or integration.
 | Operator identity | Supabase Auth | Shared demo account acceptable; explicit facility membership |
 | UI | React/Vite browser demo on Vercel, implemented from Paper designs | Minimal deployed shell: login, room/history and live incident verified; full design/workflows remain pending |
 | Model 2 | Hosted Google Gemini API, configured `gemini-3.5-flash-lite` | Live model/local path and hosted synthetic Railway/Supabase/Realtime path verified |
-| Optional sponsor effort | Veri Studio with a compatible open-source model | Separate from MVP Gemini inference; eligibility unverified |
+| Veri sponsor use | Random Forest training for Model 1 | Team-confirmed use; training does not by itself establish fine-tuning prize eligibility |
 | Conversational voice | ElevenLabs Agents; configurable conversational LLM, Gemini Flash preferred | Agent configuration and one consented live synthetic-incident conversation verified; automated spoken-evidence mapping pending |
 | Family messaging | Photon hosted iMessage via Railway | Assignment/onboarding and one isolated Docker + real Photon message delivery and correlated ACK verified; hosted rollout pending |
 | Family telephony | Photon outbound SIP trunk connected to ElevenLabs | One consented outbound call verified through the configured trunk; broader failure/recovery coverage pending |
@@ -200,7 +204,8 @@ No Mac-local messaging package is permitted at runtime.
 
 Dataset: [emiluvu/bb-data](https://github.com/emiluvu/bb-data), separate from the
 application. No dataset cloning or raw CSI download into this repository is
-allowed. Colab may clone a pinned dataset revision into temporary runtime storage.
+allowed. The training environment may read a pinned dataset revision in temporary
+runtime storage; record the actual Veri data-access workflow with the model artifacts.
 
 A read-only GitHub contents request on 2026-10-17 returned 404. This may reflect
 access permissions or repository availability; its actual format remains **Not yet
@@ -233,36 +238,39 @@ events and fictional resident/room identifiers; no real resident data for the de
 
 Owner: Chloe; Chace collaborates on edge/backend interfaces.
 
-**Confirmed:** supervised binary classification. Each example is a fixed-length
-CSI window; target `0` is non-fall and `1` is fall from verified annotations.
-Train using binary cross-entropy. This is neither reinforcement learning nor an
-LLM or generative classification pipeline.
+**Selected model:** Random Forest classifier. The user confirmed that Veri was
+used to train it on the CSI data stream and approved reconciling this specification
+with that decision on 2026-10-18. This supersedes the earlier Keras 1D CNN/Colab
+selection. It does not establish inspected training artifacts, held-out performance,
+QNX execution or sponsor eligibility.
 
-Train a lightweight temporal neural network in Colab and run continuous inference
-on QNX. Model output is a sigmoid score, not a calibrated probability unless
-calibration is evaluated. The baseline is trained from scratch; do not describe
-randomly initialized CNN training as pretrained-model fine-tuning.
+The existing product contract remains supervised binary possible-fall
+classification: each example represents a fixed-length CSI window, with target
+`0` for non-fall and `1` for fall from verified annotations. Confirm the trained
+artifact's actual class labels and feature schema before connecting it to this
+contract; do not assume an unaudited artifact already produces compatible scores.
+This is not an LLM or generative classification pipeline. Continuous local
+inference on QNX remains the deployment target. Scores are not calibrated
+probabilities unless calibration is evaluated.
 
 ## 9. Model 1: Base Architecture
 
-**Selected baseline:** custom Keras 1D CNN. It learns local temporal patterns across
-CSI features while keeping the network small enough to investigate edge execution.
-There is no initial pretrained checkpoint.
+**Selected baseline:** Random Forest trained using Veri. The model consumes a
+fixed feature representation derived from CSI windows. The exact feature
+extraction, class mapping, training library/version and hyperparameters must be
+recorded from the team's artifact; they are not inferred from the model name.
 
-| Layer | Proposed starting architecture |
+| Boundary | Required artifact / validation |
 | --- | --- |
-| Input | `[T, C]` per window; batch `[B, T, C]` |
-| Temporal block 1 | Conv1D, 32 filters, kernel 5 → ReLU → MaxPooling1D |
-| Temporal block 2 | Conv1D, 64 filters, kernel 3 → ReLU → MaxPooling1D |
-| Aggregation | GlobalAveragePooling1D |
-| Hidden layer | Dense 32, ReLU |
-| Output | Dense 1, sigmoid → `p`; adapter publishes `confidence_scores` as in Section 15 |
+| Window | Frozen timing, channel layout and data-quality policy from Section 10 |
+| Features | Saved extraction code/configuration, feature count, order and dtype |
+| Forest | Versioned trained artifact, implementation/version, seed and tree settings |
+| Output | Explicit class-to-score adapter for `confidence_scores` in Section 15 |
+| Deployment | QNX-compatible representation and matching predictions on approved fixtures |
 
-`T` depends on verified resampling rate and window duration; `C` depends on the
-valid amplitude feature mask. Padding and pooling parameters remain configurable
-and must be fixed in the model configuration after checking tensor dimensions
-and QNX-supported operators. Do not assume this proposed topology has been trained
-or benchmarked.
+No tree count, depth, feature statistic, inference latency or accuracy is claimed
+without the corresponding training or runtime evidence. Neural-network layers,
+Adam, binary cross-entropy and sigmoid activation are no longer Model 1 requirements.
 
 ## 10. Sliding Window Preprocessing and Labeling
 
@@ -270,7 +278,8 @@ or benchmarked.
 
 Validate packet → parse verified I/Q layout → amplitude → mask invalid subcarriers
 → handle missing samples → align/resample time → normalize → fixed windows.
-Training then assigns labels; live inference applies the saved model instead.
+Apply the frozen feature extractor after windowing. Training then assigns labels;
+live inference applies the same feature extractor and saved forest instead.
 
 For verified complex CSI, `amplitude = sqrt(I² + Q²)`. Verify ordering, encoding,
 invalid values and layout first. Use training-only normalization statistics in
@@ -357,20 +366,23 @@ data rather than claiming exact fall timing from a window-level classifier.
 
 ## 11. Model Training and Evaluation
 
-### Confirmed configurable starting values
+### Configuration and evidence to record
 
-| Parameter | Starting value |
+The earlier CNN optimizer/loss/epoch defaults are superseded. Record the actual
+Veri training configuration rather than treating those defaults as forest settings.
+
+| Parameter | Required record |
 | --- | --- |
-| Window length / stride | 3 seconds / 0.5 seconds |
-| Optimizer / learning rate | Adam / 0.001 |
-| Loss | Binary cross-entropy |
-| Batch size / maximum epochs | 32 / 30 |
-| Early stopping | Validation loss; patience TBD |
-| Input / output | CSI amplitude features / one sigmoid fall score |
+| Window length / stride | Previous proposal: 3 seconds / 0.5 seconds; reconcile with trained artifact |
+| Feature pipeline | Exact transformations, order, count and training-only fitted state |
+| Forest settings | Implementation/version, tree count, depth, split/leaf settings and random seed |
+| Imbalance handling | Actual class weighting or sampling, if used |
+| Training evidence | Veri job/run reference, dataset revision and split manifests |
+| Input / output | Frozen CSI feature vector / verified class mapping and uncalibrated scores |
 
-Chloe pins seeds, dataset revision, split manifests, architecture, preprocessing
-and training configuration. Use Scikit-learn for group-aware splitting, metrics
-and simple baselines. Keep participant groups separate where possible; otherwise
+Chloe records seeds, dataset revision, split manifests, model, preprocessing
+and training configuration. Use group-aware splitting and document the actual
+evaluation tooling. Keep participant groups separate where possible; otherwise
 use session/trial/recording groups and disclose generalization limits. Fit all
 learned transforms on training only. Tune thresholds and persistence on validation;
 freeze them before a final untouched test. Weighting or sampling for imbalance
@@ -395,65 +407,76 @@ walking, and background movement. No accuracy or false-alarm target has been
 validated; agree numerical success targets after auditing available data. Report
 untested rooms, people, placement changes and other limitations honestly.
 
-## 12. Colab Training and Artifact Management
+## 12. Training and Artifact Management
 
-**Confirmed:** training runs in Google Colab, not on the Pi. No scripts or notebooks
-are created and no training is started during this documentation task.
+**Team-confirmed:** Veri was used to train the Random Forest classifier on CSI
+data. This documentation task does not start training or inspect the external
+model repository, training job, dataset or evaluation results.
 
-Planned workflow: clone the separate dataset into temporary Colab storage at a
-pinned revision, inspect/audit, split groups, fit preprocessing on training, create
-windows, train Keras CNN, tune on validation, evaluate held-out data, save the Keras
-model and preprocessing, export, and compare predictions before transferring to QNX.
+Required reproducibility workflow: pin the separate dataset revision, inspect/audit,
+split groups before windowing, fit any preprocessing on training only, create
+windows/features, train the forest, tune on validation, evaluate held-out data,
+save the model and preprocessing, then compare exported and reference predictions
+before transferring to QNX. Completion of these steps needs artifact evidence;
+the user's training confirmation alone does not establish evaluation completion.
 
 | Application repository may contain | Keep outside the application repository |
 | --- | --- |
 | Source, future training notebook/scripts, inference code, contracts, lightweight configs and reports | Raw CSI, duplicate archives, temporary tensors, large checkpoints and sensitive resident information |
 
-Proposed artifact bundle: trained Keras model, embedded export, checksum manifest,
-normalization statistics, feature mask/order, resampling policy, window/stride,
-label policy, threshold/persistence/cooldown, seeds, dataset commit, split-manifest
-hash, evaluation report and small approved parity fixtures. Record framework and
-export/runtime versions, tensor dtype/layout, operator requirements and comparison
-tolerance. Host large artifacts separately with versioned retrieval instructions;
-host and access policy are TBD. Never commit dataset credentials or Colab tokens.
+Required artifact bundle: trained forest, Veri run reference, embedded representation,
+checksum manifest, any fitted normalization state, feature extractor/order,
+resampling policy, window/stride, class/label mapping, threshold/persistence/cooldown,
+seeds, dataset commit, split-manifest hash, evaluation report and small approved
+parity fixtures. Record library and export/runtime versions, feature dtype/layout,
+runtime requirements and comparison tolerance. Host large artifacts separately
+with versioned retrieval instructions; host and access policy are TBD. Never
+commit dataset credentials or training-service tokens.
 
-## 13. Veri Training/Fine-Tuning Integration
+## 13. Veri Training Integration
 
-The previous proposed open-source Model 2, candidate
-`Qwen/Qwen2.5-0.5B-Instruct`, optional Veri SFT and self-hosted/external serving
-path are **superseded for MVP inference** by Gemini API. Gemini usage does not
-establish participation in or eligibility for Veri's open-source fine-tuning
-challenge. No Veri integration, training job or eligibility is verified.
+Veri was used to train Model 1's Random Forest classifier on the CSI data stream,
+as confirmed by the user on 2026-10-18. Record the actual Veri job, configuration,
+artifact revision and evaluation report when supplied. Do not describe this use
+as pretrained-model fine-tuning or claim measured performance without evidence.
 
-The team may separately investigate Veri with a compatible open-source model.
-Require current mentor-confirmed rules, model/license compatibility, documented
-post-training/fine-tuning evidence, separated training/evaluation examples and a
-base-versus-trained comparison. Keep this effort outside the required Gemini
-runtime path and do not silently change Model 1 or the QNX contract to pursue it.
+The earlier proposed open-source Model 2 / Qwen / Veri SFT serving path remains
+superseded by Gemini API. Veri training is separate from runtime incident
+explanations; no self-hosted generative model is added to the product.
 
-The binary CNN remains trained from scratch in Colab; this alone is not evidence
-of pretrained open-source fine-tuning. Preserve unrelated QNX, Espressif, Paper
-and Photon sponsor requirements. Any separate Veri work must document model
-ID/revision, provenance, settings, job evidence, factual/JSON evaluation and
-submission status; approved training wording never authorizes notifications.
+The team targets the Veri sponsor challenge, but Random Forest training on Veri
+infrastructure does not itself establish fine-tuning prize eligibility. Confirm
+current rules and required model/license/training/submission evidence with the
+sponsor. Preserve the QNX, Espressif, Paper and Photon contracts; training or
+sponsor participation never authorizes family notifications.
 
 ## 14. QNX Model Deployment and Inference
 
-Owner: Chloe; Emilia supports serial integration. Use a verified QNX AI module
-from the sponsor's eligible open-source catalog for actual inference. Catalog
-module, eligibility, version and availability are TBD; none has been tested.
+Owner: Chloe; Emilia supports serial integration. On 2026-10-18 the user confirmed
+that QNX OS on Raspberry Pi 5 collects ESP32 Wi-Fi sensing data, securely transmits
+results to the backend and integrates `python3-tflite-runtime` from
+[oss.qnx.com](https://oss.qnx.com/) to support local fall-detection inference.
+This records team-confirmed implementation, not a hardware test performed by this
+documentation task. Capture the actual module/version and hardware logs; sponsor
+eligibility and full model execution/parity are still separate validation gates.
 
-1. Save the trained Keras model and frozen preprocessing/configuration.
-2. Export to LiteRT/TensorFlow Lite if supported; investigate ONNX otherwise.
-3. Compare exported predictions against Keras on fixed held-out tensors using a
-   declared tolerance; investigate label/threshold changes caused by conversion.
+Do not assume the Random Forest artifact executes through a TensorFlow Lite
+runtime merely because that runtime is integrated. Document the forest's actual
+export/adapter or other compatible inference path, and verify matching outputs
+on QNX before claiming deployed forest inference.
+
+1. Save the trained Random Forest and frozen preprocessing/feature configuration.
+2. Select a representation and eligible QNX inference module that actually support
+   the trained forest; format, library and module remain unverified.
+3. Compare exported predictions against the training implementation on fixed
+   held-out features using a declared tolerance; investigate class/threshold changes.
 4. Confirm exact QNX image/BSP, hardware architecture, compiler/ABI, inference
    runtime, supported operators, USB driver, TLS/WSS and persistent storage.
 5. Transfer versioned artifacts with checksums and reject incompatible manifests.
 6. Load the model on actual Pi/QNX, reproduce golden outputs, measure resources
    and inference speed, then process live USB CSI into windows and events.
 
-Prove serial reading and a representative neural forward pass early. Conversion
+Prove serial reading and representative forest inference early. Conversion
 success alone does not prove QNX compatibility. A Linux desktop inference result
 is not a QNX result. Changing export format must preserve the model task and
 input contract. Startup/loading failure or missing data yields degraded monitoring,
@@ -462,19 +485,20 @@ or substitute Linux without an explicit team architecture decision.
 
 ## 15. Model 1 Output Schema
 
-The underlying Model 1 remains a binary sigmoid classifier. Its published
+The product's Model 1 interface remains binary. Its published
 prediction schema uses generic named confidence scores:
 
 ```json
 {"confidence_scores": {"fall": 0.91, "non_fall": 0.09}}
 ```
 
-For the current binary model, derive `fall = p` and `non_fall = 1 - p` from the
-single sigmoid output. Each value must be finite and within `[0, 1]`; require the
-pair to sum to one within a documented floating-point tolerance. These are
+Map the trained forest's actual class outputs explicitly to `fall` and `non_fall`;
+do not infer class order or assume sigmoid output. Validate the adapter against
+the artifact before integration. Each value must be finite and within `[0, 1]`;
+require the pair to sum to one within a documented floating-point tolerance. These are
 uncalibrated scores, not established probabilities or additional activity classes.
 Thresholding still uses the `fall` score. Changing the published vocabulary does
-not change training targets, binary loss or classifier capability.
+not add classifier capabilities or permit an unverified class mapping.
 
 The QNX service owns thresholds, persistence, grouping, event IDs, timestamps,
 device metadata, health and transport. A score alone is not an incident.
@@ -1198,7 +1222,7 @@ Assignments below are confirmed by the complete request, except explicit TBDs.
 | Person | Primary ownership | Deliverables / handoff |
 | --- | --- | --- |
 | Emilia | Frontend with Paper; hardware and CSI collection | Paper document/screen handoff and matching React/Vite UI; authenticated dashboard, incident actions and API/Realtime integration; working TX/RX, reproducible serial stream, recordings and schema evidence to Chloe |
-| Chloe | Model 1 and edge inference | Parsing/preprocessing, CNN training, evaluation, artifacts, QNX runtime, event-producing WSS client |
+| Chloe | Model 1 and edge inference | Parsing/preprocessing, Random Forest training/evaluation, artifacts, QNX runtime, event-producing WSS client |
 | Chace | Application/backend scaffolding, backend and Model 2 | Gemini explanations and durable jobs, Railway WSS/REST, Supabase persistence, demo notification approval |
 | TBD | ElevenLabs/Photon provider integration | Agent and conversational LLM configuration, Photon SIP compatibility, signed evidence mapping, consented recipient and real-call test |
 | Entire team | Integration, testing and presentation | End-to-end evidence, honest limitations and demo rehearsal; integration lead TBD |
@@ -1212,21 +1236,25 @@ Photon or an integration coordinator.
 
 ## 22. Sponsor/Track Integration
 
-All mapping is planned from team intent. Current working integration, verified
-eligibility and completed submission requirements are **Not yet verified** for
-every row. Tool use alone does not establish prize eligibility.
+Beyond the Digital is the selected main track. The other main-track rows describe
+thematic overlap. Sponsor use, demonstrated integration, prize eligibility and
+completed submission are separate claims; the evidence below does not itself
+establish eligibility or submission. Dated integration records take precedence
+over earlier planned-status snapshots.
 
 | Track/sponsor | Planned contribution | Evidence needed |
 | --- | --- | --- |
-| Model Learning | Supervised learning on real CSI and quantitative neural evaluation | Dataset provenance, reproducible model and held-out metrics |
+| Model Learning | Supervised learning on CSI using a Random Forest | Dataset provenance, reproducible model and held-out metrics |
 | Beyond the Digital | Physical Wi-Fi sensing and local inference | Live hardware-to-edge demo |
 | Applied Intelligence | Caregiver monitoring and response workflow | Integrated product demonstration and limitations |
 | Espressif | ESP32 as core sensing hardware | Board/firmware evidence and live CSI collection |
-| QNX | Pi/QNX inference using an eligible open-source AI module | Catalog/module eligibility confirmation and actual QNX inference logs |
-| Veri Studio | Separate optional open-source fine-tuning effort; previous Model 2 path superseded for MVP | Compatible open-source model/license, mentor-approved path, Veri training evidence and comparison; Gemini alone does not qualify |
-| Paper | Operator dashboard design | Paper artifact and corresponding implemented UI |
-| Photon | Outbound SIP telephony for authorized conversational calls | Verified trunk configuration and real consented call through Photon; a mock or unrelated telephony provider does not qualify |
+| QNX | Team-confirmed QNX OS sensing/transport on Pi 5 and python3-tflite-runtime integration from oss.qnx.com | Actual module/version, compatible forest export, QNX prediction-parity logs and sponsor eligibility confirmation |
+| Veri Studio | Team-confirmed Random Forest training on CSI data | Job/configuration/artifact/evaluation evidence and sponsor confirmation of eligibility; do not call forest training pretrained-model fine-tuning |
+| Paper | Dashboard layout, typography, tokens and room-map design; supplied mascot imported into Paper | Linked Paper artifacts and implemented fixture UI in docs/frontend-design.md; later frontend refinements are documented separately |
+| Photon | SIP telephony plus hosted iMessage follow-ups/replies | Separate consented live call and isolated live message/ACK tests in docs/family-calls.md and docs/family-messages.md; full hosted workflow still pending |
 | ElevenLabs | Bounded family conversation and call evidence | Configured agent/LLM, ordinary follow-up handling, uncertainty refusal, signed results and live incident-notification speech evidence |
+| Gemini API | Grounded asynchronous incident explanations | Hosted synthetic live-provider/Realtime evidence in docs/gemini-pipeline.md and docs/deployment-verification.md |
+| GoDaddy Registry | Public demo at blissey-beacon.health | Public domain use; prize-specific eligibility and submission are not established by domain use alone |
 
 For each sponsor, separately record planned use, working integration, verified
 eligibility, and completed submission artifacts. Mentor confirmation must cover
@@ -1359,7 +1387,7 @@ of recipient, frozen facts, opening and bounded conversation policy, audit and c
 idempotency. Verify the intended recipient before sharing incident facts.
 Acknowledgment and
 Gemini output never authorize dispatch. Audit account identity honestly when a
-shared operator account is used. Fictional residents/static layouts only; the CNN
+shared operator account is used. Fictional residents/static layouts only; the classifier
 cannot locate a person within a room or diagnose injury.
 
 Do not send CSI or experimental scores to the voice agent. Keep destinations,
@@ -1427,7 +1455,7 @@ checks are recorded separately in Section 29; they do not establish live provide
 | --- | --- |
 | Data/Model 1 | Held-out trials, difficult negatives, missing-event negative/unknown semantics, no split leakage, normalization/window parity, precision/recall/F1/confusion matrix, event recall, false alerts/hour and latency |
 | Hardware | TX/RX stability, packet integrity, measured sample rate, sustained capture, USB disconnect/reconnect and timestamp continuity |
-| QNX | Model load, operator compatibility, Keras/export/QNX output comparison, memory, inference time and sustained real-time windows |
+| QNX | Forest load, runtime compatibility, training/export/QNX output comparison, memory, inference time and sustained real-time windows |
 | Backend | Authenticated WSS, malformed messages, duplicate/conflicting IDs, lost ACKs, reconnect/restart, incident persistence, lifecycle concurrency, transactional pending work, post-commit ACK, Gemini outage, bounded retries, lease expiry/stale worker, idempotent completion and restart recovery |
 | Frontend | Comparison against linked Paper screens, multiple fixture room cards, detail navigation, live/stale/offline states, acknowledgment/responding/resolution, false alarm, notes and conflict recovery, Supabase login and facility scope, immediate pending incidents and Realtime explanation updates/reconnect refetch |
 | Notifications | Historical patient/contact selection, unauthorized/revoked/destination-changed rejection, immutable reviewed context/opening/policy, revision conflicts, one-call default/explicit retry, durable attempt before dispatch, ambiguous-submit reconciliation and webhook signature/replay/reordering tests |
@@ -1455,9 +1483,9 @@ reply deduplication/correlation and restart-safe polling. See §20 and docs/fami
 
 | Risk | Explicit fallback and limit |
 | --- | --- |
-| Insufficient labeled CSI | Collect more controlled trials; temporary feature-based classifier for pipeline diagnosis, clearly labeled; it does not satisfy required neural-model MVP |
-| Veri compatibility/eligibility unresolved | Separate optional effort; keep Model 1 in Colab and Gemini for MVP explanations; do not claim eligibility |
-| LiteRT/TFLite unsupported on QNX | Investigate supported ONNX runtime/export and operators; preserve input/task contract and verify output parity |
+| Insufficient labeled CSI | Collect more controlled trials; keep the selected Random Forest and report measured limitations; replay or diagnostic outputs must be labeled |
+| Veri eligibility unresolved | Preserve actual Random Forest training attribution; confirm challenge requirements separately; Gemini remains the explanation runtime |
+| Random Forest export/runtime unsupported on QNX | Investigate a compatible representation and eligible module; preserve input/task contract and verify output parity; no silent runtime replacement |
 | QNX USB driver unavailable | Diagnose support, then seek team-approved adapter/transport change; no silent architecture replacement |
 | Gemini unavailable | Persist/show incidents immediately; bounded durable retries then deterministic same-schema fallback; do not claim Gemini ran |
 | Railway deployment incompatible | Verify WSS, worker lifecycle, restart/storage/network and operational limits early; any alternate host requires a documented decision, not a laptop dependency |
@@ -1501,7 +1529,7 @@ containers are not production runtime intermediaries.
 2. First vertical slice: durable WSS ingestion through Railway/Supabase to Vercel,
    retry/idempotency and scoped Realtime. As soon as a basic WSS server exists,
    Chloe sends a synthetic event from the actual Pi running QNX with authenticated
-   TLS; record this independently of CNN integration and desktop simulations.
+   TLS; record this independently of classifier integration and desktop simulations.
 3. Enrichment/workflows: durable Gemini worker/fallback, full incident actions and
    consented contact configuration, frozen conversational-call authorization, ElevenLabs/Photon
    dispatch/evidence and recovery tests. Notification success is connected plus spoken,
@@ -1522,11 +1550,11 @@ required explanation and notification flow before claiming the complete MVP.
 | Priority | Work | Exit evidence |
 | --- | --- | --- |
 | P0 | Reliable CSI capture and data pipeline | Verified source schema/labels, reproducible TX/RX/serial settings and clean windows |
-| P0 | CNN training and evaluation | Group-aware splits, baseline training, honest held-out report and versioned artifacts |
+| P0 | Random Forest training and evaluation | Team confirms Veri training; collect group-aware splits, held-out report and versioned artifacts |
 | P0 | QNX inference | Verified eligible runtime, real USB windows and output parity on Pi/QNX |
 | P0 | Supabase schema and Railway Node.js/TypeScript backend | Provision services, authenticated QNX WSS, transactional event/incident persistence, health, REST and synthetic end-to-end event flow |
 | P0 | Paper-designed authenticated Vercel dashboard and Supabase Realtime | Linked Paper screens and matching React/Vite views, Supabase Auth, facility RLS/publication, room overview/static plan and reconnect recovery |
-| Optional / separate | Veri fine-tuning investigation | Compatible open-source model, documented training/comparison and mentor-confirmed sponsor evidence; not required for MVP inference |
+| Separate sponsor validation | Veri challenge eligibility | Actual forest training evidence plus mentor-confirmed eligibility/submission requirements; no pretrained fine-tuning claim |
 | P1 | Durable Gemini integration | Pending-work claims/leases, structured output validation/persistence, retries/fallback, restart recovery and frontend explanation updates |
 | P1 | Complete incident actions and ElevenLabs/Photon calls | Lifecycle correctness, one consented primary contact, reviewed immutable call context, real connected/spoken evidence, signed callbacks and dashboard status; no acknowledgment requirement |
 | P1 | Health/history product extensions | Basic health is required from P0; richer diagnostics and history follow |
@@ -1536,10 +1564,10 @@ required explanation and notification flow before claiming the complete MVP.
 
 1. Emilia and Chloe restore dataset access, inspect actual packets/annotations and
    prove reproducible TX/RX USB serial capture on QNX.
-2. Chloe proves a compatible eligible QNX inference module with representative CNN
-   operators, then builds a frozen preprocessing/window contract with Keras parity.
-3. Chloe trains/evaluates the configurable Colab baseline using group-aware splits
-   and exports versioned model/configuration artifacts.
+2. Chloe proves a compatible eligible QNX inference module with representative forest
+   predictions, then freezes preprocessing/window/features with training/runtime parity.
+3. Chloe supplies the Veri-trained Random Forest/configuration artifacts and
+   group-aware evaluation evidence, with an export compatible with the selected QNX runtime.
 4. Chace implements the confirmed seven-field event ingestion with authentication,
    durable transactional event/incident persistence in Supabase, incident lifecycle,
    health and agreed authenticated demo REST/Realtime interfaces on Railway.
@@ -1571,7 +1599,7 @@ The previous dataset-access 404 observation has not been retested by this work.
 | [supabase/tests](supabase/tests) | Plain PostgreSQL test-only Supabase role/auth bootstrap; not live Auth/Realtime validation |
 | [Dockerfile](Dockerfile), [compose.yaml](compose.yaml) | Node/pnpm toolchain and disposable PostgreSQL validation; no host Node needed |
 | [.github/workflows/ci.yml](.github/workflows/ci.yml) | Docker foundation workflow; writing it is not evidence of a remote CI run |
-| Firmware, dataset, training, QNX runtime/model | Not implemented/verified in this repository; no data downloaded or training started |
+| Firmware, dataset, training, QNX runtime/model | User confirms Veri Random Forest training plus QNX OS sensing/transport and python3-tflite-runtime integration on Pi 5; artifacts/evaluation, actual hardware logs and forest execution/parity not inspected here; no dataset downloaded by this documentation task |
 | [apps/backend/src/explanations](apps/backend/src/explanations) | Durable leased worker, constrained Gemini output, retry/fallback and atomic publication; real Gemini with local and hosted synthetic Supabase/Realtime verified |
 | [apps/backend/src/notifications](apps/backend/src/notifications), [docs/family-calls.md](docs/family-calls.md) | Contact configuration, reviewed snapshots, transactional approval/attempts, incident actions, disabled-by-default dispatcher and signed normalized callbacks; hosted contact/review APIs verified with dispatch disabled; frontend controls and actual calling pending |
 | Actual ElevenLabs agent, Photon SIP and connected/notification-spoken evidence mapping | Unverified and dependent on provider access/configuration; no real call made |
@@ -1585,7 +1613,7 @@ The ordinary isolated database check emulates only role/auth contracts. The sepa
 local Realtime acceptance check runs the actual Realtime service and real logical
 replication with synthetic signed identities; it does not prove Supabase Auth JWT
 issuance, production configuration, or hosted integration. A desktop synthetic event never
-proves actual QNX networking, CNN capability or full hardware end-to-end acceptance. Section 25
+proves actual QNX networking, classifier capability or full hardware end-to-end acceptance. Section 25
 remains future full-system integration criteria. Local Slice 2 acceptance passed
 for simulator ingestion → one durable incident → authorized REST and actual
 Supabase Realtime delivery, with duplicate and no-membership exclusion checks.
@@ -1612,8 +1640,8 @@ Paper work was stopped at the user's request; no new dashboard view is claimed.
 | Dataset access, exact schema, annotation clock/interval conventions, counts, license and participant permission | Chloe + Emilia |
 | Real sample rate/feature count, gap handling, labeling margins, split groups and final quality targets | Chloe |
 | QNX image/BSP, USB driver, compiler/ABI, eligible catalog AI module and required operators | Chloe + QNX mentor |
-| LiteRT/TFLite versus ONNX and artifact host/checksum/configuration format | Chloe |
-| Separate optional Veri model/path compatibility, licenses, challenge rules and documented training/submission evidence | Chloe/Chace + Veri mentor |
+| Random Forest feature schema/class mapping, export format, compatible QNX runtime and artifact host/checksum/configuration | Chloe |
+| Veri Random Forest job/configuration/evaluation artifacts, challenge rules and documented eligibility/submission evidence | Chloe/Chace + Veri mentor |
 | Railway operational limits and failure behavior beyond the hosted synthetic check; remaining lifecycle/API/authorization interfaces | Chace + Emilia |
 | Broader hosted load/failure measurements; synthetic hosted Gemini flow and local lease/retry/recovery checks are verified | Chace |
 | Gemini broader evaluation, provider limits and retention; hosted synthetic rollout verified and model/prompt recorded in docs/gemini-pipeline.md | Chace |
@@ -1625,7 +1653,7 @@ Paper work was stopped at the user's request; no new dashboard view is claimed.
 | Provider audio/transcript retention/deletion and consent settings; application retains minimal structured evidence | Provider lead + Chace |
 | Integration coordinator, deadlines, consented recipient, final demo retention and deletion process | Entire team; lead TBD |
 
-Do not reopen confirmed architecture, named ownership or selected Keras baseline
+Do not reopen confirmed architecture, named ownership or selected Random Forest
 as if they were unspecified. Mentor-dependent compatibility remains TBD until
 documented evidence supports a decision.
 
@@ -1634,7 +1662,7 @@ documented evidence supports a decision.
 | ID / date | Decision and status | Rationale / supersession |
 | --- | --- | --- |
 | ADR-001 / 2026-10-17 | Confirmed: RX → Pi direct USB serial; Pi/QNX local inference; Pi client → cloud server via WSS | Team architecture; raw CSI cloud streaming excluded from MVP |
-| ADR-002 / 2026-10-17 | Confirmed: Colab supervised binary Keras CNN from random weights, BCE loss, configurable starting hyperparameters | Complete request replaces partial draft's unspecified framework/training defaults; not pretrained fine-tuning |
+| ADR-002 / 2026-10-17 | Historical: Colab supervised binary Keras CNN from random weights, BCE loss; superseded by ADR-036 | Original baseline selection; preserved for traceability, not the current classifier |
 | ADR-003 / 2026-10-17 | Confirmed: missing event file can represent a verified negative; unknown labels excluded | Actual timing determines window labels; recording-level fall does not label every window positive |
 | ADR-004 / 2026-10-17 | Historical: seven-field event v1; superseded by ADR-017 | Supersedes partial draft's `p_fall`, `event_kind`, mandatory UUID/envelope/version/window fields; extensions remain optional |
 | ADR-005 / 2026-10-17 | Proposed: `pending → acknowledged → responding → resolved` and `/api/operator/...` routes | Complete request supersedes earlier proposed `open → acknowledged → resolved` and `/v1/...` REST routes; owners finalize bodies |
@@ -1668,6 +1696,8 @@ documented evidence supports a decision.
 | ADR-033 / 2026-10-18 | Approved: introduce the caller as Blissey Beacon's automated care assistant and use care-notification wording in family iMessages | User approved the proposed call opening and generic missed-call text. Preserve automation disclosure, recipient privacy, fictional-data boundaries, consent/reply controls, callback policy and immutable historical approvals |
 | ADR-034 / 2026-10-18 | Approved: pause for recipient turns without generic wrap-up questions; use reviewed lifecycle-grounded active-alert wording instead of staff-response disclaimers | User requested both changes after a successful live call. Add optional frozen incident_status to the notification context, preserving historical compatibility, explicit closure, unknown resident condition, callback commitment, sensing/Gemini contracts and notification authorization |
 | ADR-035 / 2026-10-18 | Approved: post-call thank-you acknowledgment replaces the incident recap, with dispatched/update commitment gated by explicit audited operator confirmation | User approved the proposed wording and dispatch condition. Preserve communicated/verified-recipient selection, separate consent, exact-text/hash approval, historical messages, generic missed-call privacy and unchanged sensing/voice/Gemini contracts |
+| ADR-036 / 2026-10-18 | Approved: select the Random Forest classifier trained using Veri for CSI Model 1, superseding the Keras CNN/Colab baseline in ADR-002 | User confirmed the actual training use and authorized README/spec reconciliation. Retain binary event/score contracts, frozen features, group-aware evaluation and QNX target. Training artifacts/metrics, runtime compatibility and sponsor eligibility remain unverified here; see deltas/2026-10-18T07-17-29Z-random-forest-product-readme.md |
+| ADR-037 / 2026-10-18 | Team confirms QNX OS on Pi 5 collects ESP32 sensing data and securely transmits results, with python3-tflite-runtime from oss.qnx.com integrated for local inference support | User supplied exact QNX attribution during the README rewrite. Record the module without inferring that the Random Forest executes through it; artifact/runtime compatibility, prediction parity, full live integration and eligibility need evidence; see the ADR-036 delta |
 
 The user explicitly approved this delta after reviewing the proposal. See
 [deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md](deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md)
@@ -1696,7 +1726,7 @@ workflow. Update last-updated date and steward/owner information with changes.
    eligibility and completed submissions. Mark unresolved facts TBD or Not yet verified.
 3. For work contradicting this spec, propose affected sections and a timestamped
    delta with previous/revised requirements and rationale; obtain the explicit
-   approval required by README before conflicting edits or implementation. After
+   approval required by CONTRIBUTING.md before conflicting edits or implementation. After
    approval, update the spec, delta and architecture decision log together.
 4. Have boundary owners agree interfaces before dependent implementation. Record
    changed schema versions and migration/compatibility decisions; do not silently
