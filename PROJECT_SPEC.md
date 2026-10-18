@@ -179,8 +179,8 @@ selected providers are not evidence of deployment or integration.
 | UI | React/Vite browser demo on Vercel, implemented from Paper designs | Minimal deployed shell: login, room/history and live incident verified; full design/workflows remain pending |
 | Model 2 | Hosted Google Gemini API, configured `gemini-3.5-flash-lite` | Live model/local path and hosted synthetic Railway/Supabase/Realtime path verified |
 | Optional sponsor effort | Veri Studio with a compatible open-source model | Separate from MVP Gemini inference; eligibility unverified |
-| Conversational voice | ElevenLabs Agents; configurable conversational LLM, Gemini Flash preferred | Selected; agent configuration and live conversation unverified |
-| Family telephony | Photon outbound SIP trunk connected to ElevenLabs | Selected direction; exact Photon product/configuration and end-to-end compatibility unverified |
+| Conversational voice | ElevenLabs Agents; configurable conversational LLM, Gemini Flash preferred | Agent configuration and one consented live synthetic-incident conversation verified; automated spoken-evidence mapping pending |
+| Family telephony | Photon outbound SIP trunk connected to ElevenLabs | One consented outbound call verified through the configured trunk; broader failure/recovery coverage pending |
 
 TypeScript dependency versions are pinned in pnpm-lock.yaml and the Docker
 toolchain. Setup/check commands are documented in docs/development.md. Training,
@@ -830,8 +830,13 @@ Provider integration owner: **TBD**. Chace owns backend authorization/orchestrat
 a named lead must own ElevenLabs agent configuration, Photon SIP setup and
 consented live testing. Backend orchestration/adapter source and synthetic tests
 exist. ElevenLabs agent/webhook/Photon-trunk configuration and bounded fictional
-text simulations were verified on 2026-10-18 UTC; actual SIP calling, live recipient
-verification and spoken-notification evidence remain unverified.
+text simulations were verified on 2026-10-18 UTC. One consented live synthetic-incident
+call reached the test recipient through Photon, with recipient identification and
+incident summary in the transcript; a signed callback persisted completion. Automated
+spoken-notification evidence mapping remains unverified. Dispatch was disabled again
+after the test; see [the verification record](docs/family-calls.md#first-consented-live-smoke--2026-10-18-utc)
+for limitations, including an ambiguous closing response incorrectly treated as a
+callback request.
 No separate voice-processing/backend deployment is required.
 
 Approved flow: persisted incident → validated Gemini explanation → family-safe

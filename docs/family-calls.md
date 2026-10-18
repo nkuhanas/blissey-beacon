@@ -228,3 +228,43 @@ receipts are kept in the ignored verification folder. Do not commit the number.
 A live test still requires explicit approval of the intended recipient, opening,
 family-safe context and bounded policy. Merely providing provider credentials or
 consenting to be the demo recipient does not authorize an incident-specific call.
+
+## First consented live smoke — 2026-10-18 UTC
+
+At the user's explicit request, an authenticated synthetic v2 high-fall-score
+event created an active incident, received a persisted Gemini explanation, and
+was acknowledged through a simulated operator action with an honest audit note.
+The operator API then reviewed and authorized one frozen `family-call-v2` session
+to the user's saved, consented test contact. This was a synthetic incident, not
+evidence of a physical fall or QNX hardware integration.
+
+ElevenLabs accepted the outbound SIP request through the configured Photon trunk.
+The user confirmed receiving the call. The provider reported a 63-second session
+ending with `Client disconnected: 1000`, no provider error, and a 15-turn transcript.
+After an initial voicemail greeting, the live recipient identified themselves and
+the agent stated the approved Room 102 sensor summary and unknown resident
+condition. The user reported that the conversation was imperfect but useful.
+
+The signed provider callback persisted `completed` in Supabase. Exactly one call
+authorization and one dispatch attempt exist for this incident. Live dispatch was
+then disabled again, and Railway successfully deployed that configuration. No
+second call was placed.
+
+Observed limitations:
+
+- The generic sensor summary did not explain what happened when the recipient
+  asked for clarification. A supported, reviewed possible-fall interpretation still
+  needs its own approved rule; do not silently reinterpret confidence scores.
+- The agent treated an ambiguous closing response as a callback request, and the
+  callback flag was persisted. It was not an explicit callback request and must
+  not be counted as successful callback extraction or automatic staff dispatch.
+- The recipient reported hearing the call, and the transcript contains the incident
+  summary followed by their question. Automated playback-evidence mapping remains
+  unverified: `connected` and `notification_spoken` remain false in the database,
+  so `notification_success` is not established automatically. Do not replace these
+  evidence checks with transcript text or session completion alone.
+- Frontend contact/call controls and result presentation remain pending.
+
+The full transcript and private provider receipts remain in ignored local
+verification storage, not repository source or the application database. Provider
+retention/deletion settings remain as documented above.
