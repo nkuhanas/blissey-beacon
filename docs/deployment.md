@@ -145,10 +145,15 @@ uses fictional residents/staged events and makes no clinical or compliance claim
 ## Planned ElevenLabs and Photon setup
 
 The approved [conversational-call specification](../PROJECT_SPEC.md#20-conversational-family-notifications-elevenlabs-and-photon)
-extends the demo with operator-authorized calls. It is not implemented or deployed.
+extends the demo with operator-authorized calls. Backend orchestration exists with synthetic tests; the call migration and
+disabled-dispatch contact/review APIs are deployed. Provider configuration and
+text simulations are verified, while frontend controls, real calling and
+connected/spoken evidence remain pending. See [the verification handoff](family-calls.md).
 Root `.env.example` lists the planned server-only `ELEVENLABS_API_KEY`,
 `ELEVENLABS_AGENT_ID`, `ELEVENLABS_PHONE_NUMBER_ID` and `ELEVENLABS_WEBHOOK_SECRET`.
-Current code does not read them. No additional backend service is planned.
+Set `NOTIFICATION_CALLS_ENABLED=false` until provider setup is verified. These
+variables are consumed by backend code, but credential presence alone does not
+enable calls. No additional backend service is planned. See [the handoff](family-calls.md).
 
 Before implementation/live acceptance, verify the actual Photon SIP product/trunk
 and outbound number in ElevenLabs, agent/voice/LLM configuration, recipient check,

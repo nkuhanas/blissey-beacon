@@ -1,0 +1,87 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "IncidentWorkflow",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "incident_id",
+    "status",
+    "revision",
+    "disposition",
+    "allowed_actions",
+    "patient_id",
+    "notes"
+  ],
+  "properties": {
+    "incident_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "status": {
+      "enum": [
+        "pending",
+        "acknowledged",
+        "responding",
+        "resolved"
+      ]
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "disposition": {
+      "enum": [
+        "reported_fall",
+        "false_alarm",
+        "unknown",
+        null
+      ]
+    },
+    "allowed_actions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "acknowledged",
+          "responding",
+          "resolved",
+          "add_note"
+        ]
+      }
+    },
+    "patient_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 128
+    },
+    "notes": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "actor_id",
+          "note",
+          "created_at"
+        ],
+        "properties": {
+          "actor_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  }
+}

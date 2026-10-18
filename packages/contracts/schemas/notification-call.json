@@ -1,0 +1,88 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NotificationCall",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "incident_id",
+    "contact_id",
+    "transport_status",
+    "notification_success",
+    "connected",
+    "notification_spoken",
+    "callback_requested",
+    "summary",
+    "error_code",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "incident_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "contact_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "transport_status": {
+      "enum": [
+        "queued",
+        "initiating",
+        "in_progress",
+        "completed",
+        "failed",
+        "unknown"
+      ]
+    },
+    "notification_success": {
+      "type": "boolean"
+    },
+    "connected": {
+      "type": "boolean"
+    },
+    "notification_spoken": {
+      "type": "boolean"
+    },
+    "callback_requested": {
+      "type": "boolean"
+    },
+    "summary": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 400
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "error_code": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

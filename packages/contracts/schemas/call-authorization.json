@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CallAuthorization",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "preview_id",
+    "context_hash",
+    "expected_revision",
+    "explicit_authorization"
+  ],
+  "properties": {
+    "preview_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "context_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "expected_revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "explicit_authorization": {
+      "const": true
+    },
+    "retry_of": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

@@ -117,8 +117,8 @@ temporal grouping stay on QNX. Only structured
 inference events and device health travel to the backend; QNX has no direct
 database access. No MacBook intermediary, developer laptop, home GPU node or
 self-hosted generative inference is required at runtime. Railway Docker deployment
-and synthetic WSS/REST integration are verified; worker operation and actual QNX
-compatibility still require verification.
+and synthetic hosted WSS/REST/Gemini/Realtime integration are verified. Actual QNX
+compatibility, live calling and broader operational limits still require verification.
 
 ## 5. Hardware and Network Architecture
 
@@ -171,16 +171,16 @@ selected providers are not evidence of deployment or integration.
 | Model 1 baseline | Custom lightweight 1D CNN, random initialization | Confirmed; no pretrained checkpoint |
 | Edge inference format | LiteRT/TensorFlow Lite if supported; ONNX alternative | Candidates; QNX runtime/operator support not yet verified |
 | Backend hosting/runtime | Railway, Node.js / TypeScript, Fastify + `@fastify/websocket`; single deployment | Docker deployment and synthetic WSS/REST verified; actual QNX unverified |
-| Database | Supabase PostgreSQL | Two migrations applied to approved demo project; synthetic event/incident/job persistence and deduplication verified |
+| Database | Supabase PostgreSQL | Four migrations applied to approved demo project; synthetic event/incident/job persistence and deduplication verified |
 | Realtime | Supabase Realtime with operator JWT and facility RLS | Hosted authorized delivery and dashboard live update verified |
 | Persistence | Direct PostgreSQL via `pg` | Same checked-out client for BEGIN/COMMIT/ROLLBACK; database uniqueness |
 | Monorepo | pnpm workspaces for TypeScript only | Two deployable apps; independent QNX/Python toolchains |
 | Operator identity | Supabase Auth | Shared demo account acceptable; explicit facility membership |
 | UI | React/Vite browser demo on Vercel, implemented from Paper designs | Minimal deployed shell: login, room/history and live incident verified; full design/workflows remain pending |
-| Model 2 | Hosted Google Gemini API, configured `gemini-3.5-flash-lite` | Live structured-output/local database-Realtime path verified; hosted worker rollout pending |
+| Model 2 | Hosted Google Gemini API, configured `gemini-3.5-flash-lite` | Live model/local path and hosted synthetic Railway/Supabase/Realtime path verified |
 | Optional sponsor effort | Veri Studio with a compatible open-source model | Separate from MVP Gemini inference; eligibility unverified |
-| Conversational voice | ElevenLabs Agents; configurable conversational LLM, Gemini Flash preferred | Selected; agent configuration and live conversation unverified |
-| Family telephony | Photon outbound SIP trunk connected to ElevenLabs | Selected direction; exact Photon product/configuration and end-to-end compatibility unverified |
+| Conversational voice | ElevenLabs Agents; configurable conversational LLM, Gemini Flash preferred | Agent configuration and one consented live synthetic-incident conversation verified; automated spoken-evidence mapping pending |
+| Family telephony | Photon outbound SIP trunk connected to ElevenLabs | One consented outbound call verified through the configured trunk; broader failure/recovery coverage pending |
 
 TypeScript dependency versions are pinned in pnpm-lock.yaml and the Docker
 toolchain. Setup/check commands are documented in docs/development.md. Training,
@@ -593,7 +593,8 @@ Owner: Chace. Use Google's hosted Gemini API to transform persisted structured
 facts into human-readable incident explanations. It replaces the proposed
 open-source/self-hosted Model 2 for the MVP; Model 1 is unchanged. The initial configured model is
 `gemini-3.5-flash-lite`, verified with live structured output and local disposable
-PostgreSQL/Realtime on 2026-10-17. Hosted worker rollout remains unverified.
+PostgreSQL/Realtime on 2026-10-17. The hosted synthetic Railway/Supabase/Gemini/Realtime
+path was also verified on 2026-10-18 UTC; physical QNX remains unverified.
 See [docs/gemini-pipeline.md](docs/gemini-pipeline.md) for the exact evidence.
 
 Backend enriches persisted event facts with the room label, incident state,
@@ -674,8 +675,8 @@ deduplication, incident lifecycle, health monitoring, persistence, Gemini jobs,
 authenticated demo REST, family-contact configuration, ElevenLabs/Photon call
 approvals/dispatch, signed callbacks and audit/recovery. Do not introduce
 independent backend services without a demonstrated requirement. Railway is the
-selected MVP target; hosted synthetic WSS/REST was verified. Worker rollout and
-broader operational limits remain unverified.
+selected MVP target; hosted synthetic WSS/REST and Gemini worker flow were verified.
+Broader operational limits and physical QNX integration remain unverified.
 
 Supabase PostgreSQL is the durable source of truth. Backend/database credentials
 stay server-side; QNX neither connects directly to Supabase nor holds its secrets.
@@ -774,7 +775,10 @@ request, bounded summary, timestamps and safe error codes. Approval/job creation
 uses one PostgreSQL transaction. External submission occurs only after commit.
 Private destinations, contexts and provider payloads are not directly published
 through Realtime; expose authorized, redacted call updates with REST refetch.
-These entities and interfaces are planned, not existing tables or implemented APIs.
+The new family-call migration and backend interfaces now exist in source. They
+are tested with synthetic providers. The call schema and disabled-dispatch
+contact/review APIs are deployed and verified; frontend controls, real calling and
+connected/spoken evidence remain pending. See [docs/family-calls.md](docs/family-calls.md).
 
 ## 19. Operator Dashboard
 
@@ -846,7 +850,15 @@ The binary classifier cannot support detailed activity or physical-position clai
 
 Provider integration owner: **TBD**. Chace owns backend authorization/orchestration;
 a named lead must own ElevenLabs agent configuration, Photon SIP setup and
-consented live testing. These are selected integrations, not implemented or verified.
+consented live testing. Backend orchestration/adapter source and synthetic tests
+exist. ElevenLabs agent/webhook/Photon-trunk configuration and bounded fictional
+text simulations were verified on 2026-10-18 UTC. One consented live synthetic-incident
+call reached the test recipient through Photon, with recipient identification and
+incident summary in the transcript; a signed callback persisted completion. Automated
+spoken-notification evidence mapping remains unverified. Dispatch was disabled again
+after the test; see [the verification record](docs/family-calls.md#first-consented-live-smoke--2026-10-18-utc)
+for limitations, including an ambiguous closing response incorrectly treated as a
+callback request.
 No separate voice-processing/backend deployment is required.
 
 Approved flow: persisted incident → validated Gemini explanation → family-safe
@@ -906,8 +918,9 @@ change; finalize bounded JSON Schema/DTOs before implementation):
   "explanation_source": "gemini",
   "event_type": "inference_result",
   "room_label": "Room 102",
+  "resident_name": "Demo Resident 102",
   "detected_at": "2026-10-17T14:32:06-07:00",
-  "family_summary": "A sensor result was recorded for Room 102. The resident's condition has not been confirmed.",
+  "family_summary": "A sensor result was recorded for Demo Resident 102 in Room 102. Their condition has not been confirmed.",
   "resident_condition": "unknown",
   "staff_response": "not_confirmed",
   "recipient_name": "Sarah",
@@ -921,6 +934,15 @@ possible-fall description needs a documented supported fact and explicit review.
 The projection never copies score-bearing operator prose. Its provenance references
 the persisted explanation; a deterministic fallback must not be labeled Gemini.
 Do not fabricate an explanation or imply Gemini ran when output is absent.
+
+New call reviews include the fictional resident's saved display label from the
+patient assigned at detection time. Freeze it with the approved context and show
+it to the operator, separately from the recipient name. Disclose it only after
+recipient verification; the agent can then answer who the incident concerns.
+Do not substitute the room's current occupant or invent a missing name. Historical
+contexts without a resident name remain readable; new previews reject missing or
+overlong labels. This adds notification context only, leaving sensing and Gemini
+explanation schemas unchanged.
 
 ElevenLabs Agents manages speech and conversation. Its conversational LLM is
 configurable; Gemini Flash is preferred pending supported-model/configuration
@@ -975,9 +997,11 @@ represent a fictional family member. Mocks never establish a real call.
 
 ### Provider configuration and evidence boundary
 
-Planned server-only Railway configuration (not yet consumed by application code):
+Server-only Railway configuration consumed by backend code. Dispatch defaults off
+and requires explicit enablement after provider setup is verified:
 
 ```env
+NOTIFICATION_CALLS_ENABLED=false
 ELEVENLABS_API_KEY=
 ELEVENLABS_AGENT_ID=
 ELEVENLABS_PHONE_NUMBER_ID=
@@ -1043,9 +1067,11 @@ No current sponsor website rules or supported-model catalog were verified here.
 ## 23. API Contracts
 
 The following routes define the target API. Slice 2 implements room metadata,
-incident history/detail and device status reads. Other routes remain proposed;
-incident mutation, family contacts, notification calls, ElevenLabs and Photon are
-not implemented. Gemini explanation reads are
+incident history/detail and device status reads. Additional target routes remain proposed.
+Incident-action and family-contact/call APIs are now implemented in backend source,
+with shared schemas and synthetic-provider tests. Hosted contact/review APIs are
+verified with dispatch disabled; frontend controls and real ElevenLabs/Photon calling
+remain unverified. Gemini explanation reads are
 implemented with the additive opt-in described below. The shared incident DTO
 is in packages/contracts/schemas/incident.json, with generated TypeScript and
 runtime validation for frontend handoff. No separate frontend-owner review is claimed.
@@ -1069,7 +1095,7 @@ and reconnect. This is not a durable notification queue.
 Chace finalizes response bodies and authenticated demo policies with Emilia before
 implementation. Existing REST paths are retained; `/operator/` is a domain label,
 not an alternative API namespace. Supabase Auth and facility membership protect
-all operator routes. Health/liveness is public; the planned provider webhook uses
+all operator routes. Health/liveness is public; the provider webhook uses
 provider-signature authentication instead of an operator JWT.
 
 | Method/path | Behavior |
@@ -1078,19 +1104,22 @@ provider-signature authentication instead of an operator JWT.
 | `GET /api/operator/rooms/:id` | Demo room/device detail and recent incident references |
 | `GET /api/operator/incidents` | Filtered demo history; proposed cursor pagination, default 25/max 100 |
 | `GET /api/operator/incidents/:id` | Facts, lifecycle, explanation, notes and allowed notification history |
-| `PATCH /api/operator/incidents/:id` | Authorized operator state transition, disposition or note |
+| `PATCH /api/operator/incidents/:id` | Authorized operator state transition, disposition or note with revision/idempotency checks |
+| `GET /api/operator/incidents/:id/workflow` | Current revision, next allowed lifecycle state/add-note action, disposition, notes and historical patient; preserves existing strict incident DTOs |
 | `GET /api/devices/status` | Authorized demo device/serial/model/network health; no secrets |
 | `GET /api/operator/family-contacts` | Authorized contacts filtered by facility and fictional patient; private destination access is scoped |
 | `PUT /api/operator/family-contacts/:id` | Configure/update a consented primary patient contact; validate E.164, facility/patient association, consent and revision |
+| `POST /api/operator/incidents/:id/notifications/preview` | Ten-minute server-built review snapshot of recipient/context/opening/policy; returns dispatch availability |
 | `POST /api/operator/incidents/:id/notifications` | Explicitly authorize and queue a call using reviewed contact/context/opening/policy and expected revision; no arbitrary destination |
 | `GET /api/operator/incidents/:id/notifications` | Authorized call attempts, transport and notification-spoken evidence, optional callback request and bounded summary |
 | `POST /api/webhooks/elevenlabs` | Provider-signature/timestamp authentication, validated correlation and durable callback deduplication; no operator JWT |
 | `GET /api/operator/stream` | Superseded proposal; use demo-scoped Supabase Realtime instead, not a second required stream |
 
-All contact/call/webhook routes above are planned. Finalize shared JSON Schemas
-with Chace/Emilia before implementation. Contact PUT must define intentional creation
-with a client-generated ID or update semantics; never silently upsert an ID from a
-different facility. Call initiation references a server-validated reviewed snapshot
+Shared contact/call JSON Schemas now live in packages/contracts/schemas. Frontend
+owner integration/review is pending; the backend implementation/handoff is documented
+in docs/family-calls.md. Contact PUT intentionally creates a client-generated UUID
+with expected_revision=0 or updates the same facility/patient at its current revision.
+Never silently upsert an ID from a different facility. Call initiation references a server-validated reviewed snapshot
 and expected revision, with an idempotency key. Reusing a key with changed content
 is a conflict. Return durable queued authorization, not a claim of successful speech.
 Freeze backend-validated facts rather than trusting browser-supplied context. Reads
@@ -1106,7 +1135,14 @@ Proposed mutation example:
 Require demo-only object access, allowed state transitions, optimistic revision
 checks, audit and idempotency for mutations. Require a verified Supabase Auth JWT and facility membership.
 Audit the account subject; do not claim individual staff identity for a shared login.
-A retry must not duplicate a note or notification. A successful incident response includes ID, room,
+Calling remains disabled unless NOTIFICATION_CALLS_ENABLED=true and all required
+provider variables are configured. Credential presence alone never enables it.
+The backend currently records terminal transport/callback metadata but does not
+infer connected/notification-spoken proof from transcripts or analysis; actual
+provider mapping is an explicit remaining integration gate. Agent policy family-call-v2
+forbids callback timing/fulfillment promises; see docs/family-calls.md for provider
+configuration and real-model text-simulation evidence. No success is claimed
+without that evidence. A retry must not duplicate a note or notification. A successful incident response includes ID, room,
 status, revision, detection/receipt times, explanation status and allowed actions;
 final detailed response schemas remain proposed and require Chace/Emilia agreement.
 
@@ -1351,8 +1387,9 @@ The previous dataset-access 404 observation has not been retested by this work.
 | [Dockerfile](Dockerfile), [compose.yaml](compose.yaml) | Node/pnpm toolchain and disposable PostgreSQL validation; no host Node needed |
 | [.github/workflows/ci.yml](.github/workflows/ci.yml) | Docker foundation workflow; writing it is not evidence of a remote CI run |
 | Firmware, dataset, training, QNX runtime/model | Not implemented/verified in this repository; no data downloaded or training started |
-| [apps/backend/src/explanations](apps/backend/src/explanations) | Durable leased worker, constrained Gemini output, retry/fallback and atomic publication; live model/local Realtime verified; hosted rollout pending |
-| Incident actions, family contacts, call authorization/jobs, ElevenLabs/Photon and call evidence | Planned later slices; no tables/APIs or working provider integration claimed by this delta |
+| [apps/backend/src/explanations](apps/backend/src/explanations) | Durable leased worker, constrained Gemini output, retry/fallback and atomic publication; real Gemini with local and hosted synthetic Supabase/Realtime verified |
+| [apps/backend/src/notifications](apps/backend/src/notifications), [docs/family-calls.md](docs/family-calls.md) | Contact configuration, reviewed snapshots, transactional approval/attempts, incident actions, disabled-by-default dispatcher and signed normalized callbacks; hosted contact/review APIs verified with dispatch disabled; frontend controls and actual calling pending |
+| Actual ElevenLabs agent, Photon SIP and connected/notification-spoken evidence mapping | Unverified and dependent on provider access/configuration; no real call made |
 | [tools/simulator](tools/simulator) | Canonical-fixture synthetic device client with stable retry IDs and bounded retries; not QNX evidence |
 | [compose.realtime.yaml](compose.realtime.yaml) | Isolated PostgreSQL + official Supabase Realtime test service with synthetic signed identities; never production |
 | [apps/backend/Dockerfile](apps/backend/Dockerfile), [railway.json](railway.json), [vercel.json](vercel.json) | Deployment setup artifacts; build validation is not hosted deployment or DNS/TLS verification |
@@ -1368,9 +1405,9 @@ remains future full-system integration criteria. Local Slice 2 acceptance passed
 for simulator ingestion → one durable incident → authorized REST and actual
 Supabase Realtime delivery, with duplicate and no-membership exclusion checks.
 See docs/gemini-pipeline.md for the later live-model/local database and Realtime
-verification and hosted rollout boundary. See docs/slice-2.md for local test scope and results, and
+verification and the separate hosted rollout record. See docs/slice-2.md for local test scope and results, and
 docs/deployment-verification.md for the separate hosted evidence. The hosted
-project uses fictional residents and two staged synthetic events, not live sensing.
+project uses fictional residents and staged synthetic events, not live sensing.
 
 ## 30. Open Questions and Decisions
 
@@ -1382,8 +1419,8 @@ project uses fictional residents and two staged synthetic events, not live sensi
 | LiteRT/TFLite versus ONNX and artifact host/checksum/configuration format | Chloe |
 | Separate optional Veri model/path compatibility, licenses, challenge rules and documented training/submission evidence | Chloe/Chace + Veri mentor |
 | Railway operational limits and failure behavior beyond the hosted synthetic check; remaining lifecycle/API/authorization interfaces | Chace + Emilia |
-| Hosted worker rollout and broader load/failure measurements; local lease/retry/recovery behavior is implemented and tested | Chace |
-| Gemini hosted rollout, broader evaluation, provider limits and retention; initial model and constrained prompt recorded in docs/gemini-pipeline.md | Chace |
+| Broader hosted load/failure measurements; synthetic hosted Gemini flow and local lease/retry/recovery checks are verified | Chace |
+| Gemini broader evaluation, provider limits and retention; hosted synthetic rollout verified and model/prompt recorded in docs/gemini-pipeline.md | Chace |
 | Remaining Paper screen completion/approval, matching React/Vite implementation and visual comparison; full dashboard/workflow and accessibility validation | Emilia + Chace |
 | Static room-layout DTO/coordinate units and historical patient-assignment presentation; no localization inferred | Emilia + Chace |
 | Voice/Photon lead, exact SIP product/trunk/number, ElevenLabs agent/LLM, runtime context limits and consented live test | Team assigns lead + Photon/ElevenLabs mentors |

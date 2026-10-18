@@ -64,3 +64,23 @@ The deployed dashboard is a provisional integration shell. Paper remains the
 required frontend design tool: link its document/screens, implement those designs
 in `apps/web`, and compare the resulting UI with the references. No Paper artifact,
 handoff or design parity was verified by these deployment checks.
+
+## Hosted Gemini rollout — 2026-10-18 UTC
+
+The approved demo was inspected with only the first two migration versions present
+and two pending explanation jobs. A private snapshot of schema/migration/job state
+was saved before applying only `20261018001000_explanations.sql`; its migration
+version was recorded atomically. Existing records and jobs were preserved.
+
+Railway received the existing server-only Gemini key and explicit
+`GEMINI_MODEL=gemini-3.5-flash-lite`. Its deployment succeeded and both existing
+pending jobs completed. A fresh canonical synthetic event
+`synthetic_hosted_gemini_1792289786231` then received an accepted durable ACK, one
+incident, a ready explanation with actual Gemini provenance/model and
+`grounded-phrasing-v1`, an authorized REST read and actual hosted Supabase Realtime
+UPDATE. Identical retransmission returned duplicate ACK for the same incident.
+
+This verifies the hosted synthetic Gemini path, not physical QNX/CSI accuracy,
+Paper design parity, incident actions or ElevenLabs/Photon. No phone call was
+placed. Detailed private receipts remain in the ignored local verification folder;
+no credentials, phone numbers or provider response bodies are included here.

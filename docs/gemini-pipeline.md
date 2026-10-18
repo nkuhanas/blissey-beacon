@@ -93,6 +93,13 @@ physical QNX integration, model accuracy, Paper design parity or Photon.
 
 ## Hosted rollout
 
+Completed against the approved demo on 2026-10-18 UTC: the third migration was
+recorded, Railway's key/model configured, and a fresh synthetic event produced a
+real Gemini explanation with authorized REST and hosted Realtime update. See the
+[verification record](deployment-verification.md#hosted-gemini-rollout--2026-10-18-utc).
+The procedure below remains the rollout reference; do not reapply recorded migrations.
+
+
 1. Review and back up the approved demo project. Apply only the new
    `20261018001000_explanations.sql` after the existing two migrations and record its
    version. Do not rerun seed/reset scripts or earlier migrations.
