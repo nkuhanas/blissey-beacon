@@ -119,5 +119,6 @@ overview card clears after sixty seconds; its history entry remains until reset.
 
 The demonstration facility is labeled **James West Alumni Center at UCLA**.
 Residents and the illustrated room layout remain fictional. Pending possible-fall
-alerts show a persistent review banner and slow pulsing card/map outlines. The
+alerts show a flashing berry/red review banner with a sweeping highlight, a
+pulsing signal header and stronger card/map halos on a 1.8-second cycle. The
 pulse stops after acknowledgment and is disabled for reduced-motion preferences.
