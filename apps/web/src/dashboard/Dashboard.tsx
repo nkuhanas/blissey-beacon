@@ -3,7 +3,6 @@ import type { FormEvent, ReactNode } from "react";
 import logo from "../../../../design/brand/blissey-beacon-logo-v1.png";
 import { Icon } from "./Icon";
 import { FacilityMap } from "./FacilityMap";
-import { SummaryCards } from "./SummaryCards";
 import { SensorHistory } from "./SensorHistory";
 import { MoonlitBackground, MoonlitHills } from "./MoonlitDecor";
 import moonlitLogo from "../../../../design/brand/blissey-beacon-moonlit-mark.png";
@@ -13,12 +12,13 @@ import type { Contact, DemoIncident, DemoRoom, Scenario } from "./model";
 import "./dashboard.css";
 import "./refinement.css";
 import "./moonlit.css";
+import "./workspace.css";
 
 type View = "overview" | "residents" | "history" | "devices";
 const navigation: { id: View; label: string }[] = [
   { id: "overview", label: "Overview" },
   { id: "residents", label: "Residents" },
-  { id: "history", label: "Incident history" },
+  { id: "history", label: "History" },
   { id: "devices", label: "Devices" },
 ];
 function Status({
@@ -304,7 +304,7 @@ export function Dashboard() {
   const room = state.rooms.find((r) => r.id === selected)!;
   const incident = state.incident?.roomId === selected ? state.incident : null;
   const active = state.incident && state.incident.status !== "resolved" ? 1 : 0;
-  const online = state.rooms.filter((r) => r.online).length;
+  const offline = state.rooms.filter((r) => !r.online);
   const sorted = [...state.rooms].sort((a, b) => {
     const rank = (r: DemoRoom) =>
       state.incident?.roomId === r.id && active ? 0 : !r.online ? 1 : 2;
@@ -336,17 +336,46 @@ export function Dashboard() {
       data-attention={
         incident && incident.status !== "resolved" ? true : undefined
       }
+      data-state={incident?.status ?? (!room.online ? "offline" : "monitoring")}
       ref={detailRef}
       tabIndex={-1}
       aria-labelledby="resident-title"
     >
-      <div className="section-heading">
+      <div className="section-heading incident-signal">
+        <span className="signal-icon" aria-hidden="true">
+          <Icon
+            name={
+              incident
+                ? incident.status === "resolved"
+                  ? "check"
+                  : "alert"
+                : !room.online
+                  ? "offline"
+                  : "residents"
+            }
+            size={18}
+          />
+        </span>
         <p className="eyebrow">
           {incident && incident.status !== "resolved"
-            ? "Needs attention"
-            : "Resident detail"}
+            ? incident.status === "pending"
+              ? "Needs attention"
+              : "Active incident"
+            : !room.online
+              ? "Monitoring interrupted"
+              : "Resident detail"}
         </p>
-        {incident && <span className="small muted">{incident.status}</span>}
+        {incident && (
+          <span className="incident-status">
+            {incident.status === "pending"
+              ? "Needs review"
+              : incident.status === "acknowledged"
+                ? "Acknowledged"
+                : incident.status === "responding"
+                  ? "Responding"
+                  : "Resolved"}
+          </span>
+        )}
       </div>
       <div className="resident-heading">
         <span className="avatar">
@@ -363,12 +392,15 @@ export function Dashboard() {
         </div>
       </div>
       {!room.online && (
-        <div className="notice">
-          <strong>Monitoring interrupted</strong>
+        <div className="notice monitoring-notice">
+          <strong>
+            <Icon name="offline" size={16} /> Sensor offline
+          </strong>
           <p>
             No current sensing data. Check the device connection. Last staged
             data: 2:25 PM.
           </p>
+          <p>Room status cannot be confirmed while the sensor is offline.</p>
         </div>
       )}
       {incident ? (
@@ -406,41 +438,26 @@ export function Dashboard() {
               </p>
             </div>
           )}
-          <div className="actions">
+          {incident.status !== "resolved" && (
             <button
-              className="primary"
-              disabled={incident.status !== "pending"}
+              className="primary full incident-next-action"
               onClick={() => {
-                dispatch({ type: "advance", status: "acknowledged" });
-                setAnnouncement("Demo incident acknowledged.");
+                const next =
+                  incident.status === "pending"
+                    ? "acknowledged"
+                    : incident.status === "acknowledged"
+                      ? "responding"
+                      : "resolved";
+                dispatch({ type: "advance", status: next });
+                setAnnouncement(`Demo incident marked ${next}.`);
               }}
             >
-              Acknowledge
-            </button>
-            <button
-              disabled={incident.status !== "acknowledged"}
-              onClick={() => {
-                dispatch({ type: "advance", status: "responding" });
-                setAnnouncement("Demo incident marked responding.");
-              }}
-            >
-              Mark responding
-            </button>
-          </div>
-          {incident.status === "pending" && (
-            <p className="small muted">
-              Acknowledge before marking responding.
-            </p>
-          )}
-          {incident.status === "responding" && (
-            <button
-              className="full"
-              onClick={() => {
-                dispatch({ type: "advance", status: "resolved" });
-                setAnnouncement("Demo incident resolved.");
-              }}
-            >
-              Resolve incident
+              {incident.status === "pending"
+                ? "Acknowledge incident"
+                : incident.status === "acknowledged"
+                  ? "Mark responding"
+                  : "Resolve incident"}
+              <Icon name="arrow" size={16} />
             </button>
           )}
           {incident.status !== "resolved" && (
@@ -455,66 +472,71 @@ export function Dashboard() {
             </button>
           )}
         </>
-      ) : (
+      ) : room.online ? (
         <div className="quiet">
           <Status room={room} incident={null} />
-          <p>
-            {room.online
-              ? "No active incident in this staged scenario."
-              : "Room status cannot be confirmed while the sensor is offline."}
-          </p>
-          <p className="small muted">
-            Last staged data: {room.online ? "2:32 PM" : "2:25 PM"}
-          </p>
+          <p>No active incident in this staged scenario.</p>
+          <p className="small muted">Last staged data: 2:32 PM</p>
         </div>
-      )}
-      <div className="contact-section">
-        <div className="section-heading">
-          <h3>Family contact</h3>
-          <button className="compact" onClick={() => setModal("contact")}>
-            {room.contact ? "Edit" : "Add"}
-            <span className="sr-only"> family contact for {room.resident}</span>
+      ) : null}
+      <details className="contact-section" key={room.id}>
+        <summary>
+          Family notification
+          <span className="small muted">
+            {room.contact?.name ?? "No contact saved"}
+          </span>
+        </summary>
+        <div className="contact-content">
+          <div className="section-heading">
+            <h3>Family contact</h3>
+            <button className="compact" onClick={() => setModal("contact")}>
+              {room.contact ? "Edit" : "Add"}
+              <span className="sr-only">
+                {" "}
+                family contact for {room.resident}
+              </span>
+            </button>
+          </div>
+          {room.contact ? (
+            <>
+              <dl className="facts">
+                <div>
+                  <dt>Name</dt>
+                  <dd>{room.contact.name}</dd>
+                </div>
+                <div>
+                  <dt>Contact information</dt>
+                  <dd>Phone ending {room.contact.phone.slice(-4)}</dd>
+                </div>
+              </dl>
+              <p
+                className={`status ${room.contact.consent ? "monitoring" : "offline"}`}
+              >
+                <Icon name={room.contact.consent ? "check" : "close"} />
+                {room.contact.consent
+                  ? "Agreed to receive calls"
+                  : "Consent not granted"}
+              </p>
+            </>
+          ) : (
+            <p className="muted">No family contact saved.</p>
+          )}
+          <button
+            className="full"
+            disabled={!canReviewCall(room, incident)}
+            onClick={() => setModal("call")}
+          >
+            Review notification <Icon name="arrow" size={16} />
           </button>
+          <p className="small muted">
+            {!incident
+              ? "A recorded incident is needed to review a notification."
+              : !room.contact?.consent
+                ? "Save a contact with consent before reviewing a notification."
+                : "Review the recipient, context and opening before authorizing. Nothing sends automatically."}
+          </p>
         </div>
-        {room.contact ? (
-          <>
-            <dl className="facts">
-              <div>
-                <dt>Name</dt>
-                <dd>{room.contact.name}</dd>
-              </div>
-              <div>
-                <dt>Contact information</dt>
-                <dd>Phone ending {room.contact.phone.slice(-4)}</dd>
-              </div>
-            </dl>
-            <p
-              className={`status ${room.contact.consent ? "monitoring" : "offline"}`}
-            >
-              <Icon name={room.contact.consent ? "check" : "close"} />
-              {room.contact.consent
-                ? "Agreed to receive calls"
-                : "Consent not granted"}
-            </p>
-          </>
-        ) : (
-          <p className="muted">No family contact saved.</p>
-        )}
-        <button
-          className="full"
-          disabled={!canReviewCall(room, incident)}
-          onClick={() => setModal("call")}
-        >
-          Review notification <Icon name="arrow" size={16} />
-        </button>
-        <p className="small muted">
-          {!incident
-            ? "A recorded incident is needed to review a notification."
-            : !room.contact?.consent
-              ? "Save a contact with consent before reviewing a notification."
-              : "Review the recipient, context and opening before authorizing. Nothing sends automatically."}
-        </p>
-      </div>
+      </details>
       {incident && (
         <details className="incident-details">
           <summary>Timeline, notes & event details</summary>
@@ -558,7 +580,7 @@ export function Dashboard() {
   );
   return (
     <div
-      className={`dashboard ${refined ? "conservatory" : ""} ${moonlit ? "moonlit" : ""}`}
+      className={`dashboard compact-workspace ${refined ? "conservatory" : ""} ${moonlit ? "moonlit" : ""}`}
     >
       <a className="skip-link" href="#dashboard-main">
         Skip to dashboard
@@ -631,15 +653,6 @@ export function Dashboard() {
               <MoonlitHills />
             </div>
           )}
-          <p>
-            <Icon name="shield" size={16} />
-            Camera-free by design
-          </p>
-          <p>
-            Experimental demo
-            <br />
-            Fictional residents & events
-          </p>
           <a href="/?operator=1">
             Operator sign-in <Icon name="arrow" size={16} />
           </a>
@@ -651,76 +664,92 @@ export function Dashboard() {
             <MoonlitBackground />
           </div>
         )}
-        <div className="demo-toolbar">
-          <span>
-            <strong>Interactive demo</strong> · Fictional data. No calls or live
-            sensing.
-          </span>
-          <button className="compact" onClick={() => reset(scenario)}>
-            Reset demo
-          </button>
-        </div>
-        <header className="topbar">
-          <div className={online < 6 ? "notice" : "quiet"}>
-            <strong>
-              {online < 6 ? "Monitoring interrupted" : "Monitoring"}
-            </strong>
-            <span>
-              {online} of 6 staged devices connected
-              {online === 5 ? " · Room 106 offline" : ""}
-            </span>
-          </div>
-          <span className="workspace-label">Demo workspace</span>
-        </header>
-        <div className="page-heading">
-          {refined && (
-            <>
-              <p className="workspace-eyebrow">
-                CARE WORKSPACE /{" "}
-                {String(
-                  navigation.findIndex((n) => n.id === view) + 1,
-                ).padStart(2, "0")}
+        <header className="workspace-header">
+          <div className="page-heading">
+            <div className="workspace-title">
+              <h1>
+                {view === "overview"
+                  ? "Overview"
+                  : view === "history"
+                    ? "Incident history"
+                    : navigation.find((n) => n.id === view)!.label}
+              </h1>
+              <p className="facility-label">
+                Willow House <span>/ Ground floor</span>
               </p>
-              <img
-                className="header-ornament"
-                src={branch}
-                alt=""
-                aria-hidden="true"
-                width="210"
-                height="158"
-              />
-            </>
-          )}
-          <div>
-            <h1>
-              {navigation.find((n) => n.id === view)!.label === "Overview"
-                ? "Facility overview"
-                : navigation.find((n) => n.id === view)!.label}
-            </h1>
-            <p className="muted">
-              Willow House · Ground floor · Fictional demo data
+            </div>
+            <p className="demo-toolbar">
+              <span>
+                <strong>Interactive demo</strong> · Fictional data. No live
+                sensing or calls.
+              </span>
             </p>
           </div>
-          <label className="scenario-label">
-            Demo scenario
-            <select
-              value={scenario}
-              onChange={(e) => reset(e.target.value as Scenario)}
+          {refined && (
+            <img
+              className="header-ornament"
+              src={branch}
+              alt=""
+              aria-hidden="true"
+              width="160"
+              height="120"
+            />
+          )}
+          <div className="workspace-tools">
+            <label className="scenario-label" htmlFor="demo-scenario">
+              Scenario
+              <select
+                id="demo-scenario"
+                aria-label="Scenario"
+                value={scenario}
+                onChange={(e) => reset(e.target.value as Scenario)}
+              >
+                <option value="attention">Possible fall · Pending</option>
+                <option value="ready">Sample explanation</option>
+                <option value="fallback">Explanation unavailable</option>
+                <option value="offline">All devices offline</option>
+                <option value="empty">No incidents</option>
+              </select>
+            </label>
+            <button
+              className="compact"
+              onClick={() => reset(scenario)}
+              aria-label="Reset demo"
             >
-              <option value="attention">Possible fall · Pending</option>
-              <option value="ready">Sample explanation</option>
-              <option value="fallback">Explanation unavailable</option>
-              <option value="offline">All devices offline</option>
-              <option value="empty">No incidents</option>
-            </select>
-          </label>
+              Reset
+            </button>
+          </div>
+        </header>
+        <div className="status-strip" aria-label="Facility status">
+          <span className={`status-metric ${active ? "attention" : ""}`}>
+            <Icon name={active ? "alert" : "check"} size={16} />
+            <strong>
+              {active} active {active === 1 ? "incident" : "incidents"}
+            </strong>
+          </span>
+          <button
+            className={`status-metric device-warning ${offline.length ? "has-fault" : ""}`}
+            onClick={() => {
+              setView("devices");
+              setMenuOpen(false);
+            }}
+          >
+            <Icon name={offline.length ? "offline" : "wifi"} size={16} />
+            <span>
+              <strong>
+                {offline.length} offline{" "}
+                {offline.length === 1 ? "device" : "devices"}
+              </strong>
+              {offline.length === 1 ? ` · Room ${offline[0]!.id}` : ""}
+            </span>
+            <Icon name="arrow" size={14} />
+          </button>
+          <span className="status-metric">
+            <Icon name="overview" size={16} />
+            <strong>{state.rooms.length} rooms</strong>
+          </span>
+          <span className="last-update">Last staged data · 2:32 PM</span>
         </div>
-        <SummaryCards
-          total={state.rooms.length}
-          active={active}
-          online={online}
-          refined={refined}
-        />
         {(view === "overview" || view === "residents") && (
           <div className="overview-grid">
             <div className="facility-column">
@@ -732,36 +761,69 @@ export function Dashboard() {
                   onSelect={selectRoom}
                 />
               )}
-              <section
-                className="room-list panel"
-                aria-labelledby="rooms-title"
-              >
-                <div className="section-heading">
-                  <h2 id="rooms-title">All rooms · 6</h2>
-                  <span className="small muted">Priority first</span>
-                </div>
-                {sorted.map((r) => (
-                  <button
-                    key={r.id}
-                    className={`room-row ${r.id === selected ? "selected" : ""}`}
-                    aria-pressed={r.id === selected}
-                    onClick={() => selectRoom(r.id)}
-                  >
-                    <span className="room-number">{r.id}</span>
-                    <span className="room-person">
-                      <strong>{r.resident}</strong>
-                      <Status room={r} incident={state.incident} />
-                    </span>
-                    <Icon name="arrow" size={18} />
-                  </button>
-                ))}
-              </section>
+              {view === "residents" && (
+                <section
+                  className="room-list panel"
+                  aria-labelledby="rooms-title"
+                >
+                  <div className="section-heading">
+                    <h2 id="rooms-title">Room directory</h2>
+                    <span className="small muted">Priority first</span>
+                  </div>
+                  <div className="room-table-scroll">
+                    <table className="room-table">
+                      <caption className="sr-only">
+                        Fictional rooms, residents, monitoring status and last
+                        staged data. Select a room to view details.
+                      </caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">Room</th>
+                          <th scope="col">Resident</th>
+                          <th scope="col">Status</th>
+                          <th scope="col" className="last-seen">
+                            Last data
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sorted.map((r) => (
+                          <tr
+                            key={r.id}
+                            data-selected={r.id === selected || undefined}
+                          >
+                            <th scope="row">
+                              <button
+                                className="room-select"
+                                aria-pressed={r.id === selected}
+                                aria-label={`Select room ${r.id}, ${r.resident}`}
+                                onClick={() => selectRoom(r.id)}
+                              >
+                                {r.id}
+                              </button>
+                            </th>
+                            <td>
+                              {r.resident}
+                              <span className="mobile-last-seen">
+                                {r.online ? "2:32 PM" : "2:25 PM"}
+                              </span>
+                            </td>
+                            <td>
+                              <Status room={r} incident={state.incident} />
+                            </td>
+                            <td className="last-seen">
+                              {r.online ? "2:32 PM" : "2:25 PM"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              )}
             </div>
             {moonlit ? (
-              <div className="dashboard-right-column">
-                {detail}
-                {view === "overview" && <SensorHistory rooms={state.rooms} />}
-              </div>
+              <div className="dashboard-right-column">{detail}</div>
             ) : (
               detail
             )}
@@ -810,32 +872,36 @@ export function Dashboard() {
           </section>
         )}
         {view === "devices" && (
-          <section className="panel">
-            <h2>Device connections</h2>
-            <p className="muted">
-              Illustrative device health, not a connection to your Raspberry Pi.
-            </p>
-            <div className="device-list">
-              {state.rooms.map((r) => (
-                <div key={r.id} className="device-row">
-                  <Icon name="devices" />
-                  <div>
-                    <strong>{r.device}</strong>
-                    <p className="small muted">
-                      Room {r.id} · Last staged data{" "}
-                      {r.online ? "2:32 PM" : "2:25 PM"}
-                    </p>
+          <div className="devices-grid">
+            <section className="panel">
+              <h2>Device connections</h2>
+              <p className="muted">
+                Illustrative device health, not a connection to your Raspberry
+                Pi.
+              </p>
+              <div className="device-list">
+                {state.rooms.map((r) => (
+                  <div key={r.id} className="device-row">
+                    <Icon name="devices" />
+                    <div>
+                      <strong>{r.device}</strong>
+                      <p className="small muted">
+                        Room {r.id} · Last staged data{" "}
+                        {r.online ? "2:32 PM" : "2:25 PM"}
+                      </p>
+                    </div>
+                    <span
+                      className={`status ${r.online ? "monitoring" : "offline"}`}
+                    >
+                      <Icon name={r.online ? "check" : "offline"} size={16} />
+                      {r.online ? "Connected" : "Offline"}
+                    </span>
                   </div>
-                  <span
-                    className={`status ${r.online ? "monitoring" : "offline"}`}
-                  >
-                    <Icon name={r.online ? "check" : "offline"} size={16} />
-                    {r.online ? "Connected" : "Offline"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </section>
+                ))}
+              </div>
+            </section>
+            {moonlit && <SensorHistory rooms={state.rooms} />}
+          </div>
         )}
         <p className="sr-only" role="status" aria-live="polite">
           {announcement}

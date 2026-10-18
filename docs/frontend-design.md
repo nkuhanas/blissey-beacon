@@ -108,6 +108,55 @@ checks. Sponsor eligibility and award submission requirements were not verified.
 
 ## Run and explore the interactive demo
 
+All dashboard tabs share one compact header row containing the title, facility,
+demo notice, botanical ornament and scenario controls, with no separate notice
+row. The header reflows on narrow screens. A single status strip shows active
+incidents, offline devices, room count and last staged data time. The offline
+device indicator opens Devices. The sidebar keeps the moonlit logo and landscape,
+uses shorter navigation labels, and has no independent scrollbar. At short
+desktop heights it scrolls with the page so every navigation item remains reachable.
+The botanical header ornament and the existing palette and typography remain.
+The workspace fills the browser without an outer framed card, corner rounding or
+exterior margins; content keeps internal spacing.
+
+Unacknowledged possible-fall incidents use a burgundy banner, an explicit
+"Needs review" badge, a stronger callout heading and a matching primary action.
+The active incident count echoes that priority. Acknowledged/responding incidents
+use a softer treatment; resolved incidents use a sage header. Monitoring faults
+use quieter amber surfaces and an offline icon, including the device indicator
+and affected room detail. Status text and symbols distinguish these states in
+addition to color. Visual emphasis does not confirm that a fall or injury occurred.
+
+Overview retains the original illustrated facility map beside the selected room's
+incident card, with their top edges aligned. The map title and zoom controls sit
+over the map; controls stay in place when its illustration scrolls. The map
+supports mouse, pen and touch grab-and-drag panning in both directions,
+including at 100% zoom, with 240 CSS pixels of canvas beyond each illustration
+edge. A fixed viewport keeps zoom from expanding the page. Zoom preserves the
+view center; Reset map view restores 100% and the initial map position. A small
+movement threshold distinguishes dragging from room selection. Keyboard room
+activation, native scrolling and arrow-key panning remain available. Pointer
+cancellation and capture loss release the grabbing state. Browser checks cover
+dragging across rooms without selecting them, pointer jitter, dragging outside
+the viewport, cancellation, reset, zoom anchoring and emulated touch gestures.
+
+The room directory is only in Residents, with aligned room, resident, status and
+last-data columns. Device check-in history is only in Devices. Incident detail presents the
+next valid lifecycle action, with family notification and timeline details
+expandable underneath. This local iteration follows the owner's direction to
+stop Paper work; it is not a new Paper export.
+
+At narrow widths the incident appears before the map. The floor plan scrolls
+within its own region to preserve readable room labels. Browser checks at 320,
+390, 768, 1024, 1280 and 1440 CSS pixels verified no page-level horizontal overflow,
+room selection, staged incident actions, contact-dialog access, scenario changes
+and navigation. All four tabs also passed shared-shell dimension comparisons at
+these widths, including the mobile navigation menu. Desktop checks verify that
+the map and incident card are flush at the top, the zoom controls sit inside the
+map, and the directory and check-in history appear only in their respective tabs.
+These checks use fictional in-memory fixtures, with no provider calls or backend
+requests.
+
 No Supabase account, backend, hardware or environment secrets are needed for demo
 mode. With Docker and Compose installed, from the repository root:
 

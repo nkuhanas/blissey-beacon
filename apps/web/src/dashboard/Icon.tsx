@@ -14,6 +14,8 @@ export function Icon({ name, size = 20 }: { name: string; size?: number }) {
     menu: "M4 6h16 M4 12h16 M4 18h16",
     close: "m6 6 12 12 M6 18 18 6",
     arrow: "M4 12h16 m-6-6 6 6-6 6",
+    center:
+      "M8 3H3v5 M16 3h5v5 M3 16v5h5 M21 16v5h-5 M12 8a4 4 0 1 0 0 8a4 4 0 0 0 0-8",
   };
   return (
     <svg

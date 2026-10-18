@@ -4,10 +4,41 @@
 .map-section > .section-heading p {
   margin-top: 4px;
 }
+.floorplan-shell {
+  position: relative;
+  min-width: 0;
+}
+.map-heading {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+  pointer-events: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #fcfaf6ed;
+}
+.dashboard .map-heading h2 {
+  font-size: 20px;
+  line-height: 24px;
+}
+.dashboard .map-heading p {
+  font-size: 11px;
+  line-height: 16px;
+}
 .map-zoom {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 4px;
+  border: 1px solid #d6cdd3;
+  border-radius: 10px;
+  background: #fcfaf6f2;
+  box-shadow: 0 2px 8px #352b3410;
 }
 .map-zoom > span {
   min-width: 42px;
@@ -49,12 +80,33 @@
 }
 .floorplan-viewport {
   overflow: auto;
+  aspect-ratio: 5 / 4;
   border: 1px solid #d6cdd3;
   border-radius: 16px;
   background: #f0f4eb;
+  background-image: radial-gradient(#b6c2ad80 1px, transparent 1px);
+  background-size: 20px 20px;
   padding: 0;
   scrollbar-color: #807781 #e4e9e1;
   scroll-padding: 16px;
+  scrollbar-width: none;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.floorplan-viewport::-webkit-scrollbar {
+  display: none;
+}
+.dashboard .floorplan-viewport .room-hotspot {
+  cursor: grab;
+}
+.floorplan-viewport[data-panning="true"],
+.dashboard .floorplan-viewport[data-panning="true"] .room-hotspot {
+  cursor: grabbing;
+}
+.floorplan-canvas {
+  padding: var(--pan-gutter);
+  min-width: calc(520px + 2 * var(--pan-gutter));
 }
 .floorplan-artwork {
   position: relative;
@@ -164,6 +216,12 @@
   }
   .map-legend {
     gap: 8px 12px;
+  }
+}
+@media (max-width: 480px) {
+  .map-zoom {
+    top: auto;
+    bottom: 12px;
   }
 }
 @container (max-width:800px) {
