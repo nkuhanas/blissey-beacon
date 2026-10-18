@@ -3,9 +3,12 @@ import type { FormEvent, ReactNode } from "react";
 import logo from "../../../../design/brand/blissey-beacon-logo-v1.png";
 import { Icon } from "./Icon";
 import { FacilityMap } from "./FacilityMap";
+import { SummaryCards } from "./SummaryCards";
+import branch from "../../../../design/ornaments/conservatory-branch.svg";
 import { canReviewCall, createDemo, demoReducer, roomStatus } from "./model";
 import type { Contact, DemoIncident, DemoRoom, Scenario } from "./model";
 import "./dashboard.css";
+import "./refinement.css";
 
 type View = "overview" | "residents" | "history" | "devices";
 const navigation: { id: View; label: string }[] = [
@@ -278,6 +281,8 @@ function CallReview({
   );
 }
 export function Dashboard() {
+  const refined =
+    new URLSearchParams(window.location.search).get("style") !== "base";
   const [state, dispatch] = useReducer(demoReducer, undefined, () =>
     createDemo(),
   );
@@ -321,6 +326,9 @@ export function Dashboard() {
   const detail = (
     <section
       className="resident-panel panel"
+      data-attention={
+        incident && incident.status !== "resolved" ? true : undefined
+      }
       ref={detailRef}
       tabIndex={-1}
       aria-labelledby="resident-title"
@@ -542,7 +550,7 @@ export function Dashboard() {
     </section>
   );
   return (
-    <div className="dashboard">
+    <div className={`dashboard ${refined ? "conservatory" : ""}`}>
       <a className="skip-link" href="#dashboard-main">
         Skip to dashboard
       </a>
@@ -624,6 +632,24 @@ export function Dashboard() {
           <span className="workspace-label">Demo workspace</span>
         </header>
         <div className="page-heading">
+          {refined && (
+            <>
+              <p className="workspace-eyebrow">
+                CARE WORKSPACE /{" "}
+                {String(
+                  navigation.findIndex((n) => n.id === view) + 1,
+                ).padStart(2, "0")}
+              </p>
+              <img
+                className="header-ornament"
+                src={branch}
+                alt=""
+                aria-hidden="true"
+                width="210"
+                height="158"
+              />
+            </>
+          )}
           <div>
             <h1>
               {navigation.find((n) => n.id === view)!.label === "Overview"
@@ -648,20 +674,12 @@ export function Dashboard() {
             </select>
           </label>
         </div>
-        <div className="summary-grid" aria-label="Facility summary">
-          <div>
-            <strong>6</strong>
-            <span>Total rooms</span>
-          </div>
-          <div className="summary-alert">
-            <strong>{active}</strong>
-            <span>Active {active === 1 ? "incident" : "incidents"}</span>
-          </div>
-          <div>
-            <strong>{online} / 6</strong>
-            <span>Devices connected</span>
-          </div>
-        </div>
+        <SummaryCards
+          total={state.rooms.length}
+          active={active}
+          online={online}
+          refined={refined}
+        />
         {(view === "overview" || view === "residents") && (
           <div className="overview-grid">
             <div className="facility-column">

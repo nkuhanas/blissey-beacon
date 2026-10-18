@@ -1,6 +1,7 @@
 # Frontend design handoff
 
-Owner: Emilia. Design revision: editorial brand, 2026-10-17.
+Owner: Emilia. Current revision: conservatory refinement, 2026-10-17.
+The editorial base is preserved separately below.
 
 ## Paper source
 
@@ -185,3 +186,62 @@ activation, acknowledged/resolved/offline states and absence of page overflow at
 1440/1024/768/390/320 CSS px. The prior incident/contact/navigation browser checks
 also passed. Paper and browser map screenshots were visually reviewed for
 spacing, typography, contrast, alignment and fit.
+
+## Conservatory refinement and restore points
+
+The user requested a modest visual refinement from supplied dashboard, botanical
+and Blissey references while retaining healthcare readability. The new Paper
+variants are [Dashboard · Conservatory · Desktop](https://app.paper.design/file/01M564RV9F6VTR8FYF26BQB6KX/p-1-0/13F-2)
+and [Dashboard · Conservatory · Mobile](https://app.paper.design/file/01M564RV9F6VTR8FYF26BQB6KX/p-1-0/1EA-2).
+The original editorial desktop/mobile boards were duplicated and left intact.
+
+The refinement adds an original SVG botanical medallion, fine heading rules,
+rounded workspace/navigation surfaces, subtle panel shadows, stronger summary
+labels and an illustrated connectivity ring. The SVG lives in
+`design/ornaments/conservatory-branch.svg`. Paper's computed styles and clean JSX
+were read before implementation in `refinement.css` and `SummaryCards.tsx`.
+The refinement uses the existing palette/type tokens; its variant panel radius is
+18px and workspace radius is 28px. Base token values stay intact for comparison.
+
+Botanical artwork is decorative, hidden from assistive technology and omitted on
+small screens/forced colors. Operational text, active-incident priority, redundant
+status labels/icons, 48px actions, focus behavior and explicit consent/review remain
+unchanged. The ring represents the current device count only, never a resident
+health score. Its value and offline caption derive from the same room fixtures as
+the summary and map. No new sensor activity, clinical status or live call behavior
+is inferred. There is no animation or third-party image dependency.
+
+### Compare or restore
+
+- Current default preview: http://localhost:5173/?demo=1 (use Vite's printed port).
+- Base-style preview: http://localhost:5173/?demo=1&style=base. This preserves the
+  base frontend appearance while using the current code and latest merged backend.
+  Changing preview URLs reloads the page and discards in-memory demo edits.
+- Exact pre-refinement code: Git tag `dashboard-base-v1`, pointing to `6aa9613`.
+  The tag and baseline branch were pushed before design changes.
+- Baseline branch: `codex/interactive-paper-dashboard`, pushed at `4cbeea3`, which
+  merges latest main `0a3dbfb` while preserving the original dashboard.
+- Refinement branch: `codex/dashboard-botanical-refinement`.
+
+To return the checkout to the base after saving any new work:
+
+```sh
+git switch codex/interactive-paper-dashboard
+```
+
+For an independent exact-tag checkout without changing ongoing work:
+
+```sh
+git worktree add --detach ../blissey-dashboard-base dashboard-base-v1
+```
+
+Validation: after the latest-main merge, full repository checks passed with 24
+tests, formatting, lint, typechecks, generated-contract verification and production
+builds. Chrome browser checks passed the existing incident/contact/notification
+preview flow, modal keyboard focus, six map selections, zoom and offline states.
+Reflow and map geometry passed at 1440/1024/768/390/320 CSS px. Additional checks
+covered the base URL, connectivity-ring zero state, no-incident neutral styling
+and count/icon separation at 1440/1280/1024/768px. Desktop and mobile incident
+views were visually reviewed. Complete WCAG conformance, VoiceOver and hosted
+frontend deployment remain unverified. No database migration or live provider
+action was performed by this design revision.
