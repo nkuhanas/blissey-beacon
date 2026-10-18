@@ -177,3 +177,12 @@ Follow [family-messages.md](family-messages.md) for the additive migration, inde
 consent/dispatch flags, per-recipient sender assignment and live verification gate.
 PHOTON_PROJECT_ID and PHOTON_API_KEY become Railway runtime inputs for this channel;
 SIP credentials remain on ElevenLabs. Never copy these into Vercel/browser settings.
+
+
+## Actual Pi identity handoff
+
+Emilia's Pi uses device `"1"` in room `"101"`; these are exact string database IDs.
+See [qnx-registration.md](qnx-registration.md) for hosted assignment, private token
+handoff and the actual QNX acceptance boundary. Keep the existing `pi_102` and
+`room_102` simulator fixtures intact. Device registration authorizes ingestion,
+not family notifications.
