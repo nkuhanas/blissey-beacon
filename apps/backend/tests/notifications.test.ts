@@ -19,6 +19,7 @@ const context = familyContext(
     label: "Room 102",
     detected_at: new Date("2026-10-17T21:32:06Z"),
     source: "gemini",
+    status: "pending",
   },
   "Demo recipient",
   "Alex Demo",
@@ -53,6 +54,7 @@ test("family projection describes a possible fall, remains score-free and determ
     "We're contacting you about a possible fall involving Alex Demo in Room 102. Their condition has not been confirmed.",
   );
   assert.equal(context.staff_response, "not_confirmed");
+  assert.equal(context.incident_status, "pending");
   assert.ok(
     POLICY.includes("no external, database, notification or incident tools"),
   );
@@ -93,7 +95,19 @@ test("family projection describes a possible fall, remains score-free and determ
 });
 test("resident identity is bounded; historical contexts without a name remain readable", () => {
   assert.ok(validateFamilyCallContext(context));
-  const { resident_name: _name, ...historical } = context;
+  const {
+    resident_name: _name,
+    incident_status: _status,
+    ...historical
+  } = context;
+  assert.equal(_status, "pending");
+  assert.equal(
+    validateFamilyCallContext({ ...context, incident_status: "active" }),
+    false,
+  );
+  assert.ok(
+    validateFamilyCallContext({ ...context, incident_status: "resolved" }),
+  );
   assert.equal(_name, "Alex Demo");
   assert.ok(validateFamilyCallContext(historical));
   for (const resident of ["", "   ", "x".repeat(121)]) {

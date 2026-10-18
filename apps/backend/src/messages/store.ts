@@ -248,7 +248,7 @@ export function createMessageStore(pool: Pool) {
                 familyContext(i, contact.contact_name, resident),
               )
             : {
-                update: `Blissey Beacon demo update: ${input.update_text!.trim()}`,
+                update: `Blissey Beacon care update: ${input.update_text!.trim()}`,
               };
         const p = {
           candidates,

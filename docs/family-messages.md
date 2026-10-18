@@ -220,3 +220,15 @@ CALLBACK and STOP instructions remain appended. The incident-summary prefix is
 callback-promise restrictions are unchanged. Frozen previously approved messages
 retain their exact text; review/authorize a new preview to use the new copy.
 This copy change authorizes no send and does not establish a new live-message test.
+
+
+## Post-call smoke approval
+
+The smoke CLI supports `--with-imessage`, showing both follow-up candidates and
+binding voice and message hashes in its approval hash. A changed message review
+requires new approval; retrying an existing call cannot add messaging implicitly.
+While provider playback mapping remains unverified, classify actual communicated
+versus missed evidence through the operator review API before selecting the text.
+A recipient-confirmed successful call selects its preauthorized family summary.
+For an existing call-only approval, a separately reviewed/authorized staff update
+is required. Staff-update messages use the "Blissey Beacon care update:" prefix.

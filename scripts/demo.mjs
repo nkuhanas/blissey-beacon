@@ -29,7 +29,7 @@ const help = `Usage: sh scripts/demo.sh <command> [options]
   dispatch restore --run NAME     Restore a journaled flag after interruption
 
 Options: --env FILE (default .env.deploy.local), --run NAME, --call,
-  --manage-dispatch (dedicated demo backend only), --approve FULL_CONTEXT_HASH,
+  --manage-dispatch (dedicated demo backend only), --with-imessage (review/preauthorize call follow-ups), --approve FULL_REVIEW_HASH,
   --allow-fallback (label deterministic explanation), --require-spoken (strict acceptance),
   --timeout SECONDS (call/callback wait, default 360), --help
 Run journals/locks: .smoke/ (private, Git-ignored). See scripts/README.md.
@@ -47,6 +47,7 @@ try {
       run: { type: "string" },
       call: { type: "boolean" },
       "manage-dispatch": { type: "boolean" },
+      "with-imessage": { type: "boolean" },
       approve: { type: "string" },
       "allow-fallback": { type: "boolean" },
       "require-spoken": { type: "boolean" },
@@ -213,6 +214,13 @@ try {
               };
               await save(file, state); // Stable ID/payload survives a lost WSS ACK.
             }
+            check(
+              !values["with-imessage"] ||
+                !state.authorization ||
+                state.with_imessage,
+              "Existing call-only approval cannot acquire messaging retroactively; authorize a separate reviewed update.",
+            );
+            if (values["with-imessage"]) state.with_imessage = true;
             const persist = () => save(file, state);
             const run = new SmokeRun({
               state,
@@ -267,6 +275,10 @@ try {
                   policy: preview.policy,
                   policy_version: preview.policy_version,
                   context_hash: preview.context_hash,
+                  approval_hash: state.review_hash,
+                  imessage_candidates: state.with_imessage
+                    ? state.message_preview?.candidates
+                    : undefined,
                   dispatch_enabled: preview.dispatch_enabled,
                 });
               showReview();
@@ -280,7 +292,7 @@ try {
                   log(
                     "This will temporarily enable ALL already-authorized queued work on the selected Railway service. Use only the dedicated demo backend.",
                   );
-                const phrase = "CALL " + preview.context_hash.slice(0, 12);
+                const phrase = "CALL " + state.review_hash.slice(0, 12);
                 const prompt = createInterface({
                   input: process.stdin,
                   output: process.stdout,
@@ -296,16 +308,16 @@ try {
                 } finally {
                   prompt.close();
                 }
-                approved = preview.context_hash;
+                approved = state.review_hash;
               }
               if (command === "smoke" && !values.call) {
                 log(
-                  `Prepared only; NO CALL. To authorize this reviewed context:\nsh scripts/demo.sh call --run ${name} --approve ${preview.context_hash} --manage-dispatch`,
+                  `Prepared only; NO CALL. To authorize this reviewed context:\nsh scripts/demo.sh call --run ${name} --approve ${state.review_hash} --manage-dispatch`,
                 );
                 return;
               }
               check(
-                approved === preview.context_hash,
+                approved === state.review_hash,
                 "Supply the complete hash from the reviewed preview; no call submitted.",
               );
               if (values["manage-dispatch"])
@@ -335,6 +347,10 @@ try {
                 );
                 await run.authorize(approved);
                 await run.monitor(callOptions);
+                if (state.with_imessage)
+                  log(
+                    "Call follow-up is preauthorized. Completion alone does not select an incident summary; review actual communicated/missed evidence through the operator message-review API when provider evidence is unverified.",
+                  );
               };
               if (values["manage-dispatch"])
                 await locked(".smoke/dispatch", () =>

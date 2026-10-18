@@ -34,7 +34,7 @@ explicitly. Under `conversation_config.agent.prompt`, configure:
 }
 ```
 
-Use the current source `POLICY`, `END_CALL_DESCRIPTION` and `family-call-v7`. The
+Use the current source `POLICY`, `END_CALL_DESCRIPTION` and `family-call-v8`. The
 description placeholder above must be replaced, not submitted literally. Its
 exact text is included in the frozen policy's `Call ending:` paragraph so the
 smoke CLI can verify provider readback. Do not leave the permissive default blank
@@ -475,3 +475,31 @@ turn settings and the native end-call control preserved. Four real-provider
 text-only synthetic simulations verified the care-assistant introduction, approved
 callback acknowledgment, unknown-condition response and wrong-recipient privacy.
 No telephone call or iMessage was sent by these checks.
+
+
+## Direct alert wording and recipient-led closing — 2026-10-18 UTC
+
+ADR-034 records the user's feedback after a successful care-assistant call. The
+recipient confirmed it worked after disabling Sleep Focus. New family-call-v8
+reviews freeze the persisted incident lifecycle as optional `incident_status`.
+For incident-handling/staff-response questions, active lifecycle states use
+"This is an active alert." The agent does not describe staff response as unknown,
+unconfirmed or absent, and does not claim staff are present or have acted.
+Resolved snapshots and historical contexts use their own bounded wording.
+
+After the incident summary or an answer, pause and listen. Do not append
+"anything else" or equivalent generic help/wrap-up questions. Explicit stop,
+goodbye, wrong-recipient and voicemail rules still use the native end-call tool;
+an acknowledgment or silence alone is not permission to hang up. The callback
+commitment and unknown resident condition remain unchanged. Both the system prompt
+and native end-call description must match the reviewed v8 policy. No new call is
+authorized by this wording change. Staff-reviewed iMessage updates use the same
+care-service identity, without the old demo-update prefix.
+
+Docker checks passed contracts, lint/format, types, unit tests, 14 script tests,
+builds and 44 disposable PostgreSQL checks. Notification tests cover historical
+contexts without lifecycle facts and immutable pending/resolved snapshots; joint
+approval tests reject call-only and changed-message hashes before any POST.
+Seven real-provider text-only synthetic checks exercised active/resolved alerts,
+acknowledgments, introduction, callback, unknown injury status and wrong-recipient
+privacy. These checks place no telephone call and do not prove audible delivery.

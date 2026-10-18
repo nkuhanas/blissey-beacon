@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { setTimeout as sleep } from "node:timers/promises";
 import {
   validateIncident,
@@ -5,6 +6,7 @@ import {
   validateIncidentWorkflow,
   validateNotificationCall,
   validateFamilyContact,
+  validateCallAuthorization,
 } from "../../packages/contracts/dist/src/index.js";
 import { check, SmokeError } from "./config.mjs";
 
@@ -227,6 +229,35 @@ export class SmokeRun {
       "Invalid call preview, missing resident identity, or changed recipient.",
     );
     this.state.preview = preview;
+    if (this.state.with_imessage) {
+      const message = await this.client.api(this.path("/messages/preview"), {
+        method: "POST",
+        body: {
+          contact_id: contact.id,
+          expected_revision: workflow.revision,
+          purpose: "followup",
+        },
+      });
+      check(
+        message.dispatch_enabled &&
+          message.recipient?.id === contact.id &&
+          message.recipient?.phone_e164 === contact.phone_e164 &&
+          message.expected_revision === workflow.revision &&
+          /^[a-f0-9]{64}$/.test(message.context_hash) &&
+          typeof message.candidates?.missed === "string" &&
+          message.candidates?.summary?.includes(preview.context.family_summary),
+        "Invalid message review, recipient, dispatch or shared incident facts.",
+      );
+      this.state.message_preview = message;
+      this.state.review_hash = createHash("sha256")
+        .update(
+          JSON.stringify({
+            call: preview.context_hash,
+            message: message.context_hash,
+          }),
+        )
+        .digest("hex");
+    } else this.state.review_hash = preview.context_hash;
     await this.persist();
     return preview;
   }
@@ -246,7 +277,7 @@ export class SmokeRun {
       "Dispatch is disabled. Use dispatch on or explicitly select --manage-dispatch on the dedicated demo service.",
     );
     check(
-      approvedHash === preview.context_hash,
+      approvedHash === this.state.review_hash,
       "Reviewed context changed. Review the new preview and approve its new hash.",
     );
     const body = {
@@ -254,7 +285,18 @@ export class SmokeRun {
       context_hash: preview.context_hash,
       expected_revision: preview.expected_revision,
       explicit_authorization: true,
+      ...(this.state.with_imessage
+        ? {
+            message_preview_id: this.state.message_preview.preview_id,
+            message_context_hash: this.state.message_preview.context_hash,
+            explicit_messaging_authorization: true,
+          }
+        : {}),
     };
+    check(
+      validateCallAuthorization(body),
+      "Invalid call/message authorization review.",
+    );
     // Persist intent BEFORE the POST. A lost response must not trigger another call.
     this.state.authorization = "pending";
     this.state.authorization_request = body;
