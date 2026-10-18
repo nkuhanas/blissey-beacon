@@ -356,3 +356,23 @@ invoked `end_call` and returned `end_call_success` for goodbye, explicit stop an
 voicemail; no incident details were disclosed to the voicemail greeting. No
 additional telephone call was placed. Actual SIP disconnection by this control
 still requires a consented live retest after the iPhone settings are addressed.
+
+## Natural voice tuning — 2026-10-18 UTC
+
+After the recipient requested a more human-sounding voice, the dedicated agent was
+changed from Bella/Flash v2 to Sarah with `eleven_v3_conversational` and expressive
+mode. Sarah is the provider's premade American voice described as warm and
+reassuring; no voice cloning or impersonation is involved. The configured settings
+are voice ID `EXAVITQu4vr4xnSDxMaL`, stability `0.5`, similarity boost `0.75` and
+speed `0.96`. These are initial subjective tuning choices, not evidence of listener
+preference or measured quality. See
+[ElevenLabs' expressive-mode guidance](https://elevenlabs.io/docs/eleven-agents/customization/voice/expressive-mode).
+
+The provider accepted the configuration and a readback confirmed it. Agent
+instructions, recipient verification, approved factual context and the native
+end-call control were preserved exactly. The assistant continues identifying itself
+as automated. A short fictional MP3 preview was generated with the same voice and
+model; this does not place a phone call or verify the sound after Photon/carrier
+audio compression. Private preview/configuration receipts remain ignored local
+artifacts. Dispatch remains disabled; evaluating the new voice over a real call
+requires another explicitly authorized smoke test.
