@@ -4,6 +4,39 @@ All commands below run Node/pnpm inside Docker. No host Node installation, datab
 administrator password, Supabase service-role key, or direct provider-call shortcut
 is needed for the incident smoke. Existing `verify-realtime.sh` stays available.
 
+## Fast one-shot Room 101 incident
+
+```sh
+sh scripts/incident101.sh
+```
+
+Publishes one **synthetic possible-fall** incident to room **101** through the
+configured authenticated operator API and exits immediately after durable creation.
+The dashboard receives the existing Realtime update; Gemini continues asynchronously.
+No acknowledgment, family call, text, or Pi credential/health change is performed.
+Each fresh invocation creates a new incident. The backend's scenario limit is ten
+per operator per minute.
+
+Uses `.env.deploy.local` with `SMOKE_API_URL` (or `VITE_API_URL`), `SUPABASE_URL`,
+`SUPABASE_PUBLISHABLE_KEY`, `DEMO_OPERATOR_EMAIL`, `DEMO_OPERATOR_PASSWORD`, and
+optional `SMOKE_FACILITY_ID`/`VITE_FACILITY_ID`. Use `--env FILE` for another profile.
+It needs the existing Docker toolchain image (`docker compose build toolchain` once).
+There is no per-run build, package installation, SDK dependency or Gemini wait.
+A private, short-lived access-token cache avoids repeated logins; repeat runs need
+only the incident POST. Credentials are read as dotenv data, never shell-sourced.
+
+The command prints a request key before publishing. If interrupted or uncertain,
+retry **that same intent** with its key (and the same `--env FILE`, if used):
+
+```sh
+sh scripts/incident101.sh --key <printed-UUID>
+```
+
+Journals under `.smoke/runs/` preserve idempotency, so that retry cannot create a
+second incident. Do not use a fresh key to retry an ambiguous submission.
+Room 101's actual Pi data path remains independent; this is a labeled synthetic
+operator scenario, not evidence of hardware sensing.
+
 ## Local checks
 
 ```sh
