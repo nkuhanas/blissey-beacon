@@ -533,8 +533,9 @@ Details and error/queue policies are in [docs/slice-2.md](docs/slice-2.md).
 
 The Pi handoff uses exact string IDs `device_id: "1"` and `room_id: "101"`.
 These additional database records are distinct from the retained synthetic
-`pi_102 → room_102` fixtures. Hosted assignment was created on 2026-10-18 UTC;
-Pi credential registration and actual QNX WSS acceptance require separate evidence.
+`pi_102 → room_102` fixtures. Hosted assignment and the supplied SHA-256 credential were registered on
+2026-10-18 UTC, and backend credential lookup verified the exact device/room/facility.
+Actual QNX WSS acceptance remains unverified and requires separate evidence.
 See [docs/qnx-registration.md](docs/qnx-registration.md) for the credential handoff,
 SHA-256 registration, connection contract and verification limits.
 

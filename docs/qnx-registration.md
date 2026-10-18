@@ -22,8 +22,14 @@ contact, so that association remains a separate setup step.
 
 ## Credential handoff and registration
 
-Credential registration is pending the Pi's prepared SQL, token or SHA-256 hash.
-Transfer the prepared SQL into ignored `.supabase-test/pi-registration.sql`, or
+The supplied `PI_DEVICE_TOKEN_SHA256` was registered on 2026-10-18 UTC for device
+`1`. The backend's actual credential lookup resolved it to room `101` in
+`demo_facility`, with an active, unrevoked credential. The registration did not
+create an inference event or authorize a notification. The raw token was not
+needed or stored in repository source. Actual Pi/QNX WSS acceptance remains
+unverified; server-side lookup alone is not a hardware integration test.
+
+For future registration or rotation, transfer prepared SQL into ignored `.supabase-test/pi-registration.sql`, or
 provide the existing Pi token as local-only `PI_DEVICE_TOKEN` (or its digest as
 `PI_DEVICE_TOKEN_SHA256`) in ignored `.env.deploy.local`. Never paste a token into
 chat, commit it, print it, or put it in an event or URL. Those PI_ inputs are
