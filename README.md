@@ -1,111 +1,197 @@
 # Blissey Beacon
 
-Blissey Beacon is an experimental, camera-free possible-fall monitoring project
-for LA Hacks 2026, intended for senior-home operators, caregivers, and authorized
-family members. ESP32 Wi-Fi CSI feeds local inference on a Raspberry Pi 5 running
-QNX, with a planned Railway Node.js/TypeScript backend, Supabase PostgreSQL and
-Realtime, Gemini API explanations, and an authenticated React/Vite demo dashboard.
-Supabase Auth and facility membership protect operator data/actions. A shared demo
-operator account is acceptable. Notifications require explicit review and a
-saved consented demo contact. Planned conversational calls use ElevenLabs Agents
-through Photon SIP, with operator-approved frozen context and opening; this
-provider path passed one consented live synthetic-incident smoke. Automated
-spoken-notification evidence mapping remains unverified. Backend call orchestration is implemented
-with dispatch disabled by default. No developer laptop is required at runtime.
+**Camera-free monitoring. Clearer alerts. Connected families.**
 
-This repository implements **Slice 2 plus the explanation pipeline**: authenticated device WebSocket ingestion,
-transactional event/incident/job persistence, durable deduplication, device health,
-operator incident reads, a canonical-fixture simulator and minimal incident
-Realtime subscriptions. Durable Gemini processing and persisted explanation reads
-are implemented; live Gemini with local PostgreSQL/Realtime and the hosted
-synthetic Railway/Supabase path were verified. Contact configuration, reviewed call authorization, incident actions and signed
-callback handling now exist with synthetic tests. Hosted contact/review APIs were
-verified with call dispatch disabled; frontend controls remain pending. One
-ElevenLabs/Photon call reached the consented test recipient, with completed status
-persisted; dispatch was disabled again afterward. Hosted synthetic
-integration and dashboard sign-in/live updates were verified on 2026-10-17;
-actual QNX integration remains unverified. See the
-[deployment verification record](docs/deployment-verification.md), [PROJECT_SPEC.md](PROJECT_SPEC.md)
-and the [Slice 2 handoff](docs/slice-2.md) for scope and verification boundaries.
-This is a proof of concept, not a clinically validated detector or emergency device.
+Blissey Beacon is an experimental senior-care monitoring system that uses Wi-Fi
+sensing to explore possible-fall detection without cameras or wearables. It brings
+room activity, incident review, and family communication into one caregiver
+experience.
 
-See [docs/gemini-pipeline.md](docs/gemini-pipeline.md) for the simulation, opt-in
-explanation DTO, failure/recovery behavior and rollout steps. See
-[docs/family-calls.md](docs/family-calls.md) for call contracts, agent setup and frontend handoff.
+Built for **LA Hacks 2026 · Beyond the Digital**.
 
-Frontend design work must use **Paper**, with linked screen references implemented
-in `apps/web` and deployed to Vercel. The current dashboard is a provisional
-integration shell. A [Paper-designed interactive demo](docs/frontend-design.md#run-and-explore-the-interactive-demo)
-is the default public frontend at `/`; `/?demo=1` remains compatible. Operator
-sign-in and the authenticated integration shell are available at `/?operator=1`.
-The public frontend uses browser-only fictional
-fixtures for rooms, incidents, family contacts and notification review. The full
-authenticated frontend and backend action integration remain pending.
+**[Explore the interactive demo →](https://blissey-beacon.health)**
 
-Demo site: **https://blissey-beacon.health**. For Vercel, Railway, Supabase,
-DNS and per-provider variables, follow [docs/deployment.md](docs/deployment.md) and
-[root .env.example](.env.example). The user approved the previously provisioned
-Supabase project for fictional demo setup; isolated Docker tests still never use it.
+![Blissey Beacon dashboard showing an illustrated facility map, room monitoring states, and a possible-fall incident awaiting caregiver review.](docs/images/dashboard.png)
 
-Photon iMessage follow-ups, independent messaging consent and a private reply inbox
-are implemented in source with Docker tests. One isolated Docker + real Photon
-synthetic message was reported delivered and a real ACK reply was persisted and
-correlated to its incident. Hosted rollout and
-Paper frontend views remain pending. See [docs/family-messages.md](docs/family-messages.md)
-for the approved policy, sender environment variable and verification steps.
+*Actual dashboard running the fictional “Possible fall · Pending” scenario.
+The public demo uses browser fixtures; its actions do not place calls or send messages.*
 
-## Getting started
+## Why we built it
 
-Install Docker with Compose. Node and pnpm run inside the toolchain container.
+Caregivers need useful information when something might be wrong. Families need
+clear updates. Residents deserve privacy.
+
+Blissey Beacon explores a less intrusive approach: sense changes in Wi-Fi signals,
+surface possible incidents for caregiver review, and help staff communicate with
+authorized family contacts. The caregiver stays in control of incident response
+and notification approval.
+
+## From sensing to family updates
+
+The data path separates offline training, edge sensing and cloud incident
+processing. The team has integrated QNX sensing/transport and its inference
+runtime; classifier deployment/parity and the full dashboard action integration
+remain under validation.
+
+```mermaid
+flowchart TD
+    recordings["Recorded CSI data"] --> veri["Veri: Random Forest training"]
+    esp["ESP32 transmitter and receiver"] -->|"CSI over USB serial"| edge["Raspberry Pi 5 / QNX OS"]
+    veri -.->|"Classifier deployment pending"| edge
+    edge -->|"Structured results over authenticated WSS"| api["Railway backend"]
+    api -->|"Persist incident before ACK"| db[("Supabase PostgreSQL")]
+    api <-->|"Facts / explanation"| gemini["Gemini API · asynchronous"]
+    db -->|"Realtime notice"| operator["Authenticated operator UI"]
+    api -->|"REST incident reads"| operator
+```
+
+QNX collects ESP32 sensing data and securely sends results to the backend.
+We integrated QNX's `python3-tflite-runtime` from [oss.qnx.com](https://oss.qnx.com/)
+to support local fall-detection inference. Random Forest export and prediction
+parity with the QNX deployment still need validation; the runtime's presence is
+not evidence that the trained forest executes through it.
+
+Veri is used for offline training. Raw CSI stays local at runtime, and Gemini
+receives only structured incident facts. Incidents are persisted and published
+before explanations finish. The public Paper-designed dashboard uses browser
+fixtures; connecting its complete action workflow to the backend is still in progress.
+
+### Reviewed family communication
+
+```mermaid
+flowchart TD
+    review["Caregiver reviews recipient and context"] -->|"Explicit approval"| api["Railway notification workflow"]
+    api <-->|"Approved context / signed callbacks"| voice["ElevenLabs voice agent"]
+    voice <-->|"SIP"| phone["Photon phone connection"]
+    phone <-->|"Conversation"| family["Consented family contact"]
+    api <-->|"Reviewed text / status and replies"| messages["Photon hosted iMessage"]
+    messages <-->|"Written updates and replies"| family
+    api -->|"Persist communication history"| db[("Supabase PostgreSQL")]
+```
+
+Voice and messaging have separate consent and authorization. iMessage follows the
+backend-to-Photon path, independently of ElevenLabs. Call callbacks and polled
+message replies return through the backend and are stored against the incident;
+the complete dashboard presentation of those replies is still being integrated.
+The provider tests used synthetic incidents and consented recipients, separately
+from the public fixture demo.
+
+### How it works
+
+1. **Sense movement.** ESP32 boards capture Wi-Fi Channel State Information (CSI),
+   measuring how movement changes the wireless channel.
+2. **Process at the edge.** QNX OS on a Raspberry Pi 5 collects sensing data and
+   securely transmits results. Veri trained our Random Forest classifier;
+   deployment of that classifier on QNX remains under validation.
+3. **Review the incident.** The cloud pipeline records incidents immediately;
+   Gemini adds a concise explanation grounded in those recorded facts. Caregivers
+   can review the room, incident history and next response action.
+4. **Keep families informed.** After caregiver approval, ElevenLabs conducts a
+   bounded notification conversation over Photon SIP. Photon iMessage supports
+   independently consented follow-ups, reviewed staff updates and family replies.
+
+## Sponsor integrations
+
+| Product / challenge | Its role in Blissey Beacon |
+| --- | --- |
+| **Espressif · Best Use of Espressif** | ESP32 boards provide Wi-Fi CSI for camera-free movement sensing. |
+| **QNX · Best Use of QNX** | QNX OS on Raspberry Pi 5 collects ESP32 sensing data and securely transmits results. We integrated `python3-tflite-runtime` from [oss.qnx.com](https://oss.qnx.com/) to support local fall-detection inference. |
+| **Veri · Best Use of an Open-sourced Model** | We used Veri to train our Random Forest classifier on Wi-Fi CSI data. |
+| **Gemini API · Best Use of Gemini API** | Generates concise incident explanations asynchronously, without holding up the initial alert. |
+| **ElevenLabs · Best Use of ElevenLabs** | Powers family notification conversations using caregiver-approved context and a bounded conversation policy. |
+| **Photon · Messaging/Calling Agent** | Provides the phone connection for ElevenLabs, hosted iMessage follow-ups and incoming family replies. |
+| **Paper · Best Designed Hack** | Used to design dashboard layouts, typography, shared tokens and the illustrated room map, then implement them in React. The supplied mascot was imported into Paper; later frontend refinements are documented separately. |
+| **GoDaddy Registry · Best Domain Name** | Our public demo lives at **[blissey-beacon.health](https://blissey-beacon.health)**, a memorable home that reflects the project's focus on care. |
+
+These are the challenges we are targeting. Product use and prize eligibility are
+separate: Random Forest training on Veri does not itself establish eligibility
+for a pretrained-model fine-tuning prize. We make no claim of confirmed eligibility
+or completed sponsor submissions here.
+
+## Explore the demo
+
+At **[blissey-beacon.health](https://blissey-beacon.health)**, select a room on the
+facility map, review a staged incident, acknowledge it, and explore the family
+notification review. Switch scenarios to compare pending or ready explanations,
+fallback behavior, offline sensing and an empty incident state.
+
+The six-room floor plan and residents are fictional; they do not represent
+demonstrated multi-room sensing. Public interactions run in browser memory and
+reset with the demo. They do not invoke Gemini or dispatch real communications.
+
+The separate [operator sign-in](https://blissey-beacon.health/?operator=1) exposes
+the authenticated integration shell and requires a provisioned demo account.
+
+## Prototype status
+
+Blissey Beacon combines a working cloud incident-processing pipeline,
+Gemini-generated explanations, and separately verified ElevenLabs/Photon voice
+and iMessage integrations:
+
+- **Cloud and Gemini:** hosted synthetic events persisted as incidents, received
+  real Gemini explanations, and produced authorized Supabase Realtime updates.
+- **Voice:** a real ElevenLabs call through Photon reached a consented test
+  recipient, who confirmed hearing the possible-fall summary. Automated mapping
+  of provider evidence to “notification spoken” remains incomplete.
+- **Messaging:** a real Photon iMessage was delivered and an incoming ACK was
+  persisted and correlated with its synthetic incident, using an isolated local
+  backend/database.
+- **Interface:** the Paper-designed interactive frontend demonstrates the caregiver
+  experience with fictional browser scenarios. Complete authenticated action
+  integration and the hosted messaging workflow remain pending.
+- **Model and edge:** the team confirms Random Forest training using Veri,
+  QNX OS sensing/transport on Pi 5, and integration of QNX's `python3-tflite-runtime`.
+  Training/evaluation artifacts and hardware logs are not reproduced here.
+  Random Forest deployment/parity and a complete live sensing-to-notification
+  demonstration remain under validation.
+
+Blissey Beacon is an **experimental proof of concept**, not a clinically validated
+fall detector or emergency response device. See the [deployment record](docs/deployment-verification.md),
+[voice tests](docs/family-calls.md) and [messaging tests](docs/family-messages.md)
+for the exact scope of the demonstrations.
+
+## Run locally
+
+Install Docker with Compose v2. From the repository root:
 
 ```sh
 docker compose build toolchain
 docker compose run --rm toolchain
+docker compose up web
 ```
 
-Run migration/access/transaction checks against a disposable test database:
+Open **[localhost:5173](http://localhost:5173)**. This launches the interactive
+fixture dashboard without Supabase credentials, hardware, or provider keys.
+The toolchain step installs pinned dependencies, checks the project and builds
+the shared contracts; `up web` starts the actual Vite development server.
 
-```sh
-docker compose run --rm verify
-docker compose down
-```
+If port 5173 is occupied, run `WEB_PORT=5178 docker compose up web` and open
+[localhost:5178](http://localhost:5178). Stop the foreground server with Ctrl+C.
 
-Reusable checks and the hosted incident/call rehearsal are documented in
-[scripts/README.md](scripts/README.md):
+For disposable database checks, run `docker compose run --rm verify`, then
+`docker compose down` to remove the temporary database. Authenticated backend
+setup and optional Realtime checks are covered in the technical documentation.
 
-```sh
-sh scripts/verify.sh --realtime
-sh scripts/demo.sh doctor
-sh scripts/demo.sh smoke --run rehearsal-001 --call --manage-dispatch
-```
+## Technical documentation
 
-The last command creates a synthetic incident and, after explicit review, places
-one real call to the existing consented test contact. Omit `--call` to prepare only.
-It saves a private run journal and never automatically redials an existing call.
+| Guide | Contents |
+| --- | --- |
+| [Project specification](PROJECT_SPEC.md) | Architecture, model decision, interfaces, ownership and acceptance requirements |
+| [Development](docs/development.md) | Docker toolchain, authenticated backend setup and isolated database checks |
+| [Frontend design](docs/frontend-design.md) | Paper sources, identity provenance, interaction design and browser verification |
+| [Gemini pipeline](docs/gemini-pipeline.md) | Grounded explanations, durable jobs, retries and deterministic fallback |
+| [Family calls](docs/family-calls.md) / [family messages](docs/family-messages.md) | Consent, review, provider integration and live-test evidence |
+| [Scripts](scripts/README.md) | Verification commands and controlled synthetic rehearsals |
+| [Deployment](docs/deployment.md) | Vercel, Railway, Supabase, domains and server-side configuration |
+| [Contributing](CONTRIBUTING.md) | Branches, Conventional Commits and the specification-change approval workflow |
 
-The database test requires a fresh database. `docker compose down` removes its
-container and tmpfs data; dependency volumes are retained. No hosted database is
-used by this check. For actual local Supabase Realtime acceptance, run
-`sh scripts/verify-realtime.sh`; this uses isolated synthetic identities and never
-connects to production. See [docs/development.md](docs/development.md) for app startup,
-operator provisioning, schema generation and verification boundaries.
+## Team
 
-## Development
+| Team member | Contributions / ownership |
+| --- | --- |
+| **Emilia** | ESP32 sensing and CSI collection; Paper design and frontend implementation |
+| **Chloe** | CSI preprocessing, model training/evaluation and Pi/QNX edge integration |
+| **Chace** | Backend, shared contracts, Supabase, Gemini explanations and family notification orchestration |
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) and the relevant sections of
-[PROJECT_SPEC.md](PROJECT_SPEC.md). `SPEC.md` remains the compatibility entrypoint.
-Grow modules with each slice; QNX and Python keep independent toolchains.
-
-## Changes to the specification
-
-If proposed work contradicts [PROJECT_SPEC.md](PROJECT_SPEC.md), pause the
-conflicting work and first propose a specification change and a timestamped Markdown delta file in
-`deltas/` (for example, `deltas/2026-10-17T19-30-00Z-short-description.md`).
-Describe the affected spec sections, the proposed changes, and why they are
-needed. Obtain explicit approval before editing the spec, creating the delta
-file, or implementing the conflicting work.
-
-Once approved, update `PROJECT_SPEC.md` and create the timestamped delta file
-documenting what changed in the spec and why. Include the affected sections and the previous
-and revised requirements so the decision can be traced. Then proceed with the
-approved work.
+The team shares integration, testing and the hackathon demonstration. Ownership
+describes the workstreams, not a claim that every target integration is complete.
