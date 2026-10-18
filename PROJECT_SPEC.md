@@ -16,8 +16,10 @@ facilities. ESP32 Wi-Fi Channel State Information (CSI) feeds a supervised neura
 network running locally on a Raspberry Pi 5 with QNX. Structured events travel over
 WSS to a Railway Node.js/TypeScript backend backed by Supabase PostgreSQL. An authenticated
 Vercel demo dashboard shows incidents; Gemini API generates grounded explanations
-asynchronously. Operators explicitly review and approve Photon contact to
-preconfigured consented demo recipients. Supabase Auth operator login and facility membership are required.
+asynchronously. Operators review and authorize bounded conversational family calls: Railway
+freezes a family-safe context and opening message, ElevenLabs Agents conducts the
+conversation, and Photon supplies the planned outbound SIP telephony connection.
+Supabase Auth operator login and facility membership are required.
 
 The MVP uses one room and one person with controlled staged falls and normal
 movement. This is an experimental proof of concept, not a clinically validated
@@ -44,7 +46,11 @@ and exact verification limits.
 
 One ESP32 transmitter, one ESP32 receiver, one Pi 5 running QNX, one monitored room,
 one person, one local neural network, one incident-explanation language model,
-a cloud backend, an operator website, and one approved Photon notification flow.
+a cloud backend, an operator website, and one operator-authorized conversational
+family-call flow through ElevenLabs and Photon. One primary consented contact per
+fictional resident and one outbound call per incident/contact define the MVP unless
+an operator explicitly authorizes a retry. The conversational LLM is configurable;
+Gemini Flash is the preferred candidate, with voice-agent compatibility unverified.
 
 Excluded: person identification, full-body pose, heart-rate/breathing estimation,
 medical diagnosis, multiple-person tracking, validated cross-facility performance,
@@ -83,7 +89,8 @@ flowchart TD
     subgraph BACKEND["Railway / Node.js / TypeScript"]
         INGEST[Validation and deduplication] --> INCIDENT[Incident manager and REST API]
         WORKER[Logical Gemini worker]
-        REVIEW[Explicit operator review and Photon adapter]
+        REVIEW[Family-safe context, call authorization and orchestration]
+        CALLBACK[Signed call callbacks and reconciliation]
     end
     INCIDENT -->|Transactional event, incident and pending work| DB[(Supabase PostgreSQL)]
     DB -->|Claim pending work with lease| WORKER
@@ -95,9 +102,13 @@ flowchart TD
     RT --> UI[Authenticated demo dashboard on Vercel]
     UI -->|REST snapshots and demo actions| INCIDENT
     UI -->|Review and approve| REVIEW
-    REVIEW -->|Consented demo recipient only| PHOTON[Photon]
-    PHOTON --> FAMILY[Demo family contact]
-    REVIEW -->|Approval and delivery history| DB
+    REVIEW -->|Frozen approved context and opening| VOICE[ElevenLabs Agents]
+    VOICE -->|Outbound SIP: compatibility unverified| PHOTON[Photon]
+    PHOTON --> FAMILY[Consented demo family contact]
+    FAMILY -->|Conversation| VOICE
+    VOICE -->|Signed provider callbacks| CALLBACK
+    CALLBACK -->|Call evidence, optional callback request| DB
+    REVIEW -->|Approval and durable call attempts| DB
 ```
 
 The Gemini worker is a logical module within the single Railway backend, not an
@@ -133,7 +144,8 @@ Owner: Emilia for sensing and serial output; Chloe for Pi/QNX consumption.
 | Pi → backend | Persistent secure WebSocket; Pi client, backend server | TLS, authentication, reconnects and durable event acknowledgments |
 | Backend → Model 2 | Server-side Gemini API call with persisted structured facts | Model/version, structured output, privacy and provider compatibility |
 | Backend → frontend | Authenticated demo REST and Supabase Realtime | Demo-only access policies, snapshots and reconnect recovery |
-| Backend → Photon | API integration after explicit operator review/approval | Actual provider capabilities and preconfigured consented demo recipient |
+| Backend → ElevenLabs → Photon | Operator-authorized outbound call through planned SIP trunk | Verify agent, Photon trunk, call correlation and notification-spoken evidence with a consented test phone |
+| ElevenLabs → backend | Signed provider webhooks | Signature/timestamp validation, durable deduplication and reconciliation |
 
 Emilia must document board models, TX/RX roles, firmware revision, Wi-Fi channel,
 CSI encoding, measured packet rate, serial baud, placement, height, participant
@@ -167,7 +179,8 @@ selected providers are not evidence of deployment or integration.
 | UI | React/Vite browser demo on Vercel, implemented from Paper designs | Minimal deployed shell: login, room/history and live incident verified; full design/workflows remain pending |
 | Model 2 | Hosted Google Gemini API, configured `gemini-3.5-flash-lite` | Live structured-output/local database-Realtime path verified; hosted worker rollout pending |
 | Optional sponsor effort | Veri Studio with a compatible open-source model | Separate from MVP Gemini inference; eligibility unverified |
-| Family contact | Photon calling or messaging API | Planned; exact product/API/capabilities TBD |
+| Conversational voice | ElevenLabs Agents; configurable conversational LLM, Gemini Flash preferred | Selected; agent configuration and live conversation unverified |
+| Family telephony | Photon outbound SIP trunk connected to ElevenLabs | Selected direction; exact Photon product/configuration and end-to-end compatibility unverified |
 
 TypeScript dependency versions are pinned in pnpm-lock.yaml and the Docker
 toolchain. Setup/check commands are documented in docs/development.md. Training,
@@ -642,12 +655,24 @@ A database-backed retry delay is two seconds and each claim lease is 30 seconds.
 A missing API key disables the worker and retains pending work without blocking
 ingestion. Server-side key/model configuration and hosted rollout are explicit.
 
+### Family-safe call projection
+
+The operator-facing `grounded-phrasing-v1` descriptions include experimental scores.
+Never pass the complete explanation directly to the voice agent. A separate backend
+notification module projects persisted incident facts, the validated explanation and
+explicitly operator-verified context into the family-safe contract in Section 20.
+It excludes scores, CSI, private credentials and unsupported condition/staff claims.
+No inference rerun or change to the four-field explanation output is required.
+Persisted sensor facts remain the source of truth; Gemini provides grounded wording,
+and ElevenLabs communicates the approved projection without reinterpreting CSI.
+
 ## 18. Backend and Database
 
 Owner: Chace / Backend Team. Deploy a single Node.js/TypeScript application on
 Railway with logical modules for authenticated WSS ingestion, validation and
 deduplication, incident lifecycle, health monitoring, persistence, Gemini jobs,
-authenticated demo REST, Photon approvals/dispatch and audit/recovery. Do not introduce
+authenticated demo REST, family-contact configuration, ElevenLabs/Photon call
+approvals/dispatch, signed callbacks and audit/recovery. Do not introduce
 independent backend services without a demonstrated requirement. Railway is the
 selected MVP target; hosted synthetic WSS/REST was verified. Worker rollout and
 broader operational limits remain unverified.
@@ -666,8 +691,9 @@ stay server-side; QNX neither connects directly to Supabase nor holds its secret
 | Incident | ID, event reference, room, status, revision, lifecycle actors/timestamps, disposition and notes |
 | Explanation | Incident, output, persistent generation status, model/prompt version and input hash |
 | ExplanationJob | Durable pending work, unique work identity, attempts, next retry, claim/lease and terminal outcome |
-| FamilyContact / consent | Preconfigured consented demo relationship, private destination and grant/revocation evidence |
-| Notification | Incident/contact, explicit approval, exact approved text, idempotency key, provider ID/status |
+| FamilyContact / consent | One primary contact per fictional patient, facility scope, private E.164 destination, relationship and grant/revocation evidence |
+| Notification / call authorization | Incident revision, historical patient/contact and consent references, approver, immutable approved context/opening/policy and hash, idempotency key |
+| NotificationCall / attempt / event | Durable job/attempt before dispatch, provider conversation/SIP IDs, transport status, connected and notification-spoken evidence, timestamps, optional callback request/bounded summary and deduplicated provider events |
 | Audit | Device or authenticated operator subject, action, target, timestamp and outcome without secrets |
 
 Proposed incident lifecycle remains `pending -> acknowledged -> responding -> resolved`.
@@ -732,6 +758,24 @@ configured room occupancy, not inferred physical position. Incidents remain
 room-centric; historical patient linkage must use assignment time, not silently
 relabel old incidents from the current room occupant.
 
+### Planned call persistence
+
+`family_contacts` records `id`, `facility_id`, `patient_id`, `contact_name`,
+`relationship`, `phone_e164`, `consent_status`, `consented_at`, `consent_revoked_at`,
+`created_at` and `updated_at`. Enforce one primary contact per fictional patient.
+Associate an incident with the patient assigned at its detection time; missing or
+ambiguous historical assignment blocks contact selection rather than guessing.
+
+Extend the proposed Notification entity with `notification_calls` and durable
+attempt/event records. Store authorization/consent references, incident revision,
+approved context hash and snapshot, opening/policy version, provider IDs, transport
+status, connected/notification-spoken evidence and provenance, optional callback
+request, bounded summary, timestamps and safe error codes. Approval/job creation
+uses one PostgreSQL transaction. External submission occurs only after commit.
+Private destinations, contexts and provider payloads are not directly published
+through Realtime; expose authorized, redacted call updates with REST refetch.
+These entities and interfaces are planned, not existing tables or implemented APIs.
+
 ## 19. Operator Dashboard
 
 Primary owner: Kiro / Frontend Team. Paper is the required frontend design tool.
@@ -755,7 +799,9 @@ deployment does not complete the Paper-designed frontend requirement.
 | --- | --- |
 | Facility overview | All fictional demo rooms, room identifier, monitoring and active incident state, connection health, last data time, acknowledgment, attention-room and offline-device counts |
 | Room detail | Room label/ID, assigned device ID, connection and monitoring state, grouped inference events, detection timestamp, named experimental confidence scores, verified recent activity, timeline, acknowledgment, resolution and history |
-| Incident actions | Acknowledge, mark responding, resolve, mark false alarm, add notes and explicitly approve a demo notification |
+| Incident actions | Acknowledge, mark responding, resolve, mark false alarm, add notes and explicitly authorize a bounded family call |
+| Family contacts | Configure one primary consented contact per fictional resident, private phone entry, consent confirmation/revocation and facility-scoped access |
+| Call review/results | Review recipient, family-safe facts, opening and conversation policy; authorize call; show transport, notification-spoken evidence, failures/unknowns and optional callback request; explicit retry review |
 | Optional technical view | Reduced CSI visualization, quality/packet diagnostics and inference latency only if available |
 
 “Recent activity” must use observed events/health, not invented activity recognition.
@@ -774,49 +820,161 @@ assignment is explicit timestamped configuration, not inferred localization.
 Render a top-down facility view from static room geometry; Kiro finalizes its DTO.
 The binary classifier cannot support detailed activity or physical-position claims.
 
-## 20. Family Notifications and Photon
+## 20. Conversational Family Notifications: ElevenLabs and Photon
 
-Photon integration owner: **TBD**. Chace owns backend approval/orchestration;
-a named Photon lead must own provider integration and authorized live testing.
-Exact Photon product, calling, messaging, TTS, webhook and status capabilities
-are **Not yet verified**. Do not document them as working.
+Provider integration owner: **TBD**. Chace owns backend authorization/orchestration;
+a named lead must own ElevenLabs agent configuration, Photon SIP setup and
+consented live testing. These are selected integrations, not implemented or verified.
+No separate voice-processing/backend deployment is required.
 
-Confirmed demo flow: detection → persisted incident → operator review → explicit
-approval of recipient and final text → durable notification job → Photon → stored
-delivery status. Require Supabase Auth and facility membership; this supersedes
-ADR-018 public access. A shared demo account is acceptable.
-Never call family for every positive window or model prediction.
+Approved flow: persisted incident → validated Gemini explanation → family-safe
+context → operator reviews recipient, context, opening and policy → durable call
+authorization/job → ElevenLabs Agents → Photon SIP → family conversation → signed
+provider evidence → Supabase → authorized dashboard. Supabase Auth and facility
+membership remain mandatory; a shared demo login is acceptable. Never call on every
+positive inference window. Generation or incident acknowledgment never authorizes a call.
 
-Proposed concrete workflow:
+### Contact configuration and authorization
 
-1. An authenticated operator selects a preconfigured consented demo contact and reviews persisted
-   incident/response facts. Arbitrary destination entry is not supported.
-2. Backend generates a draft from reviewed context; the operator reviews the recipient
-   and final wording before dispatch. New text or recipient changes require review.
-3. Backend verifies operator facility membership, active contact authorization/consent,
-   current incident revision and explicit approval of the exact recipient/text.
-   Verified follow-up updates after resolution may be eligible; resolution alone never authorizes or forbids contact.
-4. Atomically store approval and a durable notification job; recheck consent and
-   approval freshness immediately before submitting to Photon.
-5. Submit using server-held credentials and an idempotency key if supported. Persist
-   provider ID/status and show failure or uncertainty on the demo dashboard.
-6. Verify webhook signatures and deduplicate callbacks if the provider supports
-   them; otherwise use its verified status mechanism. Never invent delivery evidence.
+Authorized operators may configure and save a consented primary family contact
+for a fictional resident, including an E.164 number and recorded consent. This
+supersedes the prohibition on arbitrary destination entry during configuration;
+there is still no unrestricted destination input at dispatch. Select the patient
+assigned to the room at the incident detection time, not the current occupant.
+Only an active consented contact in the incident's facility can be used.
 
-Proposed states: `pending_review -> queued -> sending -> accepted -> delivered`,
-with `cancelled`, `failed` and `unknown` alternatives. `accepted` means provider
-acceptance, not answered/read/delivered. Expose `delivered` only when provider
-evidence supports it. On ambiguous submission, reconcile status or flag `unknown`;
-do not blindly retry a call that may already have happened. Consent revocation
-cancels unsent work. Already submitted work may not be retractable; record that fact.
+1. Assemble a family-safe projection from persisted facts, the validated explanation
+   and explicitly verified context. Show the recipient, factual context, opening
+   message and bounded conversational policy to the operator.
+2. Verify operator membership, historical patient/contact association, consent,
+   expected incident revision and explicit authorization. Freeze the recipient and
+   destination/consent version, context, opening and agent policy/version; record
+   approver, timestamp and context hash with a durable job in one transaction.
+3. Recheck consent, contact/destination version and approval freshness before sending.
+   Revocation cancels unsent work. Recipient/destination changes require new approval.
+   Later incident updates must not silently enrich an approved session: keep its
+   frozen facts, or require fresh review if that context is no longer suitable.
+4. Persist a distinct dispatch attempt before contacting ElevenLabs. Correlate its
+   conversation/SIP identifiers and provider evidence; use verified provider
+   idempotency if available, without assuming the provider supports it.
+5. One authorized outbound call per incident/contact is the MVP default. Repeating
+   an HTTP request returns existing work, not a second call. A deliberate retry
+   requires explicit new authorization after review of the previous attempt.
+   A timeout or lost response may mean a call already started: reconcile or mark
+   unknown and block blind redispatch. A database lease alone cannot make an
+   external telephone call exactly once.
+6. Verify webhook signatures/timestamps over the raw body, validate schemas and
+   identity/correlation, and durably deduplicate before acknowledging callbacks.
+   Handle callbacks arriving before the outbound response, redelivery and reordered
+   evidence without regressing state. Reconcile missing evidence with a verified
+   provider interface; never invent call status or speech completion.
 
-Family payload contains approved incident updates, verified or explicitly staged
-response facts (never claimed to be authenticated staff actions) and
-authorized follow-up only. Exclude scores, raw CSI, other residents and unsupported
-clinical claims. Public responses redact private destinations. Audit the approver
-as the authenticated account; a shared login is not individual staff attribution. Use fictional
-residents and preconfigured consented demo contacts. Photon outage
-preserves approved payload and status for review; a mock never proves a real call.
+Already submitted calls may not be retractable after consent revocation. Record
+that limitation and stop further dispatch; cancellation support remains unverified.
+Resolution alone neither authorizes nor forbids a reviewed follow-up call.
+
+### Family-safe context and agent boundaries
+
+Illustrative proposed context (a separate notification contract, not an event-schema
+change; finalize bounded JSON Schema/DTOs before implementation):
+
+```json
+{
+  "incident_id": "incident-uuid",
+  "explanation_source": "gemini",
+  "event_type": "inference_result",
+  "room_label": "Room 102",
+  "detected_at": "2026-10-17T14:32:06-07:00",
+  "family_summary": "A sensor result was recorded for Room 102. The resident's condition has not been confirmed.",
+  "resident_condition": "unknown",
+  "staff_response": "not_confirmed",
+  "recipient_name": "Sarah",
+  "allowed_actions": ["explain_incident", "request_callback"]
+}
+```
+
+Preserve `inference_result`; do not restore a categorical `possible_fall` event or
+infer one from scores without a separately approved interpretation rule. A
+possible-fall description needs a documented supported fact and explicit review.
+The projection never copies score-bearing operator prose. Its provenance references
+the persisted explanation; a deterministic fallback must not be labeled Gemini.
+Do not fabricate an explanation or imply Gemini ran when output is absent.
+
+ElevenLabs Agents manages speech and conversation. Its conversational LLM is
+configurable; Gemini Flash is preferred pending supported-model/configuration
+validation. The agent announces that it is automated and uses a bounded recipient
+verification step before disclosing incident-specific information. Wrong/unverified
+recipients and voicemail receive no incident details. Identity-check wording and
+failure handling require agreement before a live test; no real resident data is used.
+
+The agent may naturally express only the frozen approved facts, answer ordinary
+follow-up questions within those facts, state uncertainty, and capture a callback
+request. It must not reclassify sensor data, infer positions/activities, diagnose
+injury, confirm an unknown condition, invent staff actions or new updates, dispatch
+other notifications, initiate emergency escalation or perform unrelated actions.
+There are no live database-query or incident-mutating agent tools in the MVP.
+A callback request is recorded for operator review; it does not automatically
+contact staff or claim a response has occurred.
+
+### Call status and success evidence
+
+Persist transport separately from notification evidence:
+
+| Transport status | Meaning |
+| --- | --- |
+| `queued` | Explicit operator authorization durably committed |
+| `initiating` | Dispatch attempt recorded/submitted; acceptance may be uncertain |
+| `in_progress` | Provider evidence reports an active call |
+| `completed` | Provider reports the session ended; this alone is not notification success |
+| `failed` | Call initiation or transport failed |
+| `unknown` | Transport result cannot be established reliably |
+
+**MVP notification success requires a connected call and provider evidence that
+our agent spoke the approved incident notification.** No recipient acknowledgment,
+completed follow-up conversation or proof of subsequent action is required. A
+recipient hanging up after hearing the incident does not invalidate success.
+Connection alone, provider acceptance, generated text or a transcript of planned
+speech does not prove the message was spoken. Map provider evidence to connected
+and notification-spoken fields, with timestamps/source, during integration; that
+mapping is currently unverified. Do not claim the family understood or acted.
+
+Do not require the originally proposed conversation-outcome enum or a separate
+acknowledgment classifier. Optional callback requests and reliable no-answer,
+voicemail, wrong-recipient or unverified-recipient observations may be retained as
+bounded metadata, with unknowns explicit. Never infer them from a hang-up alone.
+A disconnect before evidence of the incident notification leaves success unproven;
+a later transport failure does not erase an already evidenced spoken notification.
+
+Store a bounded summary and minimal structured call evidence; full audio recording
+and full transcript persistence are not required. Validate post-call analysis as
+provider-reported data, not clinical truth. Restrict access and redact destinations
+in routine dashboard/history views and logs. The consented real test recipient may
+represent a fictional family member. Mocks never establish a real call.
+
+### Provider configuration and evidence boundary
+
+Planned server-only Railway configuration (not yet consumed by application code):
+
+```env
+ELEVENLABS_API_KEY=
+ELEVENLABS_AGENT_ID=
+ELEVENLABS_PHONE_NUMBER_ID=
+ELEVENLABS_WEBHOOK_SECRET=
+```
+
+Existing `GEMINI_API_KEY`/`GEMINI_MODEL` remain for incident explanations. The
+ElevenLabs phone-number ID identifies its configured outbound trunk/number.
+Photon SIP credentials ordinarily belong in the ElevenLabs trunk configuration;
+Railway Photon credential needs depend on the final verified integration. Never
+expose provider credentials in `VITE_` variables, QNX or the family context.
+
+ElevenLabs documents outbound SIP calls with conversation/SIP correlation IDs in
+its [outbound-call API](https://elevenlabs.io/docs/api-reference/sip-trunk/outbound-call).
+Its [post-call webhook documentation](https://elevenlabs.io/docs/eleven-agents/workflows/post-call-webhooks)
+describes signed callbacks, analysis and initiation failures. These documented
+interfaces do not establish Photon compatibility, recipient verification or
+notification-spoken evidence. Verify the actual Photon product/trunk, agent/LLM,
+number, signatures, event mapping and consented live call before claiming integration.
 
 ## 21. Team Roles and Component Ownership
 
@@ -828,7 +986,7 @@ Assignments below are confirmed by the complete request, except explicit TBDs.
 | Chloe | Model 1 and edge inference | Parsing/preprocessing, CNN training, evaluation, artifacts, QNX runtime, event-producing WSS client |
 | Chace | Model 2 and backend | Gemini explanations and durable jobs, Railway WSS/REST, Supabase persistence, demo notification approval |
 | Kiro / Frontend Team | Operator interface | Paper document/screen handoff and matching React/Vite UI, authenticated Vercel dashboard/detail, incident actions and Supabase Realtime/backend integration |
-| TBD | Photon provider integration | Exact API/capability verification, consented recipient, dispatch/status adapter and live test |
+| TBD | ElevenLabs/Photon provider integration | Agent and conversational LLM configuration, Photon SIP compatibility, signed evidence mapping, consented recipient and real-call test |
 | Entire team | Integration, testing and presentation | End-to-end evidence, honest limitations and demo rehearsal; integration lead TBD |
 
 Boundary leads: Emilia ensures serial output works; Chloe consumes it using the
@@ -853,7 +1011,8 @@ every row. Tool use alone does not establish prize eligibility.
 | QNX | Pi/QNX inference using an eligible open-source AI module | Catalog/module eligibility confirmation and actual QNX inference logs |
 | Veri Studio | Separate optional open-source fine-tuning effort; previous Model 2 path superseded for MVP | Compatible open-source model/license, mentor-approved path, Veri training evidence and comparison; Gemini alone does not qualify |
 | Paper | Operator dashboard design | Paper artifact and corresponding implemented UI |
-| Photon | Reviewed authorized family contact | API verification and real consented call/message status |
+| Photon | Outbound SIP telephony for authorized conversational calls | Verified trunk configuration and real consented call through Photon; a mock or unrelated telephony provider does not qualify |
+| ElevenLabs | Bounded family conversation and call evidence | Configured agent/LLM, ordinary follow-up handling, uncertainty refusal, signed results and live incident-notification speech evidence |
 
 For each sponsor, separately record planned use, working integration, verified
 eligibility, and completed submission artifacts. Mentor confirmation must cover
@@ -864,7 +1023,8 @@ No current sponsor website rules or supported-model catalog were verified here.
 
 The following routes define the target API. Slice 2 implements room metadata,
 incident history/detail and device status reads. Other routes remain proposed;
-incident mutation and Photon are not implemented. Gemini explanation reads are
+incident mutation, family contacts, notification calls, ElevenLabs and Photon are
+not implemented. Gemini explanation reads are
 implemented with the additive opt-in described below. The shared incident DTO
 is in packages/contracts/schemas/incident.json, with generated TypeScript and
 runtime validation for frontend handoff. No separate frontend-owner review is claimed.
@@ -888,7 +1048,8 @@ and reconnect. This is not a durable notification queue.
 Chace finalizes response bodies and authenticated demo policies with Kiro before
 implementation. Existing REST paths are retained; `/operator/` is a domain label,
 not an alternative API namespace. Supabase Auth and facility membership protect
-all operator routes; only health/liveness is public.
+all operator routes. Health/liveness is public; the planned provider webhook uses
+provider-signature authentication instead of an operator JWT.
 
 | Method/path | Behavior |
 | --- | --- |
@@ -898,8 +1059,22 @@ all operator routes; only health/liveness is public.
 | `GET /api/operator/incidents/:id` | Facts, lifecycle, explanation, notes and allowed notification history |
 | `PATCH /api/operator/incidents/:id` | Authorized operator state transition, disposition or note |
 | `GET /api/devices/status` | Authorized demo device/serial/model/network health; no secrets |
-| `POST /api/operator/incidents/:id/notifications` | Explicit operator-approved dispatch to preconfigured consented demo recipients |
+| `GET /api/operator/family-contacts` | Authorized contacts filtered by facility and fictional patient; private destination access is scoped |
+| `PUT /api/operator/family-contacts/:id` | Configure/update a consented primary patient contact; validate E.164, facility/patient association, consent and revision |
+| `POST /api/operator/incidents/:id/notifications` | Explicitly authorize and queue a call using reviewed contact/context/opening/policy and expected revision; no arbitrary destination |
+| `GET /api/operator/incidents/:id/notifications` | Authorized call attempts, transport and notification-spoken evidence, optional callback request and bounded summary |
+| `POST /api/webhooks/elevenlabs` | Provider-signature/timestamp authentication, validated correlation and durable callback deduplication; no operator JWT |
 | `GET /api/operator/stream` | Superseded proposal; use demo-scoped Supabase Realtime instead, not a second required stream |
+
+All contact/call/webhook routes above are planned. Finalize shared JSON Schemas
+with Chace/Kiro before implementation. Contact PUT must define intentional creation
+with a client-generated ID or update semantics; never silently upsert an ID from a
+different facility. Call initiation references a server-validated reviewed snapshot
+and expected revision, with an idempotency key. Reusing a key with changed content
+is a conflict. Return durable queued authorization, not a claim of successful speech.
+Freeze backend-validated facts rather than trusting browser-supplied context. Reads
+return evidence-backed statuses and authorized projections; Realtime signals changes
+only after commit. Webhook bodies are untrusted even after signature verification.
 
 Proposed mutation example:
 
@@ -938,7 +1113,8 @@ mutation is allowed. This explicitly supersedes ADR-018's public demo access.
 | --- | --- |
 | Device | Authenticated WSS, own events/health/ACKs and assigned room |
 | Operator | Valid Supabase JWT plus facility membership; scoped reads/actions |
-| Backend/worker | Server-held PostgreSQL, Gemini and Photon credentials |
+| Backend/worker | Server-held PostgreSQL, Gemini, ElevenLabs and any required Photon credentials |
+| Provider callback | Verified ElevenLabs signature/timestamp, validated call identity and durable replay deduplication |
 | Family recipient | Preconfigured consented demo contact; private destination not exposed |
 
 Railway verifies JWT signature, issuer, audience, expiry and role, then checks
@@ -949,10 +1125,19 @@ logs. Direct PostgreSQL backend access must enforce the same object authorizatio
 in server queries; database owner privileges do not replace these checks.
 
 Keep event validation, optimistic revisions, rate limits, consent, explicit review
-of exact recipient/text, audit and notification idempotency. Acknowledgment and
+of recipient, frozen facts, opening and bounded conversation policy, audit and call
+idempotency. Verify the intended recipient before sharing incident facts.
+Acknowledgment and
 Gemini output never authorize dispatch. Audit account identity honestly when a
 shared operator account is used. Fictional residents/static layouts only; the CNN
 cannot locate a person within a room or diagnose injury.
+
+Do not send CSI or experimental scores to the voice agent. Keep destinations,
+approved contexts and call records facility-scoped; redact secrets/provider bodies
+in logs and errors. Disable unnecessary audio recording/transcript persistence;
+provider-side audio/transcript retention, deletion and consent settings must be
+verified separately. Store only minimal structured evidence and a bounded summary
+for this MVP. No incident-specific voicemail or wrong-recipient disclosure.
 
 Retention remains TBD. Proposed demo retention is seven days, pending approval
 of audit/backups/deletion needs; dataset and provider retention require separate
@@ -980,9 +1165,16 @@ implemented or partial merely because this specification describes it.
 | 10 | Public Vercel dashboard displays the incident after authorized login, without waiting for Gemini | Kiro |
 | 11 | Authorized operator acknowledges and resolves; responding/false-alarm/notes work | Kiro + Chace; Kiro leads UI validation |
 | 12 | Railway worker calls Gemini with persisted facts, validates/persists the explanation and updates Realtime; failure gives deterministic fallback | Chace |
-| 13 | Explicit operator-approved Photon contact succeeds to a preconfigured consented demo recipient | Photon lead TBD |
+| 13 | Authenticated operator configures a consented fictional-resident contact, reviews/authorizes frozen family-safe facts, opening and policy; a real ElevenLabs call through Photon connects and provider evidence shows the incident notification was spoken; Supabase stores and dashboard displays the evidence | Voice/Photon lead TBD |
 
-P1 roadmap classification of explanations/Photon does not remove criteria 12–13
+Criterion 13 does not require recipient acknowledgment or a completed conversation.
+A hang-up after the notification was spoken still counts. Separately exercise an
+ordinary follow-up question, refusal to confirm an unknown condition, and optional
+callback capture without making them mandatory recipient behavior on every call.
+Reject unauthorized/revoked contacts and duplicate submissions. Connection alone
+or a mock does not satisfy the notification-spoken requirement.
+
+P1 roadmap classification of explanations/ElevenLabs/Photon does not remove criteria 12–13
 from the complete MVP demonstration. Also verify pending jobs recover after
 backend restart, expired leases are reclaimed, competing workers cannot publish
 conflicting results, and duplicate delivery does not create duplicate incidents.
@@ -1004,13 +1196,15 @@ checks are recorded separately in Section 29; they do not establish live provide
 | QNX | Model load, operator compatibility, Keras/export/QNX output comparison, memory, inference time and sustained real-time windows |
 | Backend | Authenticated WSS, malformed messages, duplicate/conflicting IDs, lost ACKs, reconnect/restart, incident persistence, lifecycle concurrency, transactional pending work, post-commit ACK, Gemini outage, bounded retries, lease expiry/stale worker, idempotent completion and restart recovery |
 | Frontend | Comparison against linked Paper screens, multiple fixture room cards, detail navigation, live/stale/offline states, acknowledgment/responding/resolution, false alarm, notes and conflict recovery, Supabase login and facility scope, immediate pending incidents and Realtime explanation updates/reconnect refetch |
-| Notifications | Unauthorized/revoked contact rejection, content re-review, idempotency, provider outage, ambiguous submit and duplicate callbacks if supported |
+| Notifications | Historical patient/contact selection, unauthorized/revoked/destination-changed rejection, immutable reviewed context/opening/policy, revision conflicts, one-call default/explicit retry, durable attempt before dispatch, ambiguous-submit reconciliation and webhook signature/replay/reordering tests |
+| Voice agent | Real consented Photon-connected call and evidence of incident notification spoken; hang-up afterward still succeeds; ordinary follow-up, unknown-condition refusal, optional callback capture, wrong/unverified recipient and voicemail nondisclosure, no-answer/disconnect/provider outage; no live database tools |
 | Security | Missing/invalid JWT and unauthorized facility denial in REST and Realtime/RLS, device identity mismatch, recipient allowlist enforcement and secret redaction |
 
 Full-system rehearsal: normal movement produces no alert in the tested trial;
 a controlled staged fall yields local QNX inference, WSS event, persisted incident,
-dashboard update, grounded explanation, explicit operator review/approval and Photon delivery
-evidence. Record false alerts and misses from broader evaluation; one successful
+dashboard update, grounded explanation, explicit call authorization and real
+ElevenLabs/Photon evidence of connected transport plus incident notification spoken.
+Record false alerts and misses from broader evaluation; one successful
 rehearsal is not an accuracy guarantee. Exercise serial/backend/LLM/Photon outages
 and recoveries, marking real hardware versus synthetic fixture evidence.
 
@@ -1032,10 +1226,11 @@ observed duration, hardware/software versions and limitations.
 | Supabase/Realtime unavailable | QNX bounded retry if persistence fails; no success ACK without commit; frontend refetches durable history when service returns |
 | Worker crash or multiple instances | Database-backed claims/leases and conditional idempotent completion recover unfinished work |
 | Shared demo account misuse | Supabase Auth, facility authorization/RLS, validated actions, rate limits, private recipient allowlist and explicit approval; shared login is not individual staff attribution |
-| Photon unavailable | Preserve approved payload and status, demonstrate review workflow, disclose no real call/message occurred |
+| Photon/ElevenLabs unavailable or SIP incompatible | Preserve authorization and status; demonstrate review workflow, disclose that no real conversational call occurred; alternate provider needs explicit decision |
+| Unsupported agent claims or recipient verification failure | Withhold incident details/unsupported response, preserve uncertainty, record bounded failure; no automated emergency escalation or incident mutation |
 | Poor live performance | Report actual results and collect better data; use clearly labeled recorded replay for fallback presentation, never as live evidence |
 | Backend/network outage | Continue local inference and bounded outbox; reconnect/retry stable IDs; expose losses and stale monitoring |
-| Ambiguous Photon result | Reconcile via supported status/idempotency mechanism or flag unknown; avoid duplicate calls |
+| Ambiguous call submission or speech evidence | Reconcile supported provider identifiers/evidence or flag unknown; no blind redial or claim the notification was spoken |
 
 Export feasibility and serial access are early critical-path gates. Stretch features
 must not consume time needed to prove local sensing, durable incidents and reviewed
@@ -1066,7 +1261,9 @@ containers are not production runtime intermediaries.
    Chloe sends a synthetic event from the actual Pi running QNX with authenticated
    TLS; record this independently of CNN integration and desktop simulations.
 3. Enrichment/workflows: durable Gemini worker/fallback, full incident actions and
-   reviewed Photon dispatch with recovery tests.
+   consented contact configuration, frozen conversational-call authorization, ElevenLabs/Photon
+   dispatch/evidence and recovery tests. Notification success is connected plus spoken,
+   without requiring recipient acknowledgment.
 
 Use apps/backend, apps/web and packages/contracts as initial TypeScript workspaces;
 keep supabase migrations outside application code. Add tools/simulator, edge/qnx,
@@ -1089,7 +1286,7 @@ required explanation and notification flow before claiming the complete MVP.
 | P0 | Paper-designed authenticated Vercel dashboard and Supabase Realtime | Linked Paper screens and matching React/Vite views, Supabase Auth, facility RLS/publication, room overview/static plan and reconnect recovery |
 | Optional / separate | Veri fine-tuning investigation | Compatible open-source model, documented training/comparison and mentor-confirmed sponsor evidence; not required for MVP inference |
 | P1 | Durable Gemini integration | Pending-work claims/leases, structured output validation/persistence, retries/fallback, restart recovery and frontend explanation updates |
-| P1 | Complete incident actions and Photon | Lifecycle correctness and explicitly reviewed/approved consented demo contact with delivery evidence |
+| P1 | Complete incident actions and ElevenLabs/Photon calls | Lifecycle correctness, one consented primary contact, reviewed immutable call context, real connected/spoken evidence, signed callbacks and dashboard status; no acknowledgment requirement |
 | P1 | Health/history product extensions | Basic health is required from P0; richer diagnostics and history follow |
 | P2 | Stretch | Multi-room sensing, personalized calibration, additional models, reviewed staff-feedback retraining and advanced activity interpretation |
 
@@ -1104,8 +1301,9 @@ required explanation and notification flow before claiming the complete MVP.
 4. Chace implements the confirmed seven-field event ingestion with authentication,
    durable transactional event/incident persistence in Supabase, incident lifecycle,
    health and agreed authenticated demo REST/Realtime interfaces on Railway.
-5. Kiro integrates the Paper-designed room/incident UI; Chace and the named Photon
-   lead complete durable Gemini explanations and operator-reviewed demo contact for
+5. Kiro integrates the Paper-designed room/incident/contact UI; Chace and the named
+   voice/Photon lead complete durable Gemini explanations and operator-authorized
+   ElevenLabs/Photon calls with connected/notification-spoken evidence for
    end-to-end rehearsal on Vercel.
 
 Synthetic contract fixtures can unblock backend/UI work while hardware/ML work
@@ -1132,7 +1330,7 @@ The previous dataset-access 404 observation has not been retested by this work.
 | [.github/workflows/ci.yml](.github/workflows/ci.yml) | Docker foundation workflow; writing it is not evidence of a remote CI run |
 | Firmware, dataset, training, QNX runtime/model | Not implemented/verified in this repository; no data downloaded or training started |
 | [apps/backend/src/explanations](apps/backend/src/explanations) | Durable leased worker, constrained Gemini output, retry/fallback and atomic publication; live model/local Realtime verified; hosted rollout pending |
-| Incident actions, Photon | Later slices; no working integration claimed |
+| Incident actions, family contacts, call authorization/jobs, ElevenLabs/Photon and call evidence | Planned later slices; no tables/APIs or working provider integration claimed by this delta |
 | [tools/simulator](tools/simulator) | Canonical-fixture synthetic device client with stable retry IDs and bounded retries; not QNX evidence |
 | [compose.realtime.yaml](compose.realtime.yaml) | Isolated PostgreSQL + official Supabase Realtime test service with synthetic signed identities; never production |
 | [apps/backend/Dockerfile](apps/backend/Dockerfile), [railway.json](railway.json), [vercel.json](vercel.json) | Deployment setup artifacts; build validation is not hosted deployment or DNS/TLS verification |
@@ -1166,7 +1364,10 @@ project uses fictional residents and two staged synthetic events, not live sensi
 | Gemini hosted rollout, broader evaluation, provider limits and retention; initial model and constrained prompt recorded in docs/gemini-pipeline.md | Chace |
 | Paper document access/link and screen references, matching React/Vite implementation and visual comparison; full dashboard/workflow integration | Kiro + Chace |
 | Static room-layout DTO/coordinate units and historical patient-assignment presentation; no localization inferred | Kiro + Chace |
-| Photon lead, exact provider/API, calling/messaging/TTS, delivery evidence and idempotency | Team assigns lead + Photon mentor |
+| Voice/Photon lead, exact SIP product/trunk/number, ElevenLabs agent/LLM, runtime context limits and consented live test | Team assigns lead + Photon/ElevenLabs mentors |
+| Connected/notification-spoken provider evidence mapping, ambiguous-submit reconciliation, callback identity/replay and post-call data validation | Chace + provider lead |
+| Recipient-check wording, family-safe projection/policy schemas, private contact DTO and Paper contact/review/results views | Chace + Kiro |
+| Provider audio/transcript retention/deletion and consent settings; application retains minimal structured evidence | Provider lead + Chace |
 | Integration coordinator, deadlines, consented recipient, final demo retention and deletion process | Entire team; lead TBD |
 
 Do not reopen confirmed architecture, named ownership or selected Keras baseline
@@ -1204,6 +1405,7 @@ documented evidence supports a decision.
 | ADR-025 / 2026-10-17 | Approved: Docker Compose for Node/pnpm development and foundation validation | User requested Docker; disposable PostgreSQL tests, independent QNX/Python, no host Node requirement |
 | ADR-026 / 2026-10-17 | Confirmed target: blissey-beacon.health website, planned api.blissey-beacon.health backend, provider-assigned Supabase project URL | User supplied domain; deployment manifests/env examples and setup handoff prepared; no DNS/TLS/production changes claimed |
 | ADR-027 / 2026-10-17 | Implementation: explicit Gemini 3.5 Flash-Lite, frozen minimal input, constrained schema/wording validation, 30-second leased jobs and atomic explanation/incident-revision publication; live model verified locally, hosted rollout pending | Preserves event/output contracts and single backend; opt-in explanation DTO supports independent frontend/backend rollout |
+| ADR-028 / 2026-10-17 | Approved: bounded conversational family notifications through ElevenLabs Agents and planned Photon SIP; operator approves frozen recipient/context/opening/policy, with one consented primary contact per fictional resident | Supersedes static-text-only authorization and configuration-time destination ban; preserves v2 ingestion, Gemini output/auth/lifecycle. Success is connected plus incident notification spoken, without recipient acknowledgment; provider integration/evidence mapping unverified |
 
 The user explicitly approved this delta after reviewing the proposal. See
 [deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md](deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md)
@@ -1212,6 +1414,9 @@ ADRs retain their original rationale; the superseding entries above govern the M
 Approval of architecture is not evidence of provider integration or sponsor eligibility.
 
 The approved scaffold-review amendment is recorded in [deltas/2026-10-17T22-01-59Z-authenticated-monorepo-foundation.md](deltas/2026-10-17T22-01-59Z-authenticated-monorepo-foundation.md).
+
+The approved conversational-call delta and success-criterion clarification are recorded in
+[deltas/2026-10-18T01-47-18Z-conversational-family-calls.md](deltas/2026-10-18T01-47-18Z-conversational-family-calls.md).
 
 ## 32. How to Maintain This Specification
 

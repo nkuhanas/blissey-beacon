@@ -141,3 +141,19 @@ Actual Pi/QNX authenticated TLS WebSocket smoke remains a separate milestone for
 the edge owner. For the subsequent Gemini migration, server-only key/model settings and rollout
 verification, follow [gemini-pipeline.md](gemini-pipeline.md). Photon remains unimplemented. The site is experimental,
 uses fictional residents/staged events and makes no clinical or compliance claims.
+
+## Planned ElevenLabs and Photon setup
+
+The approved [conversational-call specification](../PROJECT_SPEC.md#20-conversational-family-notifications-elevenlabs-and-photon)
+extends the demo with operator-authorized calls. It is not implemented or deployed.
+Root `.env.example` lists the planned server-only `ELEVENLABS_API_KEY`,
+`ELEVENLABS_AGENT_ID`, `ELEVENLABS_PHONE_NUMBER_ID` and `ELEVENLABS_WEBHOOK_SECRET`.
+Current code does not read them. No additional backend service is planned.
+
+Before implementation/live acceptance, verify the actual Photon SIP product/trunk
+and outbound number in ElevenLabs, agent/voice/LLM configuration, recipient check,
+signed webhook delivery and evidence mapping for connected calls with the incident
+notification spoken. A recipient acknowledgment is not required. Review provider
+retention/deletion settings; full audio/transcript storage is not required. Keep
+Photon trunk credentials on the integration side unless a verified backend need
+is established. Do not put voice-provider secrets in Vercel `VITE_` variables.
