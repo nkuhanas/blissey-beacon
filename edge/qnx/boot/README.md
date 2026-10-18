@@ -82,3 +82,37 @@ Before shutdown, a second supervisor exited successfully without starting a
 duplicate driver; terminating the child driver caused automatic restart in one
 second. Python compilation and startup shell syntax checks passed on QNX.
 Physical unplug/replug and multiple matching adapters remain unverified.
+
+## Application launcher integration
+
+A second application supervisor must not start a bare `drivers/devc-serusb` when
+the serial node is temporarily missing. That races the boot watchdog and can
+create two drivers with different baud/flow-control settings for the same board.
+
+Copy `wait_for_serial.py` beside the deployed application's `supervise.py` and
+replace only its `ensure_serial` function with:
+
+```python
+def ensure_serial(device, wait=15.0):
+    from wait_for_serial import ensure_serial as managed_serial
+    return managed_serial(device, wait, log)
+```
+
+The helper uses the root-owned watchdog's singleton lock and waits for its node.
+It never launches a second bare driver. Noninteractive sudo failure stops startup
+for operator repair. Preserve the application's other options and backups; its
+full source is maintained separately from this USB helper. Coordinate deployment
+with teammates so a later application upload does not restore the old fallback.
+
+Focused regression checks:
+
+```sh
+PYTHONPATH=edge/qnx python3 -m unittest discover -s edge/qnx/tests -p test_usb_startup.py -v
+```
+
+The helper passed five checks for existing ports, transient missing nodes, missing
+watchdog installation, permission rejection and timeout. During live investigation,
+two competing driver processes were observed; concurrent application uploads
+overwrote the deployed launcher guard. Deployment and a sustained single-owner
+stream check must be repeated after coordinating those updates. The independent
+USB boot verification above remains distinct from full application validation.
