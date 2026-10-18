@@ -225,13 +225,19 @@ export interface MessageHistory {
   replies: FamilyReply[];
 }
 
-export interface MessagePreviewRequest {
+export type MessagePreviewRequest = {
+  [k: string]: unknown;
+} & {
   contact_id: string;
   expected_revision: number;
   purpose: "followup" | "update";
   update_text?: string;
   verified_facts_confirmed?: true;
-}
+  /**
+   * Explicit operator confirmation that staff dispatch occurred for this incident; only valid for a follow-up preview. Records confirmation, does not dispatch staff.
+   */
+  staff_dispatch_confirmed?: true;
+};
 
 export interface MessageReview {
   expected_revision: number;

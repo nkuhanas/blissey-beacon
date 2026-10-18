@@ -1,4 +1,3 @@
-import type { FamilyCallContext } from "@blissey/contracts";
 export type CallEvidence =
   | "no_answer"
   | "busy"
@@ -20,11 +19,11 @@ export function selectFollowup(
     return "summary" as const;
   return "review" as const;
 }
-export function messageCandidates(context: FamilyCallContext) {
+export function messageCandidates({ staffDispatchConfirmed = false } = {}) {
   return {
     missed:
       "This is Blissey Beacon. We tried to reach you with a care notification. Please contact your care team for an update. Reply CALLBACK to request operator review, or STOP to stop iMessages.",
-    summary: `Blissey Beacon care notification: ${context.family_summary} Reply CALLBACK to request operator review, ACK to acknowledge this message, or STOP to stop iMessages. A callback request does not confirm that staff will call.`,
+    summary: `Blissey Beacon care notification: Thank you for speaking with us. ${staffDispatchConfirmed ? "Our care team has been dispatched and will keep you updated as the situation develops." : "Please contact your care team for the latest updates."} Reply CALLBACK to request operator review, ACK to acknowledge this message, or STOP to stop iMessages.`,
   };
 }
 export function replyIntent(text: string) {

@@ -105,15 +105,15 @@ preview/hash/revision with `explicit_authorization: true` and an Idempotency-Key
 to the messages endpoint. This is human-authored, verified content; no new Gemini
 call or autonomous medical advice is involved.
 
-The existing demo call CLI remains call-only. It does not silently opt contacts
-into messages or authorize follow-ups. Use the reviewed API flow above for this slice.
+The smoke CLI supports explicit `--with-imessage` review. It does not silently
+opt contacts into messages or authorize follow-ups.
 
 ## Selection and evidence
 
 | Evidence | Selection |
 | --- | --- |
 | Confirmed no-answer, busy, voicemail or ended before communication | Generic missed-call message; no resident/room/incident details |
-| Incident communicated to verified intended recipient | Approved summary, even if the recipient subsequently hangs up |
+| Incident communicated to verified intended recipient | Approved post-call acknowledgment, even if the recipient subsequently hangs up |
 | Unknown, incomplete or conflicting evidence | Operator review; no automatic message |
 
 The signed ElevenLabs failure callback's `busy`/`no-answer` reasons are mapped
@@ -198,9 +198,9 @@ real Photon send/receive with the local backend path. A real callback-request re
 combined live call/follow-up selection, hosted Realtime display and frontend view
 remain unverified; their synthetic tests are not live provider evidence.
 
-## Shared possible-fall wording
+## Historical shared possible-fall wording
 
-New reviewed post-call summaries use the same family summary as calls:
+Before ADR-035, reviewed post-call summaries used the same family summary as calls:
 "We're contacting you about a possible fall involving [resident] in [room]. Their
 condition has not been confirmed." This is the explicitly approved staged demo
 scenario, with no score-based reclassification or claim of a confirmed fall.
@@ -215,12 +215,11 @@ missed-call previews begin:
 
 > This is Blissey Beacon. We tried to reach you with a care notification. Please contact your care team for an update.
 
-CALLBACK and STOP instructions remain appended. The incident-summary prefix is
+CALLBACK and STOP instructions remain appended. The post-call acknowledgment prefix is
 "Blissey Beacon care notification:". Existing privacy, consent, reply commands and
 callback-promise restrictions are unchanged. Frozen previously approved messages
 retain their exact text; review/authorize a new preview to use the new copy.
 This copy change authorizes no send and does not establish a new live-message test.
-
 
 ## Post-call smoke approval
 
@@ -229,6 +228,23 @@ binding voice and message hashes in its approval hash. A changed message review
 requires new approval; retrying an existing call cannot add messaging implicitly.
 While provider playback mapping remains unverified, classify actual communicated
 versus missed evidence through the operator review API before selecting the text.
-A recipient-confirmed successful call selects its preauthorized family summary.
+A recipient-confirmed successful call selects its preauthorized post-call acknowledgment.
 For an existing call-only approval, a separately reviewed/authorized staff update
 is required. Staff-update messages use the "Blissey Beacon care update:" prefix.
+
+## Post-call acknowledgment — 2026-10-18 UTC
+
+ADR-035 replaces the incident recap in new `candidates.summary` previews with a
+thank-you follow-up. When the operator explicitly confirms staff dispatch:
+
+> Thank you for speaking with us. Our care team has been dispatched and will keep you updated as the situation develops.
+
+Supply `staff_dispatch_confirmed: true` with a `purpose: "followup"` preview only
+when that action has been confirmed. The backend records `staff_dispatch_confirmed`
+with the actor, incident/revision and preview ID in the audit log; the new wording
+is frozen in the approval hash. The flag records a fact, not a dispatch command.
+Neither active/responding incident state nor a connected/completed call sets it.
+Without confirmation, the follow-up thanks the recipient and asks them to contact
+the care team for the latest updates. Both variants retain reply and STOP controls.
+The legacy `summary` field/selection remains for compatibility; historical frozen
+recaps are unchanged. No extra message is sent to replace a delivered recap.

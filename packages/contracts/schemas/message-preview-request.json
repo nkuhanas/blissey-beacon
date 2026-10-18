@@ -30,6 +30,31 @@
     },
     "verified_facts_confirmed": {
       "const": true
+    },
+    "staff_dispatch_confirmed": {
+      "description": "Explicit operator confirmation that staff dispatch occurred for this incident; only valid for a follow-up preview. Records confirmation, does not dispatch staff.",
+      "const": true
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "staff_dispatch_confirmed"
+        ],
+        "properties": {
+          "staff_dispatch_confirmed": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "purpose": {
+            "const": "followup"
+          }
+        }
+      }
+    }
+  ]
 }

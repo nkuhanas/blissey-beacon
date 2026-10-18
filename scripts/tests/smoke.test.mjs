@@ -121,6 +121,7 @@ function setup() {
     posts = [],
     snapshots = [];
   const behavior = {
+    messagePreviews: [],
     loseResponse: false,
     noEffect: false,
     wrongDuplicate: false,
@@ -139,7 +140,8 @@ function setup() {
         };
       if (path.startsWith("/api/operator/family-contacts"))
         return { contacts: [contact] };
-      if (path.endsWith("/messages/preview"))
+      if (path.endsWith("/messages/preview")) {
+        behavior.messagePreviews.push(structuredClone(options.body));
         return {
           preview_id: contactId,
           context_hash: behavior.messageHash || "b".repeat(64),
@@ -148,9 +150,14 @@ function setup() {
           recipient: preview.recipient,
           candidates: {
             missed: "Generic missed call. Reply STOP.",
-            summary: preview.context.family_summary,
+            summary:
+              "Blissey Beacon care notification: Thank you for speaking with us. " +
+              (options.body.staff_dispatch_confirmed
+                ? "Our care team has been dispatched and will keep you updated as the situation develops."
+                : "Please contact your care team for the latest updates."),
           },
         };
+      }
       if (path.endsWith("/notifications/preview"))
         return structuredClone(preview);
       if (path.endsWith("/notifications")) {
@@ -241,7 +248,12 @@ test("joint call/message approval binds both reviewed hashes and cannot silently
   assert.notEqual(f.state.review_hash, f.preview.context_hash);
   await assert.rejects(f.run.authorize(f.preview.context_hash), /changed/);
   assert.equal(f.posts.length, 0);
+  assert.equal(
+    f.behavior.messagePreviews[0].staff_dispatch_confirmed,
+    undefined,
+  );
   const reviewed = f.state.review_hash;
+  f.state.staff_dispatch_confirmed = true;
   f.behavior.messageHash = "c".repeat(64);
   await assert.rejects(f.run.authorize(reviewed), /changed/);
   assert.equal(f.posts.length, 0);
@@ -249,6 +261,10 @@ test("joint call/message approval binds both reviewed hashes and cannot silently
   assert.equal(f.posts.length, 1);
   assert.equal(f.posts[0].body.message_context_hash, "c".repeat(64));
   assert.equal(f.posts[0].body.explicit_messaging_authorization, true);
+  assert.equal(
+    f.behavior.messagePreviews.at(-1).staff_dispatch_confirmed,
+    true,
+  );
   await f.run.authorize(f.state.review_hash);
   assert.equal(f.posts.length, 1);
 });

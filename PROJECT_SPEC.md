@@ -958,9 +958,9 @@ For the staged fall demo, the user approved the shared notification wording:
 condition has not been confirmed." This describes the operator-reviewed demo
 scenario, not a newly inferred category or calibrated score interpretation. Only
 authorize this template for an intended possible-fall scenario; do not turn every
-inference window into a family alert. The same frozen family summary is spoken
-by the call agent after recipient verification and used in the reviewed post-call
-iMessage. Never upgrade possible to confirmed, assert injury, or invent staff action.
+inference window into a family alert. The frozen family summary is spoken
+by the call agent after recipient verification. Successful-call iMessages use the
+reviewed post-call acknowledgment below, rather than repeating the incident recap. Never upgrade possible to confirmed, assert injury, or invent staff action.
 Previously approved snapshots retain their exact text; new wording requires a new
 review, rather than silently changing queued/previously approved notifications.
 The projection never copies score-bearing operator prose. Its provenance references
@@ -1108,7 +1108,7 @@ No additional inference model or developer Mac is needed.
 
 Voice and iMessage have separate consent. The operator may review and explicitly
 authorize the call and its two frozen follow-up candidates together: a generic
-missed-call message and a family-safe incident summary. Existing call-only approvals
+missed-call message and a family-safe post-call acknowledgment. Existing call-only approvals
 never authorize messaging retroactively. Before each message, recheck operator
 membership, historical patient/contact association, messaging consent/version and
 Photon sender assignment for that recipient. `PHOTON_IMESSAGE_SENDER_NUMBER` is an
@@ -1117,18 +1117,35 @@ Shared recipients must complete Photon's required assignment and inbound onboard
 
 The generic missed-call text begins: "This is Blissey Beacon. We tried to reach you
 with a care notification. Please contact your care team for an update." Retain the
-CALLBACK and STOP instructions. Incident summaries use "Blissey Beacon care
+CALLBACK and STOP instructions. Post-call acknowledgments use "Blissey Beacon care
 notification:" as their prefix. This copy does not change consent, reply routing,
 callback commitments or the prohibition on disclosing incident details in a
 missed-call message. Exact new text requires a new preview/hash and approval;
 previously frozen message/call authorizations keep their original text.
+
+After a successful, communicated call, use this acknowledgment instead of an
+incident recap:
+
+> Thank you for speaking with us. Our care team has been dispatched and will keep you updated as the situation develops.
+
+The dispatch/update sentence requires explicit operator confirmation via
+`staff_dispatch_confirmed: true` on that follow-up preview. The backend records
+the confirming actor, incident, revision and preview in its audit log and freezes
+the exact text/hash for approval. This is confirmation of an already-taken action;
+it neither dispatches staff nor infers dispatch from an alert, `responding` status,
+call completion or Gemini. Without confirmation, say "Thank you for speaking with
+us. Please contact your care team for the latest updates." Retain reply/STOP
+instructions. The legacy wire key and selection value `summary` now identify this
+acknowledgment. Historical frozen recap messages are not rewritten. The approved
+confirmed template includes the team's commitment to further updates; this does
+not itself automate those updates. Generic missed-call privacy is unchanged.
 
 Select at most one preauthorized initial follow-up per call, deterministically:
 
 | Confirmed call evidence | Message |
 | --- | --- |
 | No answer, busy, voicemail, or ended before incident communication | Generic missed-call notification with no resident/room/incident details |
-| Verified intended recipient and incident communicated, including an early hangup afterward | Approved incident summary |
+| Verified intended recipient and incident communicated, including an early hangup afterward | Approved post-call acknowledgment; dispatch sentence only with recorded operator confirmation |
 | Uncertain, conflicting, or incomplete evidence | Hold for explicit operator review; no automatic message |
 
 A connected call, transcript, model analysis, completed session or lack of recipient
@@ -1650,6 +1667,7 @@ documented evidence supports a decision.
 | ADR-031 / 2026-10-18 | Approved: reassuring scripted callback commitment in fictional demo voice calls, with new policy/hash approval | User explicitly approved the demo callback promise after hearing the prior disclaimer. Preserve operator review, consent, immutable approvals, unknown condition/staff response and iMessage restrictions; no actual staff calling/scheduling is added |
 | ADR-033 / 2026-10-18 | Approved: introduce the caller as Blissey Beacon's automated care assistant and use care-notification wording in family iMessages | User approved the proposed call opening and generic missed-call text. Preserve automation disclosure, recipient privacy, fictional-data boundaries, consent/reply controls, callback policy and immutable historical approvals |
 | ADR-034 / 2026-10-18 | Approved: pause for recipient turns without generic wrap-up questions; use reviewed lifecycle-grounded active-alert wording instead of staff-response disclaimers | User requested both changes after a successful live call. Add optional frozen incident_status to the notification context, preserving historical compatibility, explicit closure, unknown resident condition, callback commitment, sensing/Gemini contracts and notification authorization |
+| ADR-035 / 2026-10-18 | Approved: post-call thank-you acknowledgment replaces the incident recap, with dispatched/update commitment gated by explicit audited operator confirmation | User approved the proposed wording and dispatch condition. Preserve communicated/verified-recipient selection, separate consent, exact-text/hash approval, historical messages, generic missed-call privacy and unchanged sensing/voice/Gemini contracts |
 
 The user explicitly approved this delta after reviewing the proposal. See
 [deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md](deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md)
