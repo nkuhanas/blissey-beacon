@@ -1,3 +1,4 @@
+import { runNotificationTests } from "./notification-database.js";
 import { runExplanationTests } from "./explanation-database.js";
 import { runIngestionTests } from "./ingestion.js";
 import test from "node:test";
@@ -145,6 +146,13 @@ test("migration, publication, scoped RLS and real multi-statement rollback", asy
     );
     await runIngestionTests(t, pool);
     await runExplanationTests(t, pool);
+    await pool.query(
+      await readFile(
+        new URL("supabase/migrations/20261018022000_family_calls.sql", root),
+        "utf8",
+      ),
+    );
+    await runNotificationTests(t, pool);
   } finally {
     await pool.end();
   }

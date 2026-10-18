@@ -1,4 +1,34 @@
 // Generated from schemas/*.json. Run pnpm contracts:generate.
+export interface CallAuthorization {
+  preview_id: string;
+  context_hash: string;
+  expected_revision: number;
+  explicit_authorization: true;
+  retry_of?: string | null;
+}
+
+export interface CallPreviewRequest {
+  contact_id: string;
+  expected_revision: number;
+}
+
+export interface CallPreview {
+  preview_id: string;
+  expires_at: string;
+  expected_revision: number;
+  context_hash: string;
+  recipient: {
+    id: string;
+    name: string;
+    phone_e164: string;
+  };
+  context: FamilyCallContext;
+  opening: string;
+  policy: string;
+  policy_version: string;
+  dispatch_enabled: boolean;
+}
+
 export interface DeviceHealth {
   type: "device_health";
   device_id: string;
@@ -31,6 +61,71 @@ export interface Explanation {
   title: string;
   description: string;
   recommended_action: string;
+}
+
+export interface FamilyCallContext {
+  incident_id: string;
+  explanation_source: "gemini" | "deterministic";
+  event_type: "inference_result";
+  room_label: string;
+  detected_at: string;
+  family_summary: string;
+  resident_condition: "unknown";
+  staff_response: "not_confirmed";
+  recipient_name: string;
+  /**
+   * @minItems 2
+   * @maxItems 2
+   */
+  allowed_actions: ["explain_incident" | "request_callback", "explain_incident" | "request_callback"];
+}
+
+export interface FamilyContactInput {
+  facility_id: string;
+  patient_id: string;
+  contact_name: string;
+  relationship: string;
+  phone_e164: string;
+  consent_status: "granted" | "revoked";
+  expected_revision: number;
+  consent_confirmed: true;
+}
+
+export interface FamilyContact {
+  id: string;
+  facility_id: string;
+  patient_id: string;
+  contact_name: string;
+  relationship: string;
+  phone_e164: string;
+  consent_status: "granted" | "revoked";
+  revision: number;
+  consented_at: string | null;
+  consent_revoked_at: string | null;
+}
+
+export interface IncidentAction {
+  expected_revision: number;
+  status?: "acknowledged" | "responding" | "resolved";
+  disposition?: "reported_fall" | "false_alarm" | "unknown";
+  note?: string;
+}
+
+export interface IncidentWorkflow {
+  incident_id: string;
+  status: "pending" | "acknowledged" | "responding" | "resolved";
+  revision: number;
+  disposition: "reported_fall" | "false_alarm" | "unknown" | null;
+  allowed_actions: ("acknowledged" | "responding" | "resolved" | "add_note")[];
+  patient_id: string | null;
+  /**
+   * @maxItems 100
+   */
+  notes: {
+    actor_id: string;
+    note: string;
+    created_at: string;
+  }[];
 }
 
 export interface Incident {
@@ -68,6 +163,21 @@ export interface InferenceEvent {
   };
   detected_at: string;
   sensor_status: "connected";
+}
+
+export interface NotificationCall {
+  id: string;
+  incident_id: string;
+  contact_id: string;
+  transport_status: "queued" | "initiating" | "in_progress" | "completed" | "failed" | "unknown";
+  notification_success: boolean;
+  connected: boolean;
+  notification_spoken: boolean;
+  callback_requested: boolean;
+  summary: string | null;
+  error_code: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Room {

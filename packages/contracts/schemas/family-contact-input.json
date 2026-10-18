@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FamilyContactInput",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "facility_id",
+    "patient_id",
+    "contact_name",
+    "relationship",
+    "phone_e164",
+    "consent_status",
+    "expected_revision",
+    "consent_confirmed"
+  ],
+  "properties": {
+    "facility_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "patient_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "contact_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "relationship": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "phone_e164": {
+      "type": "string",
+      "pattern": "^\\+[1-9][0-9]{7,14}$"
+    },
+    "consent_status": {
+      "enum": [
+        "granted",
+        "revoked"
+      ]
+    },
+    "expected_revision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "consent_confirmed": {
+      "const": true
+    }
+  }
+}

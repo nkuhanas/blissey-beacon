@@ -22,7 +22,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     throw new Error(
       "Set a valid GEMINI_MODEL when GEMINI_API_KEY is configured",
     );
+  const callsEnabled = env.NOTIFICATION_CALLS_ENABLED === "true";
+  const voice = {
+    apiKey: env.ELEVENLABS_API_KEY,
+    agentId: env.ELEVENLABS_AGENT_ID,
+    phoneNumberId: env.ELEVENLABS_PHONE_NUMBER_ID,
+    secret: env.ELEVENLABS_WEBHOOK_SECRET,
+  };
+  if (callsEnabled && Object.values(voice).some((value) => !value))
+    throw new Error("Calling requires all ElevenLabs configuration values");
   return {
+    callsEnabled,
+    voice,
     gemini: apiKey && model ? { apiKey, model } : null,
     databaseUrl: required("DATABASE_URL"),
     issuer: `${supabaseUrl.origin}/auth/v1`,

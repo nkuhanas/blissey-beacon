@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FamilyContact",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "facility_id",
+    "patient_id",
+    "contact_name",
+    "relationship",
+    "phone_e164",
+    "consent_status",
+    "revision",
+    "consented_at",
+    "consent_revoked_at"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "facility_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "patient_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "contact_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "relationship": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "phone_e164": {
+      "type": "string",
+      "pattern": "^\\+[1-9][0-9]{7,14}$"
+    },
+    "consent_status": {
+      "enum": [
+        "granted",
+        "revoked"
+      ]
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "consented_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "consent_revoked_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

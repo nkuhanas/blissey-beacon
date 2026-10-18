@@ -1,0 +1,70 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FamilyCallContext",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "incident_id",
+    "explanation_source",
+    "event_type",
+    "room_label",
+    "detected_at",
+    "family_summary",
+    "resident_condition",
+    "staff_response",
+    "recipient_name",
+    "allowed_actions"
+  ],
+  "properties": {
+    "incident_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "explanation_source": {
+      "enum": [
+        "gemini",
+        "deterministic"
+      ]
+    },
+    "event_type": {
+      "const": "inference_result"
+    },
+    "room_label": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "detected_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "family_summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 400
+    },
+    "resident_condition": {
+      "const": "unknown"
+    },
+    "staff_response": {
+      "const": "not_confirmed"
+    },
+    "recipient_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "allowed_actions": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "explain_incident",
+          "request_callback"
+        ]
+      },
+      "minItems": 2,
+      "maxItems": 2,
+      "uniqueItems": true
+    }
+  }
+}

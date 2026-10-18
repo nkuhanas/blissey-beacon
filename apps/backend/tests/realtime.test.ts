@@ -1,3 +1,9 @@
+import { randomUUID, createHmac } from "node:crypto";
+import { createCallStore } from "../src/notifications/store.js";
+import {
+  createDispatchStore,
+  runCallOnce,
+} from "../src/notifications/dispatch.js";
 import { createGeminiGenerator } from "../src/explanations/gemini.js";
 import { createExplanationStore } from "../src/explanations/store.js";
 import { runExplanationOnce } from "../src/explanations/worker.js";
@@ -47,7 +53,18 @@ test(
         .sign(privateKey);
     const accessToken = await jwt(subject);
     const deniedToken = await jwt(deniedSubject);
+    const callStore = createCallStore(pool);
+    const dispatch = createDispatchStore(pool);
     const app = await createApp({
+      calls: {
+        store: callStore,
+        dispatch,
+        enabled: true,
+        webhook: {
+          secret: "synthetic-webhook-secret",
+          agentId: "synthetic-agent",
+        },
+      },
       store: createStore(pool),
       devices: createDeviceStore(pool),
       verifyOperator: createOperatorVerifier(
@@ -85,6 +102,7 @@ test(
       const port = (app.server.address() as { port: number }).port;
       let observed = 0;
       let leaked = 0;
+      let updates = 0;
       let resolveExplanation!: () => void;
       const explanationUpdated = new Promise<void>((resolve) => {
         resolveExplanation = resolve;
@@ -168,7 +186,10 @@ test(
           observed++;
           resolveObserved();
         }
-        if (payload.eventType === "UPDATE") resolveExplanation();
+        if (payload.eventType === "UPDATE") {
+          updates++;
+          resolveExplanation();
+        }
       });
       await subscribe(deniedToken, () => {
         leaked++;
@@ -254,6 +275,110 @@ test(
       assert.equal(enrichedBody.incident.revision, 2);
       await sleep(400);
       assert.equal(leaked, 0);
+      const beforeCallUpdates = updates;
+      const contactId = randomUUID();
+      await callStore.saveContact(subject, contactId, {
+        facility_id: "demo_facility",
+        patient_id: "demo_resident_102",
+        contact_name: "Fictional family",
+        relationship: "Synthetic recipient",
+        phone_e164: "+15555550123",
+        consent_status: "granted",
+        expected_revision: 0,
+        consent_confirmed: true,
+      });
+      const review = await callStore.preview(
+        subject,
+        ack.incident_id,
+        contactId,
+        enrichedBody.incident.revision,
+      );
+      const authorization = {
+        preview_id: review.preview_id,
+        context_hash: review.context_hash,
+        expected_revision: review.expected_revision,
+        explicit_authorization: true as const,
+      };
+      const call = await callStore.authorize(
+        subject,
+        ack.incident_id,
+        "synthetic-realtime-call",
+        authorization,
+      );
+      assert.equal(
+        (
+          await callStore.authorize(
+            subject,
+            ack.incident_id,
+            "synthetic-realtime-call",
+            authorization,
+          )
+        ).id,
+        call.id,
+      );
+      await runCallOnce(
+        dispatch,
+        async () => ({
+          state: "accepted",
+          conversationId: "synthetic-realtime-conversation",
+          sipCallId: "synthetic-realtime-sip",
+        }),
+        new AbortController().signal,
+      );
+      const raw = JSON.stringify({
+        type: "post_call_transcription",
+        data: {
+          agent_id: "synthetic-agent",
+          conversation_id: "synthetic-realtime-conversation",
+          analysis: {
+            data_collection_results: { callback_requested: { value: true } },
+          },
+        },
+      });
+      const timestamp = Math.floor(Date.now() / 1000);
+      const signature = `t=${timestamp},v0=${createHmac(
+        "sha256",
+        "synthetic-webhook-secret",
+      )
+        .update(timestamp + "." + raw)
+        .digest("hex")}`;
+      const hook = await fetch(
+        `http://127.0.0.1:${port}/api/webhooks/elevenlabs`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "elevenlabs-signature": signature,
+          },
+          body: raw,
+        },
+      );
+      assert.equal(hook.status, 200);
+      for (let n = 0; n < 50 && updates <= beforeCallUpdates; n++)
+        await sleep(100);
+      assert.ok(
+        updates > beforeCallUpdates,
+        "Call status commit triggers actual Realtime invalidation",
+      );
+      const history = await fetch(
+        `http://127.0.0.1:${port}/api/operator/incidents/${ack.incident_id}/notifications`,
+        { headers: { Authorization: `Bearer ${accessToken}` } },
+      );
+      const callResult = (await history.json()) as {
+        calls: {
+          transport_status: string;
+          callback_requested: boolean;
+          notification_success: boolean;
+        }[];
+      };
+      assert.equal(callResult.calls.length, 1);
+      assert.equal(callResult.calls[0]!.transport_status, "completed");
+      assert.equal(callResult.calls[0]!.callback_requested, true);
+      assert.equal(callResult.calls[0]!.notification_success, false);
+      assert.equal(leaked, 0);
+      console.log(
+        "PASS: synthetic call authorization → durable attempt → synthetic ElevenLabs response → signed synthetic webhook → actual local Realtime + authorized REST. No real call or playback evidence claimed.",
+      );
       console.log(
         live
           ? "PASS: LIVE Gemini API explanation persisted and observed through actual local Realtime UPDATE + authorized REST; synthetic event and disposable database, not hosted acceptance."

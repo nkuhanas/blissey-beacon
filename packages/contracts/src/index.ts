@@ -1,3 +1,12 @@
+import incidentWorkflowSchema from "../schemas/incident-workflow.json" with { type: "json" };
+import callPreviewSchema from "../schemas/call-preview.json" with { type: "json" };
+import incidentActionSchema from "../schemas/incident-action.json" with { type: "json" };
+import notificationCallSchema from "../schemas/notification-call.json" with { type: "json" };
+import callAuthorizationSchema from "../schemas/call-authorization.json" with { type: "json" };
+import callPreviewRequestSchema from "../schemas/call-preview-request.json" with { type: "json" };
+import familyCallContextSchema from "../schemas/family-call-context.json" with { type: "json" };
+import familyContactSchema from "../schemas/family-contact.json" with { type: "json" };
+import familyContactInputSchema from "../schemas/family-contact-input.json" with { type: "json" };
 import AjvModule, { type ValidateFunction } from "ajv";
 import addFormatsModule from "ajv-formats";
 import event from "../schemas/inference-event.json" with { type: "json" };
@@ -43,3 +52,34 @@ ajv.addSchema(explanation, "explanation.json");
 export const explanationJsonSchema = explanation;
 export const validateIncident: ValidateFunction<Incident> =
   ajv.compile(incident);
+
+export const validateFamilyContactInput: ValidateFunction<
+  import("./generated.js").FamilyContactInput
+> = ajv.compile(familyContactInputSchema);
+export const validateFamilyContact: ValidateFunction<
+  import("./generated.js").FamilyContact
+> = ajv.compile(familyContactSchema);
+export const validateFamilyCallContext: ValidateFunction<
+  import("./generated.js").FamilyCallContext
+> = ajv.compile(familyCallContextSchema);
+export const validateCallPreviewRequest: ValidateFunction<
+  import("./generated.js").CallPreviewRequest
+> = ajv.compile(callPreviewRequestSchema);
+export const validateCallAuthorization: ValidateFunction<
+  import("./generated.js").CallAuthorization
+> = ajv.compile(callAuthorizationSchema);
+export const validateNotificationCall: ValidateFunction<
+  import("./generated.js").NotificationCall
+> = ajv.compile(notificationCallSchema);
+export const validateIncidentAction: ValidateFunction<
+  import("./generated.js").IncidentAction
+> = ajv.compile(incidentActionSchema);
+
+ajv.addSchema(familyCallContextSchema, "family-call-context.json");
+export const validateCallPreview: ValidateFunction<
+  import("./generated.js").CallPreview
+> = ajv.compile(callPreviewSchema);
+
+export const validateIncidentWorkflow: ValidateFunction<
+  import("./generated.js").IncidentWorkflow
+> = ajv.compile(incidentWorkflowSchema);
