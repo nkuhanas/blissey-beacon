@@ -1,0 +1,8 @@
+{
+  "url": "wss://api.blissey-beacon.health/api/devices/v1/stream",
+  "device_id": "pi_102",
+  "room_id": "room_102",
+  "token_file": "device-token",
+  "outbox_path": "../outbox/events.sqlite3",
+  "health_file": "health.json"
+}
