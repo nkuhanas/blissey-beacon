@@ -8,5 +8,5 @@ This file remains the entrypoint for existing repository instructions and links;
 it does not define a separate set of requirements. The previous placeholder TODOs
 were not established requirements.
 
-Follow the specification-change workflow in [README.md](README.md) for work that
+Follow the specification-change workflow in [CONTRIBUTING.md](CONTRIBUTING.md) for work that
 contradicts the canonical specification.
