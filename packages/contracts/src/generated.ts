@@ -54,6 +54,7 @@ export interface Incident {
    * @maxItems 0
    */
   allowed_actions: [];
+  explanation?: Explanation | null;
 }
 
 export interface InferenceEvent {

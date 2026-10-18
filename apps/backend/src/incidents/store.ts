@@ -7,17 +7,20 @@ export interface IncidentPage {
 const projection = `i.id,i.event_id,i.room_id,i.facility_id,e.device_id,i.status,i.revision,
  e.detected_at,e.received_at,i.created_at,e.payload->'confidence_scores' AS confidence_scores,
  e.payload->>'sensor_status' AS sensor_status,
- CASE WHEN j.state='fallback' THEN 'fallback' WHEN j.state='completed' THEN 'ready' ELSE 'pending' END AS explanation_status`;
+ CASE WHEN j.state='fallback' THEN 'fallback' WHEN j.state='completed' THEN 'ready' ELSE 'pending' END AS explanation_status, x.output AS explanation`;
 const joins = `FROM public.incidents i JOIN public.inference_events e ON e.event_id=i.event_id
  JOIN public.explanation_jobs j ON j.incident_id=i.id
+ LEFT JOIN public.explanations x ON x.incident_id=i.id
  JOIN public.facility_memberships m ON m.facility_id=i.facility_id AND m.user_id=$1`;
 type Row = Omit<
   Incident,
   "detected_at" | "received_at" | "created_at" | "allowed_actions"
 > & { detected_at: Date; received_at: Date; created_at: Date };
-function dto(row: Row): Incident {
+function dto(row: Row, includeExplanation: boolean): Incident {
+  const { explanation, ...rest } = row;
   return {
-    ...row,
+    ...rest,
+    ...(includeExplanation ? { explanation: explanation ?? null } : {}),
     detected_at: row.detected_at.toISOString(),
     received_at: row.received_at.toISOString(),
     created_at: row.created_at.toISOString(),
@@ -31,6 +34,7 @@ export function createIncidentStore(pool: Pool) {
       facilityId: string,
       limit: number,
       cursor: string | null,
+      includeExplanation = false,
     ): Promise<IncidentPage> {
       const result = await pool.query<Row>(
         `SELECT ${projection} ${joins} WHERE i.facility_id=$2
@@ -40,16 +44,20 @@ export function createIncidentStore(pool: Pool) {
       );
       const rows = result.rows.slice(0, limit);
       return {
-        incidents: rows.map(dto),
+        incidents: rows.map((row) => dto(row, includeExplanation)),
         next_cursor: result.rows.length > limit ? rows.at(-1)!.id : null,
       };
     },
-    async getIncident(subject: string, id: string): Promise<Incident | null> {
+    async getIncident(
+      subject: string,
+      id: string,
+      includeExplanation = false,
+    ): Promise<Incident | null> {
       const result = await pool.query<Row>(
         `SELECT ${projection} ${joins} WHERE i.id=$2`,
         [subject, id],
       );
-      return result.rows[0] ? dto(result.rows[0]) : null;
+      return result.rows[0] ? dto(result.rows[0], includeExplanation) : null;
     },
     async listDeviceStatus(subject: string, facilityId: string) {
       const result = await pool.query(

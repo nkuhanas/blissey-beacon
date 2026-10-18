@@ -39,5 +39,7 @@ export function isInferenceEvent(value: unknown): value is InferenceEvent {
   );
 }
 
+ajv.addSchema(explanation, "explanation.json");
+export const explanationJsonSchema = explanation;
 export const validateIncident: ValidateFunction<Incident> =
   ajv.compile(incident);

@@ -9,15 +9,20 @@ Supabase Auth and facility membership protect operator data/actions. A shared de
 operator account is acceptable. Notifications require explicit review and a
 preconfigured consented demo recipient. No developer laptop is required at runtime.
 
-This repository implements **Slice 2**: authenticated device WebSocket ingestion,
+This repository implements **Slice 2 plus the explanation pipeline**: authenticated device WebSocket ingestion,
 transactional event/incident/job persistence, durable deduplication, device health,
 operator incident reads, a canonical-fixture simulator and minimal incident
-Realtime subscriptions. Gemini and Photon remain unimplemented. Hosted synthetic
+Realtime subscriptions. Durable Gemini processing and persisted explanation reads
+are implemented; live Gemini with local PostgreSQL/Realtime was verified. Hosted
+worker rollout is pending. Photon and incident actions remain unimplemented. Hosted synthetic
 integration and dashboard sign-in/live updates were verified on 2026-10-17;
 actual QNX integration remains unverified. See the
 [deployment verification record](docs/deployment-verification.md), [PROJECT_SPEC.md](PROJECT_SPEC.md)
 and the [Slice 2 handoff](docs/slice-2.md) for scope and verification boundaries.
 This is a proof of concept, not a clinically validated detector or emergency device.
+
+See [docs/gemini-pipeline.md](docs/gemini-pipeline.md) for the simulation, opt-in
+explanation DTO, failure/recovery behavior and rollout steps.
 
 Frontend design work must use **Paper**, with linked screen references implemented
 in `apps/web` and deployed to Vercel. The current dashboard is a provisional

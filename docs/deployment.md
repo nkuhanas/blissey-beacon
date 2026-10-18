@@ -138,5 +138,6 @@ do not source untrusted credential-file contents as shell code. Browser bundles
 receive only the four public `VITE_` values listed above.
 
 Actual Pi/QNX authenticated TLS WebSocket smoke remains a separate milestone for
-the edge owner. No Gemini or Photon work is included. The site is experimental,
+the edge owner. For the subsequent Gemini migration, server-only key/model settings and rollout
+verification, follow [gemini-pipeline.md](gemini-pipeline.md). Photon remains unimplemented. The site is experimental,
 uses fictional residents/staged events and makes no clinical or compliance claims.

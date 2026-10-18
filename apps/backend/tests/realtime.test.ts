@@ -1,3 +1,7 @@
+import { createGeminiGenerator } from "../src/explanations/gemini.js";
+import { createExplanationStore } from "../src/explanations/store.js";
+import { runExplanationOnce } from "../src/explanations/worker.js";
+import { syntheticGenerate } from "./explanation-database.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
@@ -81,11 +85,18 @@ test(
       const port = (app.server.address() as { port: number }).port;
       let observed = 0;
       let leaked = 0;
+      let resolveExplanation!: () => void;
+      const explanationUpdated = new Promise<void>((resolve) => {
+        resolveExplanation = resolve;
+      });
       let resolveObserved!: () => void;
       const observation = new Promise<void>((resolve) => {
         resolveObserved = resolve;
       });
-      async function subscribe(jwt: string, onChange: () => void) {
+      async function subscribe(
+        jwt: string,
+        onChange: (payload: { eventType: string }) => void,
+      ) {
         const client = new RealtimeClient(endpoint!, {
           params: { apikey: jwt },
           accessToken: async () => jwt,
@@ -94,12 +105,12 @@ test(
         const channel = client.channel(`synthetic:${clients.length}`).on(
           "postgres_changes",
           {
-            event: "INSERT",
+            event: "*",
             schema: "public",
             table: "incidents",
             filter: "facility_id=eq.demo_facility",
           },
-          () => onChange(),
+          (payload) => onChange(payload),
         );
         await new Promise<void>((resolve, reject) => {
           const timer = setTimeout(
@@ -152,9 +163,12 @@ test(
         await sleep(500);
       }
       assert.equal(ready, true, "local Realtime engine became ready");
-      await subscribe(accessToken, () => {
-        observed++;
-        resolveObserved();
+      await subscribe(accessToken, (payload) => {
+        if (payload.eventType === "INSERT") {
+          observed++;
+          resolveObserved();
+        }
+        if (payload.eventType === "UPDATE") resolveExplanation();
       });
       await subscribe(deniedToken, () => {
         leaked++;
@@ -180,6 +194,10 @@ test(
       const body = (await detail.json()) as { incident: unknown };
       assert.equal(validateIncident(body.incident), true);
       assert.equal(
+        (body.incident as { explanation_status: string }).explanation_status,
+        "pending",
+      );
+      assert.equal(
         (
           await sendSyntheticEvent({
             url: `ws://127.0.0.1:${port}/api/devices/v1/stream`,
@@ -197,6 +215,50 @@ test(
         [event.event_id],
       );
       assert.equal(count.rows[0].count, 1);
+      const live = process.env.LIVE_GEMINI_CHECK === "1";
+      if (live && (!process.env.GEMINI_API_KEY || !process.env.GEMINI_MODEL))
+        throw new Error(
+          "Live check requires GEMINI_API_KEY and GEMINI_MODEL in .env.deploy.local",
+        );
+      const generator = live
+        ? createGeminiGenerator({
+            apiKey: process.env.GEMINI_API_KEY!,
+            model: process.env.GEMINI_MODEL!,
+          })
+        : syntheticGenerate;
+      await runExplanationOnce(
+        createExplanationStore(pool),
+        generator,
+        new AbortController().signal,
+      );
+      await Promise.race([
+        explanationUpdated,
+        sleep(15000).then(() => {
+          throw new Error("No explanation Realtime update");
+        }),
+      ]);
+      const enriched = await fetch(
+        `http://127.0.0.1:${port}/api/operator/incidents/${ack.incident_id}?include_explanation=true`,
+        { headers: { Authorization: `Bearer ${accessToken}` } },
+      );
+      const enrichedBody = (await enriched.json()) as {
+        incident: {
+          explanation_status: string;
+          explanation: { event_id: string };
+          revision: number;
+        };
+      };
+      assert.equal(validateIncident(enrichedBody.incident), true);
+      assert.equal(enrichedBody.incident.explanation_status, "ready");
+      assert.equal(enrichedBody.incident.explanation.event_id, event.event_id);
+      assert.equal(enrichedBody.incident.revision, 2);
+      await sleep(400);
+      assert.equal(leaked, 0);
+      console.log(
+        live
+          ? "PASS: LIVE Gemini API explanation persisted and observed through actual local Realtime UPDATE + authorized REST; synthetic event and disposable database, not hosted acceptance."
+          : "PASS: synthetic Gemini response persisted and observed through actual local Realtime UPDATE + authorized REST. No live Gemini call.",
+      );
       console.log(
         "PASS: canonical simulator → authenticated backend → durable PostgreSQL incident → authorized REST + actual local Supabase Realtime; duplicate remains one incident. Synthetic identities/events; no live QNX or hosted deployment.",
       );

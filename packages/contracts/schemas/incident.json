@@ -88,6 +88,16 @@
       "items": {
         "type": "string"
       }
+    },
+    "explanation": {
+      "anyOf": [
+        {
+          "$ref": "explanation.json"
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   },
   "required": [

@@ -264,6 +264,13 @@ function App() {
                   {incident.room_id} · {incident.status} ·{" "}
                   {new Date(incident.detected_at).toLocaleString()} ·
                   Explanation {incident.explanation_status}
+                  {incident.explanation && (
+                    <div>
+                      <strong>{incident.explanation.title}</strong>
+                      <p>{incident.explanation.description}</p>
+                      <p>{incident.explanation.recommended_action}</p>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>

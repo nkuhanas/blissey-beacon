@@ -66,7 +66,12 @@ export async function createApp(options: {
       return (await options.store.isMember(subject, value)) ? value : false;
     }
     operator.get<{
-      Querystring: { facility_id?: string; limit?: string; cursor?: string };
+      Querystring: {
+        facility_id?: string;
+        limit?: string;
+        cursor?: string;
+        include_explanation?: string;
+      };
     }>("/api/operator/incidents", async (request, reply) => {
       const subject = subjects.get(request)!;
       const id = await facility(subject, request.query.facility_id);
@@ -88,21 +93,34 @@ export async function createApp(options: {
         (cursor !== null && (typeof cursor !== "string" || !uuid.test(cursor)))
       )
         return reply.code(400).send({ error: "invalid_pagination" });
-      return options.store.listIncidents(subject, id, limit, cursor);
+      const include = request.query.include_explanation;
+      if (include !== undefined && include !== "true" && include !== "false")
+        return reply.code(400).send({ error: "invalid_include_explanation" });
+      return options.store.listIncidents(
+        subject,
+        id,
+        limit,
+        cursor,
+        include === "true",
+      );
     });
-    operator.get<{ Params: { id: string } }>(
-      "/api/operator/incidents/:id",
-      async (request, reply) => {
-        if (!uuid.test(request.params.id))
-          return reply.code(400).send({ error: "invalid_incident_id" });
-        const incident = await options.store.getIncident(
-          subjects.get(request)!,
-          request.params.id,
-        );
-        if (!incident) return reply.code(404).send({ error: "not_found" });
-        return { incident };
-      },
-    );
+    operator.get<{
+      Params: { id: string };
+      Querystring: { include_explanation?: string };
+    }>("/api/operator/incidents/:id", async (request, reply) => {
+      if (!uuid.test(request.params.id))
+        return reply.code(400).send({ error: "invalid_incident_id" });
+      const include = request.query.include_explanation;
+      if (include !== undefined && include !== "true" && include !== "false")
+        return reply.code(400).send({ error: "invalid_include_explanation" });
+      const incident = await options.store.getIncident(
+        subjects.get(request)!,
+        request.params.id,
+        include === "true",
+      );
+      if (!incident) return reply.code(404).send({ error: "not_found" });
+      return { incident };
+    });
     operator.get<{ Querystring: { facility_id?: string } }>(
       "/api/devices/status",
       async (request, reply) => {

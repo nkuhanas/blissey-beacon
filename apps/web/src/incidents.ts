@@ -8,7 +8,7 @@ export async function fetchIncidents(
   signal: AbortSignal,
 ): Promise<Incident[]> {
   const response = await fetch(
-    `${apiUrl}/api/operator/incidents?facility_id=${encodeURIComponent(facilityId)}`,
+    `${apiUrl}/api/operator/incidents?facility_id=${encodeURIComponent(facilityId)}&include_explanation=true`,
     { headers: { Authorization: `Bearer ${token}` }, signal },
   );
   if (!response.ok)
