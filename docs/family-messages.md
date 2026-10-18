@@ -210,7 +210,7 @@ synthetic update/ACK smoke does not verify delivery of this new copy.
 
 ## Care-notification identity — 2026-10-18 UTC
 
-ADR-032 replaces the recipient-facing demo-service introduction. New generic
+ADR-033 replaces the recipient-facing demo-service introduction. New generic
 missed-call previews begin:
 
 > This is Blissey Beacon. We tried to reach you with a care notification. Please contact your care team for an update.

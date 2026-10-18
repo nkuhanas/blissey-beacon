@@ -458,7 +458,7 @@ spoken delivery of the new acknowledgment.
 
 ## Care-assistant identity — 2026-10-18 UTC
 
-ADR-032 records the user's approval of this new call opening:
+ADR-033 records the user's approval of this new call opening:
 
 > Hello, this is Blissey Beacon's automated care assistant. May I speak with [contact name]?
 

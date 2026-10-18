@@ -1,7 +1,7 @@
 # Care-assistant identity for family notifications
 
 Status: Approved. The user accepted the proposed call and missed-call wording
-with "yeah do that instead". Affects PROJECT_SPEC.md §20, §23 and ADR-032.
+with "yeah do that instead". Affects PROJECT_SPEC.md §20, §23 and ADR-033.
 
 ## Previous and revised requirements
 
