@@ -171,7 +171,7 @@ selected providers are not evidence of deployment or integration.
 | Model 1 baseline | Custom lightweight 1D CNN, random initialization | Confirmed; no pretrained checkpoint |
 | Edge inference format | LiteRT/TensorFlow Lite if supported; ONNX alternative | Candidates; QNX runtime/operator support not yet verified |
 | Backend hosting/runtime | Railway, Node.js / TypeScript, Fastify + `@fastify/websocket`; single deployment | Docker deployment and synthetic WSS/REST verified; actual QNX unverified |
-| Database | Supabase PostgreSQL | Three migrations applied to approved demo project; synthetic event/incident/job persistence and deduplication verified |
+| Database | Supabase PostgreSQL | Four migrations applied to approved demo project; synthetic event/incident/job persistence and deduplication verified |
 | Realtime | Supabase Realtime with operator JWT and facility RLS | Hosted authorized delivery and dashboard live update verified |
 | Persistence | Direct PostgreSQL via `pg` | Same checked-out client for BEGIN/COMMIT/ROLLBACK; database uniqueness |
 | Monorepo | pnpm workspaces for TypeScript only | Two deployable apps; independent QNX/Python toolchains |
@@ -776,8 +776,9 @@ uses one PostgreSQL transaction. External submission occurs only after commit.
 Private destinations, contexts and provider payloads are not directly published
 through Realtime; expose authorized, redacted call updates with REST refetch.
 The new family-call migration and backend interfaces now exist in source. They
-are tested with synthetic providers; hosted call-schema rollout, frontend controls
-and real provider/voice integration remain pending. See [docs/family-calls.md](docs/family-calls.md).
+are tested with synthetic providers. The call schema and disabled-dispatch
+contact/review APIs are deployed and verified; frontend controls, real calling and
+connected/spoken evidence remain pending. See [docs/family-calls.md](docs/family-calls.md).
 
 ## 19. Operator Dashboard
 
@@ -1032,8 +1033,9 @@ No current sponsor website rules or supported-model catalog were verified here.
 The following routes define the target API. Slice 2 implements room metadata,
 incident history/detail and device status reads. Additional target routes remain proposed.
 Incident-action and family-contact/call APIs are now implemented in backend source,
-with shared schemas and synthetic-provider tests. Their hosted rollout and frontend
-controls remain pending; real ElevenLabs/Photon integration is unverified. Gemini explanation reads are
+with shared schemas and synthetic-provider tests. Hosted contact/review APIs are
+verified with dispatch disabled; frontend controls and real ElevenLabs/Photon calling
+remain unverified. Gemini explanation reads are
 implemented with the additive opt-in described below. The shared incident DTO
 is in packages/contracts/schemas/incident.json, with generated TypeScript and
 runtime validation for frontend handoff. No separate frontend-owner review is claimed.
@@ -1349,7 +1351,7 @@ The previous dataset-access 404 observation has not been retested by this work.
 | [.github/workflows/ci.yml](.github/workflows/ci.yml) | Docker foundation workflow; writing it is not evidence of a remote CI run |
 | Firmware, dataset, training, QNX runtime/model | Not implemented/verified in this repository; no data downloaded or training started |
 | [apps/backend/src/explanations](apps/backend/src/explanations) | Durable leased worker, constrained Gemini output, retry/fallback and atomic publication; real Gemini with local and hosted synthetic Supabase/Realtime verified |
-| [apps/backend/src/notifications](apps/backend/src/notifications), [docs/family-calls.md](docs/family-calls.md) | Contact configuration, reviewed snapshots, transactional approval/attempts, incident actions, disabled-by-default dispatcher and signed normalized callbacks; synthetic providers only, hosted rollout/frontend controls pending |
+| [apps/backend/src/notifications](apps/backend/src/notifications), [docs/family-calls.md](docs/family-calls.md) | Contact configuration, reviewed snapshots, transactional approval/attempts, incident actions, disabled-by-default dispatcher and signed normalized callbacks; hosted contact/review APIs verified with dispatch disabled; frontend controls and actual calling pending |
 | Actual ElevenLabs agent, Photon SIP and connected/notification-spoken evidence mapping | Unverified and dependent on provider access/configuration; no real call made |
 | [tools/simulator](tools/simulator) | Canonical-fixture synthetic device client with stable retry IDs and bounded retries; not QNX evidence |
 | [compose.realtime.yaml](compose.realtime.yaml) | Isolated PostgreSQL + official Supabase Realtime test service with synthetic signed identities; never production |

@@ -18,8 +18,8 @@ operator incident reads, a canonical-fixture simulator and minimal incident
 Realtime subscriptions. Durable Gemini processing and persisted explanation reads
 are implemented; live Gemini with local PostgreSQL/Realtime and the hosted
 synthetic Railway/Supabase path were verified. Contact configuration, reviewed call authorization, incident actions and signed
-callback handling now exist in backend source with synthetic tests; their hosted
-rollout and frontend controls remain pending. Actual ElevenLabs/Photon calls are unverified. Hosted synthetic
+callback handling now exist with synthetic tests. Hosted contact/review APIs were
+verified with call dispatch disabled; frontend controls remain pending. Actual ElevenLabs/Photon calls are unverified. Hosted synthetic
 integration and dashboard sign-in/live updates were verified on 2026-10-17;
 actual QNX integration remains unverified. See the
 [deployment verification record](docs/deployment-verification.md), [PROJECT_SPEC.md](PROJECT_SPEC.md)

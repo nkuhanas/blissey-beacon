@@ -17,7 +17,10 @@ must be present when the flag is true. No second backend service is needed.
 
 The user's consented real test destination is held only in ignored local deployment
 configuration. It is not a seed, fixture, source default or browser build variable.
-The new migration has not been applied to the hosted demo by this implementation PR.
+The family-call migration was subsequently applied to the approved hosted demo
+after a private schema/data snapshot. The merged backend is deployed with dispatch
+disabled; contact configuration and review previews were verified without authorizing
+a call. Frontend controls remain pending.
 
 ## Shared contracts and API sequence
 
@@ -203,3 +206,25 @@ Photon API credentials are administrative setup inputs. Runtime dispatch needs
 only the ElevenLabs key, configured agent/number IDs and HMAC secret. Keep
 `NOTIFICATION_CALLS_ENABLED=false` during rollout and until an explicitly reviewed
 first-call test. Neither populated credentials nor this verification initiates a call.
+
+## Hosted contact/review rollout — 2026-10-18 UTC
+
+PR #8 merged at `d6f96b1` after all checks passed, including the revised policy.
+Only `20261018022000_family_calls.sql` was applied after a private snapshot, and
+its version recorded. Existing incidents/explanations were preserved. Railway's
+server-only ElevenLabs variables were staged with live dispatch false, then the
+merged revision deployed successfully. Photon API/SIP credentials were not copied
+to the backend runtime or browser.
+
+The authenticated operator API saved the explicitly consented test contact against
+the fictional resident, resolved historical room assignment and produced a
+`family-call-v2` review preview with dispatch disabled. Anonymous history and an
+invalidly signed callback both returned 401. The deployed database had zero
+notification authorizations and zero dispatch attempts after this check. No
+telephone request was made, and actual callback delivery, SIP digest negotiation,
+connected/spoken evidence and live voice remain unverified. Private contact/preview
+receipts are kept in the ignored verification folder. Do not commit the number.
+
+A live test still requires explicit approval of the intended recipient, opening,
+family-safe context and bounded policy. Merely providing provider credentials or
+consenting to be the demo recipient does not authorize an incident-specific call.
