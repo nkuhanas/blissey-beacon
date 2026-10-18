@@ -67,3 +67,18 @@ Remove only the marked block from `post_startup.sh`, validate with `sh -n`,
 then send SIGTERM to the supervisor PID shown by `sudo pidin ar`. It terminates
 its child driver. Leave unrelated startup changes intact. Restore the saved
 whole-file backup only if no subsequent startup edits would be lost.
+
+## Actual Pi verification (2026-10-18)
+
+After a full shutdown and user power-on, SSH reconnected to the same Pi. Before
+any manual driver start, root process inspection showed the boot supervisor and
+its foreground driver running, and `/dev/serusb1` was present at 921600 baud.
+The supervisor log recorded launch approximately 10 seconds after boot, before
+the wall clock was set. A bounded 10-second read parsed 903 valid AP CSI records
+and rejected one non-integer CSI record. No inference or hosted events were
+started by this verification.
+
+Before shutdown, a second supervisor exited successfully without starting a
+duplicate driver; terminating the child driver caused automatic restart in one
+second. Python compilation and startup shell syntax checks passed on QNX.
+Physical unplug/replug and multiple matching adapters remain unverified.
