@@ -1,6 +1,6 @@
 # Frontend design handoff
 
-Owner: Emilia. Current revision: conservatory refinement, 2026-10-17.
+Owner: Emilia. Current revision: Moonlit logo and reviewed enriched design, 2026-10-17.
 The editorial base is preserved separately below.
 
 ## Paper source
@@ -245,3 +245,57 @@ and count/icon separation at 1440/1280/1024/768px. Desktop and mobile incident
 views were visually reviewed. Complete WCAG conformance, VoiceOver and hosted
 frontend deployment remain unverified. No database migration or live provider
 action was performed by this design revision.
+
+## Moonlit logo and reviewed enriched design
+
+The current default preview implements the reviewed enriched direction with the
+user's supplied Moonlit mascot logo. Paper source:
+[Dashboard · Moonlit · Desktop](https://app.paper.design/file/01M564RV9F6VTR8FYF26BQB6KX/p-1-0/20L-0)
+and [Dashboard · Moonlit · Mobile](https://app.paper.design/file/01M564RV9F6VTR8FYF26BQB6KX/p-1-0/2GB-0).
+Earlier editorial, conservatory and enriched boards are retained unchanged.
+
+The full logo is `design/brand/blissey-beacon-moonlit.png`, copied unchanged from
+the user's complete supplied PNG. Their background-removed PNG is preserved as
+`blissey-beacon-moonlit-mark.png`; its alpha channel removes the wordmark as well
+as the background, so it is not the full dashboard logo. Paper imports the original
+full PNG and reuses its image fill on desktop/mobile. No image was regenerated or
+retouched. The complete logo retains its supplied cream ground and wordmark.
+
+Seven additive Paper color tokens are exported in
+`design/brand/moonlit-tokens.css`. The Moonlit root maps these to the existing
+semantic roles: dark plum ink, darker dusty rose controls, pale pink surfaces and
+a light lavender sidebar. Sage monitoring and amber warning semantics are retained.
+Global original tokens remain intact for earlier themes. Summary counts use DM
+Sans with tabular numerals; display headings retain Instrument Serif. The source
+SVG hills, background shapes and sensing arcs were read directly from Paper JSX
+and implemented as decorative, assistive-technology-hidden geometry.
+
+The enriched sensor-history panel was corrected before implementation:
+
+- Replace the implication that a reconnected device makes a room safe with explicit
+  monitoring-unavailable and resident-condition-unconfirmed text.
+- Label the 12-hour display as sample check-ins, with visible 03:00/09:00/14:00
+  labels and an accessible table containing all 12 column headers, room row headers
+  and reported/no-report cell text.
+- Keep fixed historical illustration data separate from current connection counts.
+  The table uses fictional October 17, 2026 reports, not device or patient telemetry.
+- Use a flowing right column rather than absolute card placement. At narrow widths,
+  the incident comes first, then the room list/map, then optional history.
+
+Preview variants (use Vite's printed port): default `/?demo=1` for Moonlit,
+`/?demo=1&style=conservatory` for the previous conservatory revision, and
+`/?demo=1&style=base` for the editorial base. Git tag `dashboard-base-v1` and the
+previous pushed branch remain intact. The Moonlit work uses
+`codex/moonlit-brand-and-health-panel`.
+
+Validation: full repository checks passed with 24 tests, lint, formatting, types,
+generated-contract verification and production builds. Browser regression checks
+passed incident actions, consent/review gates, keyboard focus, all six map
+selections, zoom and service isolation. Additional Chrome checks verified the
+new logo decodes at 1254×1254, all 72 sample cells and 12 time columns, current
+connection counts, restored prior styles and priority ordering/no page overflow at
+1440/1280/1024/768/390/320 CSS px. Contrast ratios: white/primary 6.17:1, muted/canvas
+5.73:1, ink/canvas 10.01:1, light panel text/plum 7.85:1, chart dots/plum 5.84:1 and
+input boundaries/white 3.97:1. Paper and browser desktop/mobile screenshots were
+reviewed. Formal WCAG conformance, VoiceOver and hosted rollout remain unverified.
+No live call, database migration or model/provider request was performed.

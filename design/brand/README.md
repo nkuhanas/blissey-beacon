@@ -23,3 +23,16 @@ Typography: contemporary custom geometric sans wordmark, medium-to-semibold weig
 Palette: symbol rich berry #963D63 with restrained blush #D6A1B8 accent; wordmark deep plum #352B34. Flat solid colors. Actual transparent alpha background.
 Constraints: no tagline, no medical cross, no ECG line, no shield, no camera, no roof-and-heart clipart, no Pokemon character or other mascot, no gradients, no 3D, no drop shadows, no texture, no background panel, no border, no watermark. This should feel like a refined memorable technology-and-care brand, and remain legible in one-color reproduction.
 ```
+
+## User-supplied Moonlit identity
+
+`blissey-beacon-moonlit.png` is the complete user-supplied
+`Blissey_Beacon__Dreamy_Moonlit_Mascot_Logo.png`, copied unchanged (RGB,1254×1254).
+It is the current default demo logo.
+
+`blissey-beacon-moonlit-mark.png` is the supplied
+`Firefly_RemoveBackground.png`, copied unchanged (RGBA,1254×1254). The visible
+alpha bounds stop at y=875, excluding the wordmark; retain it as a mascot-only
+source rather than presenting it as the complete logo. Neither image was generated
+or modified by this implementation. The earlier generated logo remains for saved
+themes. `moonlit-tokens.css` is the additive CSS export from Paper.

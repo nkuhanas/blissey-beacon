@@ -4,11 +4,15 @@ import logo from "../../../../design/brand/blissey-beacon-logo-v1.png";
 import { Icon } from "./Icon";
 import { FacilityMap } from "./FacilityMap";
 import { SummaryCards } from "./SummaryCards";
+import { SensorHistory } from "./SensorHistory";
+import { MoonlitBackground, MoonlitHills } from "./MoonlitDecor";
+import moonlitLogo from "../../../../design/brand/blissey-beacon-moonlit.png";
 import branch from "../../../../design/ornaments/conservatory-branch.svg";
 import { canReviewCall, createDemo, demoReducer, roomStatus } from "./model";
 import type { Contact, DemoIncident, DemoRoom, Scenario } from "./model";
 import "./dashboard.css";
 import "./refinement.css";
+import "./moonlit.css";
 
 type View = "overview" | "residents" | "history" | "devices";
 const navigation: { id: View; label: string }[] = [
@@ -283,6 +287,9 @@ function CallReview({
 export function Dashboard() {
   const refined =
     new URLSearchParams(window.location.search).get("style") !== "base";
+  const moonlit =
+    refined &&
+    new URLSearchParams(window.location.search).get("style") !== "conservatory";
   const [state, dispatch] = useReducer(demoReducer, undefined, () =>
     createDemo(),
   );
@@ -550,7 +557,9 @@ export function Dashboard() {
     </section>
   );
   return (
-    <div className={`dashboard ${refined ? "conservatory" : ""}`}>
+    <div
+      className={`dashboard ${refined ? "conservatory" : ""} ${moonlit ? "moonlit" : ""}`}
+    >
       <a className="skip-link" href="#dashboard-main">
         Skip to dashboard
       </a>
@@ -559,10 +568,10 @@ export function Dashboard() {
           <a href="?demo=1" aria-label="Blissey Beacon demo home">
             <img
               className="logo"
-              src={logo}
+              src={moonlit ? moonlitLogo : logo}
               alt="Blissey Beacon"
               width="184"
-              height="92"
+              height={moonlit ? 184 : 92}
             />
           </a>
           <button
@@ -595,6 +604,11 @@ export function Dashboard() {
           ))}
         </nav>
         <div className="sidebar-bottom">
+          {moonlit && (
+            <div className="moon-hills" aria-hidden="true">
+              <MoonlitHills />
+            </div>
+          )}
           <p>
             <Icon name="shield" size={16} />
             Camera-free by design
@@ -610,6 +624,11 @@ export function Dashboard() {
         </div>
       </aside>
       <main id="dashboard-main" className="dashboard-main">
+        {moonlit && (
+          <div className="moon-background" aria-hidden="true">
+            <MoonlitBackground />
+          </div>
+        )}
         <div className="demo-toolbar">
           <span>
             <strong>Interactive demo</strong> · Fictional data. No calls or live
@@ -716,7 +735,14 @@ export function Dashboard() {
                 ))}
               </section>
             </div>
-            {detail}
+            {moonlit ? (
+              <div className="dashboard-right-column">
+                {detail}
+                {view === "overview" && <SensorHistory rooms={state.rooms} />}
+              </div>
+            ) : (
+              detail
+            )}
           </div>
         )}
         {view === "history" && (
