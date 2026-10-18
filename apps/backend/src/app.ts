@@ -1,3 +1,4 @@
+import { registerCallRoutes } from "./notifications/routes.js";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
@@ -15,9 +16,13 @@ export async function createApp(options: {
   store: Store;
   webOrigin: string;
   devices?: DeviceStore;
+  calls?: Omit<Parameters<typeof registerCallRoutes>[1], "verifyOperator">;
 }) {
   const app = Fastify({ logger: { redact: ["req.headers.authorization"] } });
-  await app.register(cors, { origin: options.webOrigin });
+  await app.register(cors, {
+    origin: options.webOrigin,
+    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "OPTIONS"],
+  });
   // Register before future WebSocket routes. Attach their message listeners synchronously.
   await app.register(websocket, { options: { maxPayload: 16 * 1024 } });
   app.get("/healthz", async () => ({ status: "ok", scope: "process-only" }));
@@ -45,6 +50,11 @@ export async function createApp(options: {
     },
   );
   if (options.devices) registerDeviceRoutes(app, options.devices);
+  if (options.calls)
+    registerCallRoutes(app, {
+      ...options.calls,
+      verifyOperator: options.verifyOperator,
+    });
   const uuid =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   app.register(async (operator) => {

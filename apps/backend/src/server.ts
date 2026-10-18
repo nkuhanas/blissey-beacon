@@ -1,3 +1,10 @@
+import { createCallStore } from "./notifications/store.js";
+import {
+  createDispatchStore,
+  startCallWorker,
+} from "./notifications/dispatch.js";
+import { createElevenLabsSubmit } from "./notifications/provider.js";
+let callWorker: ReturnType<typeof startCallWorker> | undefined;
 import { createDeviceStore } from "./ingestion/store.js";
 import { Pool } from "pg";
 import { loadConfig } from "./config.js";
@@ -19,9 +26,22 @@ const app = await createApp({
   store: createStore(pool),
   webOrigin: config.webOrigin,
   devices: createDeviceStore(pool),
+  calls: {
+    store: createCallStore(pool),
+    dispatch: createDispatchStore(pool),
+    enabled: config.callsEnabled,
+    ...(config.voice.secret && config.voice.agentId
+      ? {
+          webhook: {
+            secret: config.voice.secret,
+            agentId: config.voice.agentId,
+          },
+        }
+      : {}),
+  },
 });
 app.addHook("onClose", async () => {
-  await worker?.stop();
+  await Promise.all([worker?.stop(), callWorker?.stop()]);
   await pool.end();
 });
 for (const signal of ["SIGINT", "SIGTERM"])
@@ -32,6 +52,16 @@ for (const signal of ["SIGINT", "SIGTERM"])
   });
 try {
   await app.listen({ port: config.port, host: "0.0.0.0" });
+  if (config.callsEnabled)
+    callWorker = startCallWorker(
+      createDispatchStore(pool),
+      createElevenLabsSubmit({
+        apiKey: config.voice.apiKey!,
+        agentId: config.voice.agentId!,
+        phoneNumberId: config.voice.phoneNumberId!,
+      }),
+      app.log,
+    );
   if (config.gemini) {
     worker = startExplanationWorker(
       createExplanationStore(pool),

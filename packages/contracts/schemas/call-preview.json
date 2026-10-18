@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CallPreview",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "preview_id",
+    "expires_at",
+    "expected_revision",
+    "context_hash",
+    "recipient",
+    "context",
+    "opening",
+    "policy",
+    "policy_version",
+    "dispatch_enabled"
+  ],
+  "properties": {
+    "preview_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expected_revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "context_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "recipient": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "phone_e164": {
+          "type": "string",
+          "pattern": "^\\+[1-9][0-9]{7,14}$"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "phone_e164"
+      ]
+    },
+    "context": {
+      "$ref": "family-call-context.json"
+    },
+    "opening": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300
+    },
+    "policy": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000
+    },
+    "policy_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "dispatch_enabled": {
+      "type": "boolean"
+    }
+  }
+}

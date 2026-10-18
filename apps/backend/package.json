@@ -8,7 +8,7 @@
     "build": "tsc",
     "start": "node --env-file-if-exists=.env dist/server.js",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/auth.test.ts tests/explanations.test.ts",
+    "test": "tsx --test tests/auth.test.ts tests/explanations.test.ts tests/notifications.test.ts",
     "test:db": "tsx --test tests/database.test.ts",
     "provision:device": "tsx --env-file-if-exists=.env src/provision-device.ts",
     "realtime:prepare": "node tests/prepare-realtime.ts",
