@@ -106,6 +106,16 @@ export interface ProviderEvent {
   kind: "completed" | "failed";
   callbackRequested: boolean;
   failureCode: string | null;
+  outcome?:
+    | "communicated"
+    | "no_answer"
+    | "busy"
+    | "voicemail"
+    | "wrong_recipient"
+    | "unverified"
+    | "ended_before_message"
+    | "unknown";
+  recipientVerified?: boolean;
 }
 function object(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value)
@@ -167,10 +177,22 @@ export function verifyProviderEvent(
     )
   )
     throw new CallError("unsupported_webhook_event", 400);
-  const callback =
-    object(
-      object(object(data.analysis).data_collection_results).callback_requested,
-    ).value === true;
+  return normalizeProviderResult(
+    data,
+    event.type === "call_initiation_failure" ? "failed" : "completed",
+  );
+}
+// Called only after signature/agent validation, or authenticated provider GET validation.
+// Analysis is a reported conversational outcome, never verified playback/clinical evidence.
+export function normalizeProviderResult(
+  data: Record<string, unknown>,
+  kind: ProviderEvent["kind"],
+): ProviderEvent {
+  const fields = object(object(data.analysis).data_collection_results);
+  const callback = object(fields.callback_requested).value === true;
+  const verified = object(fields.recipient_verified).value === true;
+  const spoken = object(fields.incident_communicated).value === true;
+  const label = object(fields.call_outcome).value;
   const failure =
     typeof data.failure_reason === "string" &&
     ["busy", "no-answer", "unknown"].includes(data.failure_reason)
@@ -179,9 +201,29 @@ export function verifyProviderEvent(
   // A transcript/LLM analysis is not playback evidence. Connected/spoken success is
   // intentionally not inferred until the actual SIP event mapping is verified.
   return {
-    conversationId: data.conversation_id,
-    kind: event.type === "call_initiation_failure" ? "failed" : "completed",
+    conversationId: data.conversation_id as string,
+    kind,
     callbackRequested: callback,
-    failureCode: event.type === "call_initiation_failure" ? failure : null,
+    failureCode: kind === "failed" ? failure : null,
+    outcome:
+      kind === "failed"
+        ? failure === "busy"
+          ? "busy"
+          : failure === "no-answer"
+            ? "no_answer"
+            : "unknown"
+        : label === "communicated" && verified && spoken
+          ? "communicated"
+          : [
+                "no_answer",
+                "busy",
+                "voicemail",
+                "wrong_recipient",
+                "unverified",
+                "ended_before_message",
+              ].includes(String(label))
+            ? (label as ProviderEvent["outcome"])
+            : "unknown",
+    recipientVerified: verified,
   };
 }

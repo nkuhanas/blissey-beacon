@@ -512,6 +512,15 @@ export function Dashboard() {
           <p className="small muted">Last staged data: 2:32 PM</p>
         </div>
       ) : null}
+      {connected && live.session && (
+        <button
+          className="text-button"
+          disabled={live.busy || live.stale}
+          onClick={() => void live.resetAlerts()}
+        >
+          {live.busy ? "Resetting…" : "Reset room alerts"}
+        </button>
+      )}
       <details className="contact-section" key={room.id}>
         <summary>
           Family notification
@@ -574,7 +583,7 @@ export function Dashboard() {
               setModal(connected && !live.session ? "login" : "call")
             }
           >
-            {connected ? "Review call & text" : "Review notification"}{" "}
+            {connected ? "Notify family" : "Review notification"}{" "}
             <Icon name="arrow" size={16} />
           </button>
           <p className="small muted">
@@ -767,62 +776,6 @@ export function Dashboard() {
               height="120"
             />
           )}
-          <div className="workspace-tools">
-            <label className="scenario-label" htmlFor="demo-scenario">
-              Scenario
-              <select
-                id="demo-scenario"
-                aria-label="Scenario"
-                value={scenario}
-                onChange={(e) =>
-                  connected
-                    ? setScenario(e.target.value as Scenario)
-                    : reset(e.target.value as Scenario)
-                }
-              >
-                <option value="attention">
-                  {connected ? "Possible fall" : "Possible fall · Pending"}
-                </option>
-                {!connected && (
-                  <option value="ready">Sample explanation</option>
-                )}
-                <option value="fallback">
-                  {connected
-                    ? "Deterministic fallback"
-                    : "Explanation unavailable"}
-                </option>
-                <option value="offline">
-                  {connected
-                    ? "Monitoring outage rehearsal"
-                    : "All devices offline"}
-                </option>
-                <option value="empty">
-                  {connected ? "No new incident" : "No incidents"}
-                </option>
-              </select>
-            </label>
-            <button
-              className="compact"
-              onClick={() => {
-                if (!connected) reset(scenario);
-                else if (!live.session) setModal("login");
-                else void live.instantiate(scenario).catch(() => {});
-              }}
-              disabled={
-                connected &&
-                (live.busy ||
-                  (!!live.session &&
-                    (!live.scenariosEnabled ||
-                      live.stale ||
-                      !["101", "102", "103", "104", "105", "106"].includes(
-                        selected,
-                      ))))
-              }
-              aria-label={connected ? "Instantiate scenario" : "Reset demo"}
-            >
-              {connected ? (live.busy ? "Working…" : "Instantiate") : "Reset"}
-            </button>
-          </div>
         </header>
         {connected && (
           <div className="operator-connection">
@@ -1115,6 +1068,68 @@ export function Dashboard() {
         <p className="sr-only" role="status" aria-live="polite">
           {announcement}
         </p>
+        <details className="scenario-tools">
+          <summary>Scenario controls</summary>
+          <p className="small muted">
+            Synthetic rehearsal · selected room {selected}
+          </p>
+          <div className="workspace-tools">
+            <label className="scenario-label" htmlFor="demo-scenario">
+              Scenario
+              <select
+                id="demo-scenario"
+                aria-label="Scenario"
+                value={scenario}
+                onChange={(e) =>
+                  connected
+                    ? setScenario(e.target.value as Scenario)
+                    : reset(e.target.value as Scenario)
+                }
+              >
+                <option value="attention">
+                  {connected ? "Possible fall" : "Possible fall · Pending"}
+                </option>
+                {!connected && (
+                  <option value="ready">Sample explanation</option>
+                )}
+                <option value="fallback">
+                  {connected
+                    ? "Deterministic fallback"
+                    : "Explanation unavailable"}
+                </option>
+                <option value="offline">
+                  {connected
+                    ? "Monitoring outage rehearsal"
+                    : "All devices offline"}
+                </option>
+                <option value="empty">
+                  {connected ? "No new incident" : "No incidents"}
+                </option>
+              </select>
+            </label>
+            <button
+              className="compact"
+              onClick={() => {
+                if (!connected) reset(scenario);
+                else if (!live.session) setModal("login");
+                else void live.instantiate(scenario).catch(() => {});
+              }}
+              disabled={
+                connected &&
+                (live.busy ||
+                  (!!live.session &&
+                    (!live.scenariosEnabled ||
+                      live.stale ||
+                      !["101", "102", "103", "104", "105", "106"].includes(
+                        selected,
+                      ))))
+              }
+              aria-label={connected ? "Instantiate scenario" : "Reset demo"}
+            >
+              {connected ? (live.busy ? "Working…" : "Instantiate") : "Reset"}
+            </button>
+          </div>
+        </details>
         <footer>
           Experimental possible-fall monitoring · Fictional data · Not a medical
           or emergency response device.

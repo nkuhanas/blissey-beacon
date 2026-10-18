@@ -1,3 +1,4 @@
+import { createCallLookup, recoverCallOnce } from "./notifications/recovery.js";
 import { createMessageStore } from "./messages/store.js";
 import { createDemoStore } from "./demo/store.js";
 import { createPhotonProvider } from "./messages/photon.js";
@@ -75,7 +76,23 @@ for (const signal of ["SIGINT", "SIGTERM"])
 try {
   await app.listen({ port: config.port, host: "0.0.0.0" });
   if (config.messagesEnabled && messageProvider)
-    messageWorker = startMessageWorker(pool, messageProvider, app.log);
+    messageWorker = startMessageWorker(
+      pool,
+      messageProvider,
+      app.log,
+      config.voice.apiKey && config.voice.agentId
+        ? (signal) =>
+            recoverCallOnce(
+              pool,
+              createDispatchStore(pool),
+              createCallLookup({
+                apiKey: config.voice.apiKey!,
+                agentId: config.voice.agentId!,
+              }),
+              signal,
+            )
+        : undefined,
+    );
   if (config.callsEnabled)
     callWorker = startCallWorker(
       createDispatchStore(pool),

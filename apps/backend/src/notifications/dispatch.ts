@@ -31,8 +31,16 @@ async function reconcile(
     // Ended sessions take precedence over failure callbacks; never undo spoken evidence.
     await c.query(
       `UPDATE public.notification_calls SET transport_status=CASE WHEN transport_status='completed' THEN 'completed' ELSE $2 END,
-    callback_requested=callback_requested OR $3,error_code=CASE WHEN transport_status='completed' OR $2='completed' THEN NULL ELSE $4 END,updated_at=now() WHERE id=$1`,
-      [callId, e.kind, e.callbackRequested, e.failureCode],
+    summary=CASE WHEN $5::text IS NULL THEN summary ELSE $5 END,callback_requested=callback_requested OR $3,error_code=CASE WHEN transport_status='completed' OR $2='completed' THEN NULL ELSE $4 END,updated_at=now() WHERE id=$1`,
+      [
+        callId,
+        e.kind,
+        e.callbackRequested,
+        e.failureCode,
+        e.outcome
+          ? "Provider reported: " + e.outcome.replaceAll("_", " ") + "."
+          : null,
+      ],
     );
     await c.query(
       "UPDATE public.notification_provider_events SET call_id=$2 WHERE event_hash=$1",

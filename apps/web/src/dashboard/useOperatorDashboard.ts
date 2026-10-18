@@ -7,7 +7,7 @@ import type {
   DemoScenarioRequest,
 } from "@blissey/contracts";
 import { apiUrl, facilityId, supabase } from "../client";
-import { createOperatorApi } from "../operator-api";
+import { createOperatorApi, resetRoomAlerts } from "../operator-api";
 import { subscribeToIncidents } from "../incidents";
 import { createDemo } from "./model";
 import type { DemoAction, DemoIncident, DemoState, Scenario } from "./model";
@@ -202,6 +202,22 @@ export function useOperatorDashboard(enabled: boolean, selected: string) {
       setBusy(false);
     }
   }
+  async function resetAlerts() {
+    if (!api || busy) return;
+    setBusy(true);
+    setActionError("");
+    try {
+      await resetRoomAlerts(api, facilityId, selected);
+      setMarker(null);
+      setFocused(null);
+      await refresh();
+    } catch (e) {
+      await refresh();
+      setActionError(e instanceof Error ? e.message : "Room reset failed");
+    } finally {
+      setBusy(false);
+    }
+  }
   const converted = (i: Incident): DemoIncident => ({
     roomId: i.room_id,
     status: i.status,
@@ -274,6 +290,7 @@ export function useOperatorDashboard(enabled: boolean, selected: string) {
     refresh,
     instantiate,
     dispatch,
+    resetAlerts,
     focus: (id: string | null) => {
       setFocused(id);
       setMarker(null);
