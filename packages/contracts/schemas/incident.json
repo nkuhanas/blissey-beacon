@@ -98,6 +98,17 @@
           "type": "null"
         }
       ]
+    },
+    "resolved_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   },
   "required": [

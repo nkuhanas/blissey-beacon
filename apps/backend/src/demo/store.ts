@@ -113,9 +113,13 @@ export function createDemoStore(pool: Pool, options: DemoOptions) {
         await member(c, subject, facility);
         const result = await c.query(
           `SELECT r.id,r.label,p.display_label AS resident,p.id AS patient_id,
-          d.id AS device_id,h.received_at AS last_data_at,
+          CASE WHEN s.room_id IS NOT NULL THEN 'dashboard_sim_'||r.id ELSE d.id END AS device_id,
+          CASE WHEN s.room_id IS NOT NULL THEN s.sampled_at ELSE h.received_at END AS last_data_at,
+          CASE WHEN s.room_id IS NOT NULL THEN 'synthetic' ELSE 'device' END AS data_source,
+          CASE WHEN s.room_id IS NOT NULL THEN s.confidence_scores ELSE NULL END AS confidence_scores,
+          CASE WHEN s.room_id IS NOT NULL THEN CASE WHEN s.mode='offline' OR s.sampled_at IS NULL OR s.sampled_at<clock_timestamp()-interval '30 seconds' THEN 'offline' ELSE 'monitoring' END ELSE
           CASE WHEN h.received_at IS NULL OR h.received_at<clock_timestamp()-interval '30 seconds' THEN 'offline'
-          WHEN h.sensor_status<>'connected' OR h.model_status<>'ready' THEN 'degraded' ELSE 'monitoring' END AS monitoring_status,
+          WHEN h.sensor_status<>'connected' OR h.model_status<>'ready' THEN 'degraded' ELSE 'monitoring' END END AS monitoring_status,
           f.id AS contact_id,f.contact_name,COALESCE(f.consent_status='granted',false) AS voice_consent,
           COALESCE(f.imessage_consent_status='granted',false) AS messaging_consent
           FROM public.rooms r
@@ -125,13 +129,69 @@ export function createDemoStore(pool: Pool, options: DemoOptions) {
           LEFT JOIN LATERAL (SELECT dev.id FROM public.devices dev WHERE dev.room_id=r.id
             ORDER BY (left(dev.id,14)='dashboard_sim_') ASC,dev.id LIMIT 1) d ON true
           LEFT JOIN public.device_health h ON h.device_id=d.id
+          LEFT JOIN public.demo_room_streams s ON s.room_id=r.id AND $2::boolean AND r.id<>'101' AND r.facility_id=$3
+            AND NOT EXISTS(SELECT 1 FROM public.devices hd JOIN public.device_credentials hc ON hc.device_id=hd.id WHERE hd.room_id=r.id AND hc.revoked_at IS NULL)
           WHERE r.facility_id=$1 ORDER BY r.id`,
-          [facility],
+          [facility, options.enabled, options.facilityId],
         );
         return result.rows.map((row) => ({
           ...row,
           last_data_at: row.last_data_at?.toISOString() ?? null,
         }));
+      });
+    },
+    async reset(subject: string, key: string, room: string, facility: string) {
+      return withTransaction(pool, async (c) => {
+        await member(c, subject, facility);
+        if (
+          !(
+            await c.query(
+              "SELECT 1 FROM public.rooms WHERE id=$1 AND facility_id=$2 FOR UPDATE",
+              [room, facility],
+            )
+          ).rowCount
+        )
+          throw new CallError("not_found", 404);
+        await c.query("SELECT pg_advisory_xact_lock(hashtext($1))", [
+          subject + ":reset:" + key,
+        ]);
+        const previous = (
+          await c.query(
+            "SELECT target_id,detail FROM public.operator_audit WHERE actor_id=$1 AND request_key=$2",
+            [subject, key],
+          )
+        ).rows[0];
+        if (previous) {
+          if (
+            previous.target_id !== room ||
+            previous.detail.facility_id !== facility
+          )
+            throw new CallError("reset_idempotency_conflict");
+          return previous.detail;
+        }
+        const archived = await c.query(
+          "UPDATE public.incidents SET archived_at=clock_timestamp(),revision=revision+1 WHERE room_id=$1 AND facility_id=$2 AND archived_at IS NULL RETURNING id",
+          [room, facility],
+        );
+        const events = await c.query(
+          "UPDATE public.inference_events SET archived_at=clock_timestamp() WHERE room_id=$1 AND archived_at IS NULL RETURNING event_id",
+          [room],
+        );
+        await c.query(
+          "UPDATE public.demo_room_streams SET mode='healthy',sampled_at=clock_timestamp(),sample_index=0,confidence_scores='{\"fall\":0.02,\"non_fall\":0.98}' WHERE room_id=$1",
+          [room],
+        );
+        const result = {
+          room_id: room,
+          facility_id: facility,
+          archived_incidents: archived.rowCount,
+          archived_events: events.rowCount,
+        };
+        await c.query(
+          "INSERT INTO public.operator_audit(facility_id,actor_id,action,target_id,request_key,detail) VALUES($1,$2,'room_reset',$3,$4,$5)",
+          [facility, subject, room, key, result],
+        );
+        return result;
       });
     },
     async instantiate(
@@ -167,6 +227,16 @@ export function createDemoStore(pool: Pool, options: DemoOptions) {
           };
         }
         await provision(c, subject, options);
+        if (input.room_id !== "101")
+          await c.query(
+            `INSERT INTO public.demo_room_streams(room_id,mode,sampled_at)
+          SELECT $1,$2,clock_timestamp() WHERE NOT EXISTS(SELECT 1 FROM public.devices d JOIN public.device_credentials dc ON dc.device_id=d.id WHERE d.room_id=$1 AND dc.revoked_at IS NULL)
+          ON CONFLICT(room_id) DO UPDATE SET mode=EXCLUDED.mode,sampled_at=EXCLUDED.sampled_at`,
+            [
+              input.room_id,
+              input.scenario === "offline" ? "offline" : "healthy",
+            ],
+          );
         const count = (
           await c.query(
             "SELECT count(*)::int AS n FROM public.dashboard_scenarios WHERE actor_id=$1 AND created_at>now()-interval '1 minute'",
@@ -226,7 +296,7 @@ export function createDemoStore(pool: Pool, options: DemoOptions) {
             );
           }
         }
-        // Offline and empty scenarios are persisted rehearsal markers, not fake Pi health or history deletion.
+        // Scenario overrides affect only the separate synthetic feed, never physical Pi health.
         await c.query(
           "INSERT INTO public.dashboard_scenarios(id,facility_id,actor_id,idempotency_key,room_id,scenario,incident_id) VALUES($1,$2,$3,$4,$5,$6,$7)",
           [

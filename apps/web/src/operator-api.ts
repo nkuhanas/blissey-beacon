@@ -126,6 +126,24 @@ export function createOperatorApi(base: string, token: string) {
         input,
         key,
       ),
+    resetRoom: (facility: string, room: string, key: string) =>
+      request(
+        `/api/operator/rooms/${encodeURIComponent(room)}/reset`,
+        (
+          x,
+        ): x is {
+          room_id: string;
+          archived_incidents: number;
+          archived_events: number;
+        } =>
+          object(x) &&
+          typeof x.room_id === "string" &&
+          typeof x.archived_incidents === "number" &&
+          typeof x.archived_events === "number",
+        "POST",
+        { facility_id: facility },
+        key,
+      ),
     workflow: (id: string) =>
       request(root(id) + "/workflow", validateIncidentWorkflow),
     action: (id: string, input: IncidentAction, key: string) =>
@@ -210,65 +228,3 @@ export type {
   FamilyContact,
   MessageHistory,
 };
-
-// Resolve a snapshot of this room's active alerts through the established lifecycle.
-// Never resets device health, deletes history or invokes notification endpoints.
-export async function resetRoomAlerts(
-  api: Pick<OperatorApi, "incidents" | "workflow" | "action">,
-  facility: string,
-  room: string,
-) {
-  const targets: string[] = [];
-  let cursor: string | undefined;
-  const seen = new Set<string>();
-  for (let page = 0; page < 20; page++) {
-    const history = await api.incidents(facility, cursor);
-    targets.push(
-      ...history.incidents
-        .filter((i) => i.room_id === room && i.status !== "resolved")
-        .map((i) => i.id),
-    );
-    const next = history.next_cursor;
-    if (!next) {
-      cursor = undefined;
-      break;
-    }
-    if (seen.has(next))
-      throw Error(
-        "Incident history pagination changed. Refresh before resetting alerts.",
-      );
-    seen.add(next);
-    cursor = next;
-  }
-  if (cursor) throw Error("Too many historical records to reset at once.");
-  for (const id of new Set(targets)) {
-    for (let attempt = 0; attempt < 8; attempt++) {
-      const w = await api.workflow(id);
-      if (w.status === "resolved") break;
-      const status =
-        w.status === "pending"
-          ? "acknowledged"
-          : w.status === "acknowledged"
-            ? "responding"
-            : "resolved";
-      try {
-        await api.action(
-          id,
-          {
-            expected_revision: w.revision,
-            status,
-            note: "Operator reset room alerts; preserve monitoring and history. No notification authorized.",
-          },
-          crypto.randomUUID(),
-        );
-      } catch (e) {
-        if (!(e instanceof OperatorError && e.status === 409)) throw e;
-      }
-      if (attempt === 7)
-        throw Error(
-          "The incident kept changing. Refresh and retry the room reset.",
-        );
-    }
-  }
-  return new Set(targets).size;
-}

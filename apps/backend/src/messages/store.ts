@@ -30,6 +30,7 @@ async function contactFor(
   revision?: number,
 ) {
   const i = await incident(c, subject, id);
+  if (i.archived_at) throw new CallError("incident_archived", 409);
   if (revision !== undefined && i.revision !== revision)
     throw new CallError("incident_revision_conflict");
   const contact = (

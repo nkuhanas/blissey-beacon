@@ -145,5 +145,5 @@
 <use href="#plant" x="871" y="595"/><use href="#plant" x="775" y="608"/><use href="#plant" x="866" y="251"/>
 <path d="M791 640h65" stroke="#F2F4EE" stroke-width="16"/><path d="M790 640v-50a50 50 0 0 1 50 50" stroke="#ADB7BB" stroke-width="1.5"/>
 <path d="M794 648h61 M794 654h61 M794 660h61" stroke="#B9C4C5" stroke-width="2"/>
-<g font-family="DM Sans, Arial, sans-serif" text-anchor="middle"><text x="428" y="369" fill="#68717A" font-size="16" letter-spacing="3">RESIDENT WING</text><text x="825" y="437" fill="#746C60" font-size="14">Shared lounge</text><rect x="310" y="724" width="325" height="38" rx="19" fill="#DEE7D7"/><text x="472" y="749" fill="#4C6651" font-size="16">Willow House · Ground floor</text></g>
+<g font-family="DM Sans, Arial, sans-serif" text-anchor="middle"><text x="428" y="369" fill="#68717A" font-size="16" letter-spacing="3">RESIDENT WING</text><text x="825" y="437" fill="#746C60" font-size="14">Shared lounge</text><rect x="200" y="724" width="560" height="38" rx="19" fill="#DEE7D7"/><text x="472" y="749" fill="#4C6651" font-size="16">James West Alumni Center · UCLA</text></g>
 </svg>

@@ -123,6 +123,7 @@ export function createCallStore(pool: Pool) {
     ) {
       return withTransaction(pool, async (c) => {
         const i = await incident(c, subject, id);
+        if (i.archived_at) throw new CallError("incident_archived", 409);
         if (i.revision !== revision)
           throw new CallError("incident_revision_conflict");
         if (!i.source) throw new CallError("explanation_not_ready");
@@ -211,6 +212,7 @@ export function createCallStore(pool: Pool) {
           return callDto(existing);
         }
         const i = await incident(c, subject, id);
+        if (i.archived_at) throw new CallError("incident_archived", 409);
         const p = (
           await c.query(
             "SELECT * FROM public.call_previews WHERE id=$1 AND actor_id=$2 AND incident_id=$3 AND expires_at>now() FOR UPDATE",
@@ -318,6 +320,7 @@ export function createCallStore(pool: Pool) {
     async workflow(subject: string, id: string) {
       return withTransaction(pool, async (c) => {
         const i = await incident(c, subject, id);
+        if (i.archived_at) throw new CallError("incident_archived", 409);
         const notes = (
           await c.query(
             "SELECT actor_id,detail->>'note' AS note,created_at FROM public.operator_audit WHERE target_id=$1 AND action='incident_action' AND detail->>'note' IS NOT NULL ORDER BY created_at,id LIMIT 100",
@@ -382,6 +385,7 @@ export function createCallStore(pool: Pool) {
           acknowledged: "responding",
           responding: "resolved",
         };
+        if (i.archived_at) throw new CallError("incident_archived", 409);
         if (input.status && next[i.status] !== input.status)
           throw new CallError("invalid_transition");
         if (input.disposition && input.status !== "resolved")

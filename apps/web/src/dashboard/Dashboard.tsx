@@ -197,8 +197,8 @@ function CallReview({
           </p>
           <h3>Opening message</h3>
           <blockquote>
-            “Hello, this is a demo update from Willow House about{" "}
-            {room.resident}. A possible fall was detected. Their current
+            “Hello, this is a demo update from James West Alumni Center at UCLA
+            about {room.resident}. A possible fall was detected. Their current
             condition has not been confirmed.”
           </blockquote>
           <h3>Conversation boundaries</h3>
@@ -281,6 +281,18 @@ export function Dashboard() {
       : state.incident && state.incident.status !== "resolved"
         ? 1
         : 0;
+  const pendingRooms =
+    connected && live.session
+      ? [
+          ...new Set(
+            live.records
+              .filter((i) => i.status === "pending")
+              .map((i) => i.room_id),
+          ),
+        ]
+      : state.incident?.status === "pending"
+        ? [state.incident.roomId]
+        : [];
   const offline = state.rooms.filter((r) => !r.online);
   const sorted = [...state.rooms].sort((a, b) => {
     const rank = (r: DemoRoom) =>
@@ -389,6 +401,7 @@ export function Dashboard() {
           <h2 id="resident-title">{room.resident}</h2>
           <p className="small muted">
             Room {room.id} · Device {room.device}
+            {room.dataSource === "synthetic" ? " · Synthetic feed" : ""}
           </p>
         </div>
       </div>
@@ -508,14 +521,23 @@ export function Dashboard() {
       ) : room.online ? (
         <div className="quiet">
           <Status room={room} incident={null} />
-          <p>No active incident in this staged scenario.</p>
-          <p className="small muted">Last staged data: 2:32 PM</p>
+          <p>
+            {connected && live.session
+              ? "No active incident. Monitoring is healthy."
+              : "No active incident in this staged scenario."}
+          </p>
+          <p className="small muted">
+            {connected && live.session
+              ? `Last ${room.dataSource === "synthetic" ? "synthetic sample" : "telemetry"}: ${room.lastDataAt ? new Date(room.lastDataAt).toLocaleTimeString() : "not received"}`
+              : "Last staged data: 2:32 PM"}
+          </p>
         </div>
       ) : null}
       {connected && live.session && (
         <button
           className="text-button"
           disabled={live.busy || live.stale}
+          title="Archive this room’s existing events and incidents; restore synthetic monitoring where applicable"
           onClick={() => void live.resetAlerts()}
         >
           {live.busy ? "Resetting…" : "Reset room alerts"}
@@ -751,7 +773,7 @@ export function Dashboard() {
                     : navigation.find((n) => n.id === view)!.label}
               </h1>
               <p className="facility-label">
-                Willow House <span>/ Ground floor</span>
+                James West Alumni Center at UCLA <span>/ Ground floor</span>
               </p>
             </div>
             <p className="demo-toolbar">
@@ -842,10 +864,31 @@ export function Dashboard() {
           </span>
           <span className="last-update">
             {connected && live.session
-              ? "Health reflects received telemetry"
+              ? "Real Pi + labeled synthetic feeds"
               : "Last staged data · 2:32 PM"}
           </span>
         </div>
+        {pendingRooms.length > 0 && (
+          <div className="fall-alert-banner" role="status" aria-live="polite">
+            <span className="fall-alert-beacon" aria-hidden="true">
+              <Icon name="alert" size={22} />
+            </span>
+            <div>
+              <strong>Possible fall detected</strong>
+              <span>
+                Room {pendingRooms.join(", ")} · Awaiting acknowledgment
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                selectRoom(pendingRooms[0]!);
+                setView("overview");
+              }}
+            >
+              Review alert <Icon name="arrow" size={16} />
+            </button>
+          </div>
+        )}
         {(view === "overview" || view === "residents") && (
           <div className="overview-grid">
             <div className="facility-column">
@@ -1029,7 +1072,7 @@ export function Dashboard() {
               <h2>Device connections</h2>
               <p className="muted">
                 {connected && live.session
-                  ? "Current health from received device telemetry. Scenario events do not bring the Pi online."
+                  ? "Room 101 uses real Pi telemetry. Other rooms use explicitly synthetic monitoring unless hardware is registered."
                   : "Illustrative device health, not a connection to your Raspberry Pi."}
               </p>
               <div className="device-list">
@@ -1037,11 +1080,18 @@ export function Dashboard() {
                   <div key={r.id} className="device-row">
                     <Icon name="devices" />
                     <div>
-                      <strong>{r.device}</strong>
+                      <strong>
+                        {r.device}
+                        {r.dataSource === "synthetic"
+                          ? " · Synthetic feed"
+                          : ""}
+                      </strong>
                       <p className="small muted">
                         Room {r.id} ·{" "}
                         {connected && live.session
-                          ? "Last telemetry"
+                          ? r.dataSource === "synthetic"
+                            ? "Last synthetic sample"
+                            : "Last telemetry"
                           : "Last staged data"}{" "}
                         {connected && live.session
                           ? r.lastDataAt
@@ -1126,7 +1176,13 @@ export function Dashboard() {
               }
               aria-label={connected ? "Instantiate scenario" : "Reset demo"}
             >
-              {connected ? (live.busy ? "Working…" : "Instantiate") : "Reset"}
+              {connected
+                ? live.busy
+                  ? "Working…"
+                  : scenario === "offline" || scenario === "empty"
+                    ? "Apply scenario"
+                    : "Trigger possible fall"
+                : "Reset"}
             </button>
           </div>
         </details>

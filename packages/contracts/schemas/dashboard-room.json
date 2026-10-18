@@ -76,6 +76,35 @@
     },
     "messaging_consent": {
       "type": "boolean"
+    },
+    "data_source": {
+      "enum": [
+        "synthetic",
+        "device"
+      ]
+    },
+    "confidence_scores": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "fall": {
+              "type": "number"
+            },
+            "non_fall": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "fall",
+            "non_fall"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   },
   "required": [
