@@ -94,7 +94,7 @@ export async function runMessageTests(t: TestContext, pool: Pool) {
   async function prepare(
     purpose: "followup" | "update" = "followup",
     staffDispatchConfirmed = false,
-    automatic = false,
+    automatic: boolean | "automatic-v2" = false,
   ) {
     const result = await messages.preview(
       subject,
@@ -137,9 +137,31 @@ export async function runMessageTests(t: TestContext, pool: Pool) {
       );
       return { ...result, followup_policy: "manual-v1", context_hash: hash };
     }
+    if (automatic === "automatic-v2") {
+      const row = (
+        await pool.query("SELECT * FROM public.message_previews WHERE id=$1", [
+          result.preview_id,
+        ])
+      ).rows[0];
+      const hash = digest({
+        followup_policy: "automatic-v2",
+        candidates: row.candidates,
+        route: row.route,
+        contact_revision: row.contact_revision,
+        incident_revision: row.incident_revision,
+        purpose: row.purpose,
+        incident_id: row.incident_id,
+        contact_id: row.contact_id,
+      });
+      await pool.query(
+        "UPDATE public.message_previews SET followup_policy='automatic-v2',context_hash=$2 WHERE id=$1",
+        [result.preview_id, hash],
+      );
+      return { ...result, followup_policy: "automatic-v2", context_hash: hash };
+    }
     return result;
   }
-  async function joint(automatic = false) {
+  async function joint(automatic: boolean | "automatic-v2" = false) {
     const p = await prepare("followup", false, automatic),
       v = await calls.preview(subject, incidentId, contactId, await revision());
     const authorization = {
@@ -1036,6 +1058,7 @@ export async function runMessageTests(t: TestContext, pool: Pool) {
         });
         await callDispatch.event("auto-complete-report", {
           conversationId: "auto-complete",
+          answered: true,
           kind: "completed",
           callbackRequested: false,
           failureCode: null,
@@ -1152,6 +1175,7 @@ export async function runMessageTests(t: TestContext, pool: Pool) {
               agent_id: "synthetic-agent",
               conversation_id: "recover-call",
               status: "done",
+              metadata: { phone_call: { call_result: "answered" } },
               analysis: {
                 data_collection_results: {
                   recipient_verified: { value: true },
@@ -1207,6 +1231,153 @@ export async function runMessageTests(t: TestContext, pool: Pool) {
           (
             await pool.query(
               "SELECT count(*)::int AS n FROM public.notification_attempts",
+            )
+          ).rows[0].n,
+          1,
+        );
+      },
+    );
+    await t.test(
+      "answered hang-ups always queue one approved thank-you without callback, verification or completed explanation; no ACK prompt",
+      async () => {
+        for (const outcome of ["ended_before_message", "unknown"] as const) {
+          await fresh();
+          await grant();
+          await joint(true);
+          const work = (await callDispatch.claim())!;
+          await callDispatch.settle(work, {
+            state: "accepted",
+            conversationId: "hangup-" + outcome,
+          });
+          await callDispatch.event("answered-" + outcome, {
+            conversationId: "hangup-" + outcome,
+            kind: "completed",
+            answered: true,
+            callbackRequested: false,
+            failureCode: null,
+            outcome,
+            recipientVerified: false,
+          });
+          // A later duplicate lacking metadata cannot erase previously confirmed answer evidence.
+          await callDispatch.event("duplicate-" + outcome, {
+            conversationId: "hangup-" + outcome,
+            kind: "completed",
+            callbackRequested: false,
+            failureCode: null,
+            outcome: "unknown",
+            recipientVerified: false,
+          });
+          await messages.selectReady();
+          await messages.selectReady();
+          const rows = (
+            await pool.query("SELECT body FROM public.notification_messages")
+          ).rows;
+          assert.equal(rows.length, 1);
+          assert.match(rows[0].body, /Thank you for speaking with us/);
+          assert.ok(!rows[0].body.includes("ACK to acknowledge"));
+          assert.match(rows[0].body, /CALLBACK/);
+          assert.match(rows[0].body, /STOP/);
+          let sent = 0;
+          await runMessageOnce(
+            dispatch,
+            {
+              ...provider,
+              send: async () => {
+                sent++;
+                return { state: "accepted", providerId: "hangup-message" };
+              },
+            },
+            signal,
+          );
+          await runMessageOnce(dispatch, provider, signal);
+          assert.equal(sent, 1);
+        }
+      },
+    );
+    await t.test(
+      "frozen automatic-v2 selection is not upgraded by answered transport alone",
+      async () => {
+        await fresh();
+        await grant();
+        await joint("automatic-v2");
+        const work = (await callDispatch.claim())!;
+        await callDispatch.settle(work, {
+          state: "accepted",
+          conversationId: "legacy-v2",
+        });
+        await callDispatch.event("legacy-v2-event", {
+          conversationId: "legacy-v2",
+          kind: "completed",
+          answered: true,
+          callbackRequested: false,
+          failureCode: null,
+          outcome: "ended_before_message",
+          recipientVerified: false,
+        });
+        await messages.selectReady();
+        assert.equal(
+          (
+            await pool.query(
+              "SELECT selection FROM public.message_authorizations",
+            )
+          ).rows[0].selection,
+          "missed",
+        );
+      },
+    );
+    await t.test(
+      "late hang-up recovery still runs beyond ten attempts and accepts ended processing metadata without waiting for analysis",
+      async () => {
+        await fresh();
+        await grant();
+        await joint(true);
+        const work = (await callDispatch.claim())!;
+        await callDispatch.settle(work, {
+          state: "accepted",
+          conversationId: "late-hangup",
+        });
+        await pool.query(
+          "UPDATE public.notification_calls SET submitted_at=now()-interval '6 minutes'",
+        );
+        await pool.query(
+          "INSERT INTO public.call_recovery(call_id,attempts,next_attempt_at) VALUES($1,20,now())",
+          [work.callId],
+        );
+        let reads = 0;
+        const lookup = createCallLookup({
+          apiKey: "synthetic",
+          agentId: "synthetic-agent",
+          fetcher: async () => {
+            reads++;
+            return Response.json({
+              agent_id: "synthetic-agent",
+              conversation_id: "late-hangup",
+              status: "processing",
+              metadata: {
+                phone_call: { call_result: "answered" },
+                termination_reason: "Client disconnected: 1000",
+              },
+            });
+          },
+        });
+        await Promise.all([
+          recoverCallOnce(pool, callDispatch, lookup, signal),
+          recoverCallOnce(pool, callDispatch, lookup, signal),
+        ]);
+        assert.equal(reads, 1);
+        await messages.selectReady();
+        assert.equal(
+          (
+            await pool.query(
+              "SELECT selection FROM public.message_authorizations",
+            )
+          ).rows[0].selection,
+          "summary",
+        );
+        assert.equal(
+          (
+            await pool.query(
+              "SELECT count(*)::int n FROM public.notification_attempts",
             )
           ).rows[0].n,
           1,

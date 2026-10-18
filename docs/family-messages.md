@@ -273,3 +273,21 @@ follow-up; they never redial. Calls rejected before a dispatch attempt do not te
 Exactly one message authorization/output row is used; dispatch rechecks consent,
 contact version, historical assignment, membership and current Photon route.
 See [ElevenLabs post-call webhooks](https://elevenlabs.io/docs/eleven-agents/workflows/post-call-webhooks).
+
+## Answered-call follow-up (automatic-v3)
+
+New previews use `automatic-v3`. Every provider-confirmed answered call selects its
+preapproved thank-you text after ending, including recipient hang-up, incomplete
+explanation, missing identity analysis and no callback request. The trigger is
+`metadata.phone_call.call_result: "answered"` from signed ElevenLabs callbacks or
+an authenticated conversation read. It is not proof of identity or spoken content.
+Unanswered and uncertain outcomes still select the generic preapproved text.
+New templates retain CALLBACK and STOP but omit the ACK instruction; incoming ACK
+continues to work. Old approvals and delivered text retain their original wording
+and selection policy; this change does not release or resend historical messages.
+
+Recovery for v3 starts after ten seconds, polls on a ten-second schedule with at
+most forty-two reads throughout the seven-minute call deadline, and accepts ended
+sessions while analysis is still processing when termination metadata is present.
+Independent consent, Photon routing, frozen hashes and exactly one initial follow-up
+remain enforced. No callback request or post-call operator action is required.

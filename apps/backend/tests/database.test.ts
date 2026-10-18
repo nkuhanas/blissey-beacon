@@ -177,6 +177,15 @@ test("migration, publication, scoped RLS and real multi-statement rollback", asy
     await runIngestionTests(t, pool);
     await runExplanationTests(t, pool);
     await runNotificationTests(t, pool);
+    await pool.query(
+      await readFile(
+        new URL(
+          "supabase/migrations/20261018182000_answered_followups.sql",
+          root,
+        ),
+        "utf8",
+      ),
+    );
     await runMessageTests(t, pool);
     await pool.query(
       await readFile(

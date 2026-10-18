@@ -332,7 +332,7 @@ export function LiveCallReview({
             <p>{bundle.call.opening}</p>
             {bundle.message && (
               <>
-                <h3>After the incident is communicated</h3>
+                <h3>After an answered call ends</h3>
                 <p>{bundle.message.candidates.summary}</p>
                 <h3>Missed, incomplete or unclear call</h3>
                 <p>{bundle.message.candidates.missed}</p>

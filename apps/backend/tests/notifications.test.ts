@@ -259,3 +259,54 @@ test("signed reported call outcomes require consistent booleans and never upgrad
     assert.ok(!("notificationSpoken" in event));
   }
 });
+
+test("answered transport comes only from provider metadata, independent of callback and analysis", async () => {
+  const { normalizeProviderResult } =
+    await import("../src/notifications/provider.js");
+  for (const [metadata, answered] of [
+    [{ phone_call: { call_result: "answered" } }, true],
+    [{ call_duration_secs: 30 }, undefined],
+    [{ phone_call: { call_result: "no-answer" } }, undefined],
+  ]) {
+    const event = normalizeProviderResult(
+      {
+        conversation_id: "synthetic",
+        metadata,
+        transcript: [{ role: "user", message: "Private" }],
+      },
+      "completed",
+    );
+    assert.equal(event.answered, answered);
+    assert.equal(event.callbackRequested, false);
+    assert.ok(!("connected" in event));
+    assert.ok(!("notificationSpoken" in event));
+    assert.ok(!JSON.stringify(event).includes("Private"));
+  }
+  const { createCallLookup } = await import("../src/notifications/recovery.js");
+  for (const [status, reason, accepted] of [
+    ["in-progress", "", false],
+    ["processing", "", false],
+    ["processing", "Client disconnected: 1000", true],
+    ["done", "", true],
+  ]) {
+    const lookup = createCallLookup({
+      apiKey: "synthetic",
+      agentId: "agent",
+      fetcher: async () =>
+        Response.json({
+          agent_id: "agent",
+          conversation_id: "call",
+          status,
+          metadata: {
+            termination_reason: reason,
+            phone_call: { call_result: "answered" },
+          },
+        }),
+    });
+    assert.equal(
+      (await lookup("call", new AbortController().signal, true))?.answered ===
+        true,
+      accepted,
+    );
+  }
+});

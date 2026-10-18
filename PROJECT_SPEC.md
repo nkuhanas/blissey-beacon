@@ -1109,6 +1109,19 @@ model-reported conversation analysis as verified playback or medical truth.
 Preserve one initial follow-up per call, dispatch-time consent/version/assignment
 checks, immutable text, stable provider idempotency and uncertain-send reconciliation.
 
+### Answered-call follow-up (ADR-040)
+
+New previews use `automatic-v3`, superseding v2 text selection for fresh approvals.
+After a provider-confirmed answered call ends, send exactly one preapproved thank-you
+without requiring a callback request, recipient-verification analysis or a completed
+incident explanation. Use signed webhook or authenticated GET `metadata.phone_call.call_result`
+transport evidence; do not infer playback, identity or staff response. Unanswered or
+uncertain terminal calls retain the generic candidate. New text omits the ACK instruction;
+CALLBACK and STOP remain, and inbound ACK remains compatible. Preserve frozen manual-v1
+and automatic-v2 approvals and delivered messages. Poll new pending calls on a bounded
+ten-second schedule throughout the seven-minute deadline, alongside signed callbacks;
+recover terminal provider metadata even while post-call analysis is processing.
+
 ### Call status and success evidence
 
 Persist transport separately from notification evidence:
@@ -1749,6 +1762,7 @@ documented evidence supports a decision.
 | ADR-035 / 2026-10-18 | Approved: post-call thank-you acknowledgment replaces the incident recap, with dispatched/update commitment gated by explicit audited operator confirmation | User approved the proposed wording and dispatch condition. Preserve communicated/verified-recipient selection, separate consent, exact-text/hash approval, historical messages, generic missed-call privacy and unchanged sensing/voice/Gemini contracts |
 | ADR-036 / 2026-10-18 | Approved: select the Random Forest classifier trained using Veri for CSI Model 1, superseding the Keras CNN/Colab baseline in ADR-002 | User confirmed the actual training use and authorized README/spec reconciliation. Retain binary event/score contracts, frozen features, group-aware evaluation and QNX target. Training artifacts/metrics, runtime compatibility and sponsor eligibility remain unverified here; see deltas/2026-10-18T07-17-29Z-random-forest-product-readme.md |
 | ADR-037 / 2026-10-18 | Team confirms QNX OS on Pi 5 collects ESP32 sensing data and securely transmits results, with python3-tflite-runtime from oss.qnx.com integrated for local inference support | User supplied exact QNX attribution during the README rewrite. Record the module without inferring that the Random Forest executes through it; artifact/runtime compatibility, prediction parity, full live integration and eligibility need evidence; see the ADR-036 delta |
+| ADR-040 / 2026-10-18 | Approved: automatic-v3 sends the approved thank-you after every provider-confirmed answered call ends, independent of callback/communication analysis; remove outbound ACK instructions | Preserve frozen historical approvals, consent, one follow-up per call and no redial. Prompt bounded call-status recovery; no upgrade to playback/clinical evidence. See deltas/2026-10-18T17-00-00Z-answered-call-followups.md |
 | ADR-039 / 2026-10-18 | Approved: bounded repeating synthetic healthy samples for demo rooms except 101/hardware-connected rooms; archive-based room reset and sixty-second resolved-card expiry | Separate from Pi health/WSS, preserve deduplication and call/audit records, no automatic notification. See deltas/2026-10-18T18-10-00Z-synthetic-rooms-and-reset.md |
 | ADR-038 / 2026-10-18 | Approved: acknowledgment opens an automatically prepared popup with one combined call/text checkbox; automatic-v2 records provider-reported outcomes and selects exactly one approved text without operator outcome review | Generic fallback for unclear outcomes; old manual-v1 approvals stay frozen. Retain independent consent, explicit authorization, accurate playback evidence, Pi v2/WSS boundaries and no unsupported staff-dispatch claims. See deltas/2026-10-18T15-40-10Z-one-step-family-notifications.md |
 

@@ -4,6 +4,7 @@ import type { Pool, PoolClient } from "pg";
 import { withTransaction } from "../db.js";
 import { assigned, bump, member } from "../notifications/access.js";
 import { CallError, digest } from "../notifications/policy.js";
+import { isAutomaticFollowup, automaticFollowupSelection } from "./policy.js";
 import { createMessageStore } from "./store.js";
 import type {
   MessageProvider,
@@ -68,21 +69,26 @@ async function valid(c: PoolClient, id: string) {
       )
         return false;
     }
-    if (row.followup_policy === "automatic-v2" && row.selection === "summary") {
+    if (
+      isAutomaticFollowup(row.followup_policy) &&
+      row.selection === "summary"
+    ) {
       const report = (
         await c.query(
-          "SELECT normalized FROM public.notification_provider_events WHERE call_id=$1 ORDER BY received_at DESC LIMIT 1",
+          `SELECT normalized,EXISTS(SELECT 1 FROM public.notification_provider_events ae WHERE ae.call_id=$1 AND ae.normalized->>'answered'='true') AS answered_report FROM public.notification_provider_events WHERE call_id=$1 ORDER BY received_at DESC LIMIT 1`,
           [row.call_id],
         )
-      ).rows[0]?.normalized;
+      ).rows[0];
       if (
-        report?.outcome !== "communicated" ||
-        report?.recipientVerified !== true
+        automaticFollowupSelection(row.followup_policy, {
+          ...report?.normalized,
+          answered: report?.answered_report,
+        }) !== "summary"
       )
         return false;
     }
     const hash = digest({
-      ...(row.followup_policy === "automatic-v2"
+      ...(isAutomaticFollowup(row.followup_policy)
         ? { followup_policy: row.followup_policy }
         : {}),
       candidates: row.candidates,
