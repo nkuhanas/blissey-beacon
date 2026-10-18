@@ -34,7 +34,7 @@ explicitly. Under `conversation_config.agent.prompt`, configure:
 }
 ```
 
-Use the current source `POLICY`, `END_CALL_DESCRIPTION` and `family-call-v6`. The
+Use the current source `POLICY`, `END_CALL_DESCRIPTION` and `family-call-v7`. The
 description placeholder above must be replaced, not submitted literally. Its
 exact text is included in the frozen policy's `Call ending:` paragraph so the
 smoke CLI can verify provider readback. Do not leave the permissive default blank
@@ -455,3 +455,23 @@ The callback simulation used the approved promise without the previous disclaime
 the condition response remained unknown and the wrong-recipient case disclosed
 no incident details. These simulations placed no telephone call and do not prove
 spoken delivery of the new acknowledgment.
+
+## Care-assistant identity — 2026-10-18 UTC
+
+ADR-033 records the user's approval of this new call opening:
+
+> Hello, this is Blissey Beacon's automated care assistant. May I speak with [contact name]?
+
+Policy `family-call-v7` uses that identity in later introductions too. It preserves
+recipient verification, the approved callback acknowledgment, unknown condition,
+calm delivery and the native end-call rules. Internal fictional-data labeling
+remains, and the agent answers truthfully if asked whether this is a demonstration.
+Previously approved calls retain their frozen opening and policy. Deploy matching
+backend and agent policies with dispatch disabled; this change authorizes no call.
+
+Docker verification passed lint/format, contracts, types, unit/script tests, builds
+and 44 disposable PostgreSQL tests. Agent readback matched v7 with voice, model,
+turn settings and the native end-call control preserved. Four real-provider
+text-only synthetic simulations verified the care-assistant introduction, approved
+callback acknowledgment, unknown-condition response and wrong-recipient privacy.
+No telephone call or iMessage was sent by these checks.

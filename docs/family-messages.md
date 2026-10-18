@@ -207,3 +207,16 @@ scenario, with no score-based reclassification or claim of a confirmed fall.
 Missed-call reminders remain generic. Existing frozen approvals retain their
 original wording; changing their text requires a new review. The prior live
 synthetic update/ACK smoke does not verify delivery of this new copy.
+
+## Care-notification identity — 2026-10-18 UTC
+
+ADR-033 replaces the recipient-facing demo-service introduction. New generic
+missed-call previews begin:
+
+> This is Blissey Beacon. We tried to reach you with a care notification. Please contact your care team for an update.
+
+CALLBACK and STOP instructions remain appended. The incident-summary prefix is
+"Blissey Beacon care notification:". Existing privacy, consent, reply commands and
+callback-promise restrictions are unchanged. Frozen previously approved messages
+retain their exact text; review/authorize a new preview to use the new copy.
+This copy change authorizes no send and does not establish a new live-message test.
