@@ -42,6 +42,13 @@ DNS and per-provider variables, follow [docs/deployment.md](docs/deployment.md) 
 [root .env.example](.env.example). The user approved the previously provisioned
 Supabase project for fictional demo setup; isolated Docker tests still never use it.
 
+Photon iMessage follow-ups, independent messaging consent and a private reply inbox
+are implemented in source with Docker tests. One isolated Docker + real Photon
+synthetic message was reported delivered and a real ACK reply was persisted and
+correlated to its incident. Hosted rollout and
+Paper frontend views remain pending. See [docs/family-messages.md](docs/family-messages.md)
+for the approved policy, sender environment variable and verification steps.
+
 ## Getting started
 
 Install Docker with Compose. Node and pnpm run inside the toolchain container.

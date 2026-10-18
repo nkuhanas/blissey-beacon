@@ -88,7 +88,7 @@ following additions are implemented in the backend source:
    enforced in PostgreSQL. Every edit invalidates unsent queued authorizations.
 4. `POST /api/operator/incidents/:id/notifications/preview` accepts `contact_id`
    and `expected_revision`. It requires a persisted explanation and consented,
-   historically associated contact. The server builds a neutral score-free
+   historically associated contact. The server builds a score-free possible-fall
    projection and stores the complete reviewed snapshot for ten minutes. New
    previews since `family-call-v3` include `context.resident_name`, taken from the fictional
    patient's saved display label at the incident-time room assignment. Show this
@@ -408,3 +408,15 @@ open after "Okay, great", answered the resident question without cheerful tags, 
 still invoked `end_call` after an explicit goodbye. No further telephone call was
 placed. Listener evaluation of the corrected delivery and closing behavior remains
 pending another explicitly authorized live test; it is not established by text alone.
+
+## Approved possible-fall wording
+
+New call reviews use the shared family summary: "We're contacting you about a
+possible fall involving [resident] in [room]. Their condition has not been
+confirmed." This is the operator-reviewed staged demo scenario; it does not
+reclassify the v2 event or establish an injury. The agent speaks the frozen summary
+after recipient verification. Post-call iMessages use that same text. Historical
+approvals retain their exact original text and require a fresh review to change.
+The agent prompt/policy version and provider configuration are unchanged; only
+new backend-generated context changes. No live call or deployment verifies this
+wording yet.

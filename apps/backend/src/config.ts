@@ -31,7 +31,28 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
   };
   if (callsEnabled && Object.values(voice).some((value) => !value))
     throw new Error("Calling requires all ElevenLabs configuration values");
+  const messagesEnabled = env.NOTIFICATION_MESSAGES_ENABLED === "true";
+  const photon = {
+    projectId: env.PHOTON_PROJECT_ID,
+    apiKey: env.PHOTON_API_KEY,
+    senderNumber: env.PHOTON_IMESSAGE_SENDER_NUMBER,
+  };
+  const messagingConfigured = Object.values(photon).every(Boolean);
+  if (messagesEnabled && !messagingConfigured)
+    throw new Error(
+      "Messaging requires Photon project, API key and iMessage sender number",
+    );
+  if (photon.senderNumber && !/^\+[1-9][0-9]{7,14}$/.test(photon.senderNumber))
+    throw new Error("Invalid PHOTON_IMESSAGE_SENDER_NUMBER");
   return {
+    messagesEnabled,
+    photon: messagingConfigured
+      ? {
+          projectId: photon.projectId!,
+          apiKey: photon.apiKey!,
+          senderNumber: photon.senderNumber!,
+        }
+      : null,
     callsEnabled,
     voice,
     gemini: apiKey && model ? { apiKey, model } : null,

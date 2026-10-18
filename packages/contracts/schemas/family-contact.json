@@ -75,6 +75,12 @@
           "type": "null"
         }
       ]
+    },
+    "imessage_consent_status": {
+      "enum": [
+        "granted",
+        "revoked"
+      ]
     }
   }
 }

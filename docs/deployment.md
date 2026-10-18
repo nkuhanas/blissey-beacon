@@ -162,3 +162,10 @@ notification spoken. A recipient acknowledgment is not required. Review provider
 retention/deletion settings; full audio/transcript storage is not required. Keep
 Photon trunk credentials on the integration side unless a verified backend need
 is established. Do not put voice-provider secrets in Vercel `VITE_` variables.
+
+## Photon hosted iMessage
+
+Follow [family-messages.md](family-messages.md) for the additive migration, independent
+consent/dispatch flags, per-recipient sender assignment and live verification gate.
+PHOTON_PROJECT_ID and PHOTON_API_KEY become Railway runtime inputs for this channel;
+SIP credentials remain on ElevenLabs. Never copy these into Vercel/browser settings.
