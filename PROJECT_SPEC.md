@@ -780,6 +780,9 @@ are tested with synthetic providers. The call schema and disabled-dispatch
 contact/review APIs are deployed and verified; frontend controls, real calling and
 connected/spoken evidence remain pending. See [docs/family-calls.md](docs/family-calls.md).
 
+Messaging adds private authorization/job/attempt/message/reply records and separate
+channel consent; see §20. No provider payload or destination is browser-public.
+
 ## 19. Operator Dashboard
 
 Primary owner: Kiro / Frontend Team. Paper is the required frontend design tool.
@@ -1011,6 +1014,73 @@ interfaces do not establish Photon compatibility, recipient verification or
 notification-spoken evidence. Verify the actual Photon product/trunk, agent/LLM,
 number, signatures, event mapping and consented live call before claiming integration.
 
+### Approved iMessage follow-ups and family replies
+
+Extend the voice flow with Photon-hosted iMessage. This is an approved architecture,
+not verified live messaging. Preserve the seven-field v2 inference contract, Gemini's
+four-field output, deterministic incident decisions and the existing voice flow.
+No additional inference model or developer Mac is needed.
+
+Voice and iMessage have separate consent. The operator may review and explicitly
+authorize the call and its two frozen follow-up candidates together: a generic
+missed-call message and a family-safe incident summary. Existing call-only approvals
+never authorize messaging retroactively. Before each message, recheck operator
+membership, historical patient/contact association, messaging consent/version and
+Photon sender assignment for that recipient. `PHOTON_IMESSAGE_SENDER_NUMBER` is an
+E.164 sender override for the single-recipient demo, not a universally valid line.
+Shared recipients must complete Photon's required assignment and inbound onboarding.
+
+Select at most one preauthorized initial follow-up per call, deterministically:
+
+| Confirmed call evidence | Message |
+| --- | --- |
+| No answer, busy, voicemail, or ended before incident communication | Generic missed-call notification with no resident/room/incident details |
+| Verified intended recipient and incident communicated, including an early hangup afterward | Approved incident summary |
+| Uncertain, conflicting, or incomplete evidence | Hold for explicit operator review; no automatic message |
+
+A connected call, transcript, model analysis, completed session or lack of recipient
+acknowledgment alone does not prove incident communication. Preserve the existing
+connected/spoken evidence boundary. A scoped operator may explicitly classify/review
+an uncertain call and authorize the appropriate candidate; record evidence and actor.
+No automatic "possible fall" claim may be derived from experimental scores.
+
+Freeze exact candidate text, destination, contact revision, policy and approver in a
+durable authorization. Use database uniqueness for one initial follow-up per call,
+persist an attempt before submission and use a stable provider idempotency key.
+Ambiguous submissions stay unknown and are reconciled; never blindly retry or
+substitute SMS. Revocation cancels unsent work; changes require new approval.
+Staff-reviewed updates are separately authorized exact messages grounded in verified
+facts. Do not invent condition, staff response or promised callback timing.
+
+Persist message IDs, space/sender association, status and provenance privately in
+Supabase. Delivery/read evidence is separate from call success and never establishes
+recipient action or resident safety. Reconcile provider state and inbound messages
+through authenticated Photon APIs with durable deduplication/restart recovery.
+Do not publish message bodies, contacts or provider credentials directly to Realtime;
+bump incident revision and refetch through authorized REST interfaces.
+
+Record bounded inbound text as untrusted content. Correlate a reply to the original
+incident using an explicit parent message where available; a unique known incident
+in the same sender/recipient conversation is acceptable. If multiple incidents are
+possible, hold it in a facility-scoped unassigned review inbox rather than guessing.
+Surface acknowledgments and callback requests for operator review; deterministic
+explicit reply commands may label intent, but all other replies remain reviewable.
+No automatic medical advice, promises of staff action or autonomous calls/messages.
+Stop/unsubscribe replies revoke messaging consent and cancel unsent messages.
+
+Required interfaces include scoped messaging-consent management, preview/authorization
+of call-follow-up candidates, explicit uncertain-outcome review, exact staff-update
+authorization, incident messaging history and a reply review inbox. Frontend owner
+receives shared contracts and a handoff; new/material UI must follow §19's Paper
+workflow. Backend delivery does not establish frontend completion.
+
+Verification requires Docker tests for classification, consent/assignment mismatch,
+rollback/idempotency, uncertain submissions, duplicate and reordered provider events,
+reply ambiguity, authorization and restart recovery. Real send/receive must use a
+consented fictional demo and provider evidence. Synthetic tests cannot establish live
+iMessage integration, prize eligibility or provider provisioning. Live calling and
+messaging remain independently disabled unless explicitly enabled for verification.
+
 ## 21. Team Roles and Component Ownership
 
 Assignments below are confirmed by the complete request, except explicit TBDs.
@@ -1149,6 +1219,9 @@ in errors. Proposed live updates carry update ID, entity ID, type and revision
 following commit via Supabase Realtime; exact update metadata remains to be
 finalized. The browser ignores older revisions. Reconnect refetches REST
 snapshots/history; durable live-message replay is not promised for MVP.
+
+Messaging REST interfaces and DTOs extend the operator API without replacing call
+contracts. See §20 and `docs/family-messages.md` for endpoint details and rollout.
 
 ## 24. Privacy, Safety and Security
 
@@ -1454,6 +1527,7 @@ documented evidence supports a decision.
 | ADR-026 / 2026-10-17 | Confirmed target: blissey-beacon.health website, planned api.blissey-beacon.health backend, provider-assigned Supabase project URL | User supplied domain; deployment manifests/env examples and setup handoff prepared; no DNS/TLS/production changes claimed |
 | ADR-027 / 2026-10-17 | Implementation: explicit Gemini 3.5 Flash-Lite, frozen minimal input, constrained schema/wording validation, 30-second leased jobs and atomic explanation/incident-revision publication; live model verified locally, hosted rollout pending | Preserves event/output contracts and single backend; opt-in explanation DTO supports independent frontend/backend rollout |
 | ADR-028 / 2026-10-17 | Approved: bounded conversational family notifications through ElevenLabs Agents and planned Photon SIP; operator approves frozen recipient/context/opening/policy, with one consented primary contact per fictional resident | Supersedes static-text-only authorization and configuration-time destination ban; preserves v2 ingestion, Gemini output/auth/lifecycle. Success is connected plus incident notification spoken, without recipient acknowledgment; provider integration/evidence mapping unverified |
+| ADR-029 / 2026-10-18 | Approved: independently consented Photon-hosted iMessage follow-ups, deterministic call-evidence selection, operator review for unknowns, private durable messages and correlated family replies | One preauthorized initial follow-up per call; separate exact staff-update approval; preserve Gemini/event/voice contracts, no Mac runtime, no autonomous medical advice. Provider assignment and live send/receive require verification |
 
 The user explicitly approved this delta after reviewing the proposal. See
 [deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md](deltas/2026-10-17T21-41-46Z-cloud-architecture-and-public-demo.md)
