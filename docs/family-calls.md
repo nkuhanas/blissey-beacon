@@ -16,6 +16,42 @@ Only enable the flag after verifying the actual agent, Photon SIP trunk/number,
 recipient verification and provider event mapping. All four ElevenLabs variables
 must be present when the flag is true. No second backend service is needed.
 
+### Ending a call
+
+API-created ElevenLabs agents need the native end-call control configured
+explicitly. Under `conversation_config.agent.prompt`, configure:
+
+```json
+{
+  "built_in_tools": {
+    "end_call": {
+      "type": "system",
+      "name": "end_call",
+      "description": "",
+      "params": { "system_tool_type": "end_call" }
+    }
+  }
+}
+```
+
+Use the current source `POLICY` and `family-call-v4`. A natural-language goodbye
+alone does not disconnect telephony. After an explicit request to end or a closing
+exchange, the agent must invoke `end_call`; it must not return to a silence prompt.
+Wrong/unverified recipients and voicemail get a brief goodbye with no incident
+details, followed by this control. This is the only enabled system control: do not
+add call transfer, outbound dispatch, database, webhook or incident-mutating tools.
+See [ElevenLabs' end-call documentation](https://elevenlabs.io/docs/eleven-agents/customization/tools/system-tools/end-call).
+
+For iPhone test recipients, save the Photon caller number in Contacts. If calls
+still go directly to voicemail, check Settings → Apps → Phone → Screen Unknown
+Callers; `Never` allows unsaved numbers to ring normally. Older iOS versions expose
+Silence Unknown Callers instead. Live Voicemail can answer before the recipient
+chooses to join; this is consistent with both smoke transcripts, but phone/carrier
+settings have not been inspected. The agent must not disclose incident details to
+the greeting or stay connected indefinitely waiting for a person. See
+[Apple's unknown-caller guidance](https://support.apple.com/en-us/111106) and
+[Live Voicemail behavior](https://support.apple.com/en-lamr/guide/iphone/iph3c99490e/ios).
+
 The user's consented real test destination is held only in ignored local deployment
 configuration. It is not a seed, fixture, source default or browser build variable.
 The family-call migration was subsequently applied to the approved hosted demo
@@ -291,3 +327,52 @@ these checks did not place a telephone call or establish live voice retest resul
 The full transcript and private provider receipts remain in ignored local
 verification storage, not repository source or the application database. Provider
 retention/deletion settings remain as documented above.
+
+## Second smoke and hang-up correction — 2026-10-18 UTC
+
+At the user's request, PR #10 merged at `0a3dbfb` after all CI checks passed and
+Railway deployed it. A fresh authenticated synthetic event created one active
+incident; Gemini completed its explanation, a simulated operator acknowledged it,
+and a newly reviewed `family-call-v3` context named Demo Resident 102. Exactly one
+authorization and dispatch attempt were submitted for this incident.
+
+The recipient answered the Photon-connected call. The 92-second provider transcript
+records the agent identifying the resident in its summary and correctly answering
+who the incident concerned. The signed callback persisted `completed` with no
+callback request. Automated connected/spoken evidence remains unproven, as above.
+Dispatch was disabled again and that Railway configuration deployed successfully.
+
+Two issues were observed. A voicemail greeting preceded the live recipient, who
+confirmed using an iPhone; Live Voicemail/unknown-call settings are a plausible
+explanation, not a remotely verified diagnosis. The agent also returned to asking
+whether anyone was there after both parties said goodbye. The call ultimately
+ended with `Client disconnected: 1000`, rather than an agent hang-up.
+
+The API-created agent had no native end-call control. It now has only ElevenLabs'
+`end_call` built-in, and `family-call-v4` directs it to use the control after a
+closing exchange, a request to stop, or a wrong/unverified recipient or voicemail.
+Configuration was read back. Three real-provider text-only simulations each
+invoked `end_call` and returned `end_call_success` for goodbye, explicit stop and
+voicemail; no incident details were disclosed to the voicemail greeting. No
+additional telephone call was placed. Actual SIP disconnection by this control
+still requires a consented live retest after the iPhone settings are addressed.
+
+## Natural voice tuning — 2026-10-18 UTC
+
+After the recipient requested a more human-sounding voice, the dedicated agent was
+changed from Bella/Flash v2 to Sarah with `eleven_v3_conversational` and expressive
+mode. Sarah is the provider's premade American voice described as warm and
+reassuring; no voice cloning or impersonation is involved. The configured settings
+are voice ID `EXAVITQu4vr4xnSDxMaL`, stability `0.5`, similarity boost `0.75` and
+speed `0.96`. These are initial subjective tuning choices, not evidence of listener
+preference or measured quality. See
+[ElevenLabs' expressive-mode guidance](https://elevenlabs.io/docs/eleven-agents/customization/voice/expressive-mode).
+
+The provider accepted the configuration and a readback confirmed it. Agent
+instructions, recipient verification, approved factual context and the native
+end-call control were preserved exactly. The assistant continues identifying itself
+as automated. A short fictional MP3 preview was generated with the same voice and
+model; this does not place a phone call or verify the sound after Photon/carrier
+audio compression. Private preview/configuration receipts remain ignored local
+artifacts. Dispatch remains disabled; evaluating the new voice over a real call
+requires another explicitly authorized smoke test.
