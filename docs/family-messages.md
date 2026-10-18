@@ -248,3 +248,28 @@ Without confirmation, the follow-up thanks the recipient and asks them to contac
 the care team for the latest updates. Both variants retain reply and STOP controls.
 The legacy `summary` field/selection remains for compatibility; historical frozen
 recaps are unchanged. No extra message is sent to replace a delivered recap.
+
+## Automatic follow-up approvals (2026-10-18)
+
+Apply `20261018090000_automatic_followups.sql`. New follow-up previews freeze
+`automatic-v2` in the approval hash; old previews default to `manual-v1` and retain
+their original held-review behavior. New calls require one combined UI checkbox
+covering both the call and exact follow-up candidates, with channel consent still
+checked independently.
+
+Signed ElevenLabs data collection records `recipient_verified`,
+`incident_communicated` and `call_outcome` as provider-reported assessments. A consistent
+communicated/verified report selects the approved thank-you; other terminal outcomes
+select the generic privacy-safe text automatically. These reports do not change
+`connected`/`notification_spoken` into verified playback evidence. No post-call
+operator review is required for new approvals. The simple popup uses the existing
+thank-you without an unverified claim that staff were dispatched.
+
+The existing message worker also recovers missing call callbacks via authenticated
+provider GET requests, with database leases, at most ten attempts, thirty-second
+spacing and a seven-minute deadline covering the agent's configured five-minute
+maximum call duration. Unknown submissions wait until that deadline before generic
+follow-up; they never redial. Calls rejected before a dispatch attempt do not text.
+Exactly one message authorization/output row is used; dispatch rechecks consent,
+contact version, historical assignment, membership and current Photon route.
+See [ElevenLabs post-call webhooks](https://elevenlabs.io/docs/eleven-agents/workflows/post-call-webhooks).

@@ -692,3 +692,22 @@ html:has(.dashboard.compact-workspace) {
 .notification-results .note {
   margin-block: 12px;
 }
+
+.scenario-tools {
+  margin-top: 24px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 12px;
+  color: var(--color-muted);
+}
+.scenario-tools > summary {
+  cursor: pointer;
+  width: fit-content;
+  font-size: 12px;
+}
+.scenario-tools[open] {
+  padding-bottom: 16px;
+}
+.scenario-tools .workspace-tools {
+  justify-content: flex-start;
+  margin-top: 12px;
+}

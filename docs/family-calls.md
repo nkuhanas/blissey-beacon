@@ -503,3 +503,20 @@ approval tests reject call-only and changed-message hashes before any POST.
 Seven real-provider text-only synthetic checks exercised active/resolved alerts,
 acknowledgments, introduction, callback, unknown injury status and wrong-recipient
 privacy. These checks place no telephone call and do not prove audible delivery.
+
+## One-step notification update (2026-10-18)
+
+New previews use `family-call-v9`. Situation questions include the active-alert
+and incomplete-details wording; “what happened” also restates the frozen possible-fall
+summary. The agent resumes unfinished answers after non-question interruptions.
+`scripts/configure-voice.mjs --apply` updates the live policy, end-call description,
+English backchannel filters, timeout transcription retry and a three-second spoken
+latency cue while preserving voice/model, SIP, privacy and signed callbacks.
+Build the backend first and run that command inside the Docker toolchain with the
+ignored deployment environment file present. Without `--apply` it reads configuration
+only; neither form places a call.
+
+The configuration uses the official [agent update API](https://elevenlabs.io/docs/api-reference/agents/update)
+and [conversation-flow settings](https://elevenlabs.io/docs/eleven-agents/customization/conversation-flow).
+A live audio test is still needed to judge real interruption behavior. Provider
+simulations verify conversation wording, not microphone or telephony audio quality.

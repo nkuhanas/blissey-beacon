@@ -225,3 +225,37 @@ test("calls stay explicitly disabled until complete provider configuration is pr
     /Calling requires/,
   );
 });
+
+test("signed reported call outcomes require consistent booleans and never upgrade playback evidence", () => {
+  for (const [verified, spoken, label, expected] of [
+    [true, true, "communicated", "communicated"],
+    [true, false, "communicated", "unknown"],
+    [false, true, "communicated", "unknown"],
+    ["true", true, "communicated", "unknown"],
+    [false, false, "voicemail", "voicemail"],
+    [true, true, "invented", "unknown"],
+  ]) {
+    const raw = JSON.stringify({
+      type: "post_call_transcription",
+      data: {
+        agent_id: "synthetic-agent",
+        conversation_id: "synthetic",
+        analysis: {
+          data_collection_results: {
+            recipient_verified: { value: verified },
+            incident_communicated: { value: spoken },
+            call_outcome: { value: label },
+          },
+        },
+      },
+    });
+    const event = verifyProviderEvent(
+      Buffer.from(raw),
+      sign(raw),
+      "synthetic-webhook-secret",
+      "synthetic-agent",
+    );
+    assert.equal(event.outcome, expected);
+    assert.ok(!("notificationSpoken" in event));
+  }
+});

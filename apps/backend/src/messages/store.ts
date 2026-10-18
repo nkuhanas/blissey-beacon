@@ -46,6 +46,9 @@ async function contactFor(
 }
 function previewHash(p: Record<string, unknown>) {
   return digest({
+    ...(p.followup_policy === "automatic-v2"
+      ? { followup_policy: p.followup_policy }
+      : {}),
     candidates: p.candidates,
     route: p.route,
     contact_revision: p.contact_revision,
@@ -253,6 +256,8 @@ export function createMessageStore(pool: Pool) {
                 update: `Blissey Beacon care update: ${input.update_text!.trim()}`,
               };
         const p = {
+          followup_policy:
+            input.purpose === "followup" ? "automatic-v2" : "manual-v1",
           candidates,
           route,
           contact_revision: contact.revision,
@@ -264,7 +269,7 @@ export function createMessageStore(pool: Pool) {
         const hash = previewHash(p);
         const row = (
           await c.query(
-            "INSERT INTO public.message_previews(actor_id,incident_id,facility_id,contact_id,incident_revision,contact_revision,purpose,candidates,route,context_hash) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id,expires_at",
+            "INSERT INTO public.message_previews(actor_id,incident_id,facility_id,contact_id,incident_revision,contact_revision,purpose,candidates,route,context_hash,followup_policy) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id,expires_at",
             [
               subject,
               id,
@@ -276,6 +281,7 @@ export function createMessageStore(pool: Pool) {
               candidates,
               route,
               hash,
+              p.followup_policy,
             ],
           )
         ).rows[0];
@@ -294,6 +300,7 @@ export function createMessageStore(pool: Pool) {
             ],
           );
         return {
+          followup_policy: p.followup_policy,
           preview_id: row.id,
           expires_at: row.expires_at,
           context_hash: hash,
@@ -399,19 +406,38 @@ export function createMessageStore(pool: Pool) {
       return withTransaction(pool, async (c) => {
         const rows = (
           await c.query(
-            "SELECT a.*,n.transport_status,n.error_code,n.connected,n.notification_spoken FROM public.message_authorizations a JOIN public.notification_calls n ON n.id=a.call_id WHERE a.state='waiting' AND n.transport_status IN ('completed','failed','unknown') ORDER BY a.created_at LIMIT 20 FOR UPDATE OF a SKIP LOCKED",
+            `SELECT a.*,p.followup_policy,n.transport_status,n.error_code,n.connected,n.notification_spoken,n.attempt_id,
+              (SELECT e.normalized FROM public.notification_provider_events e WHERE e.call_id=n.id ORDER BY e.received_at DESC LIMIT 1) AS report
+              FROM public.message_authorizations a JOIN public.message_previews p ON p.id=a.preview_id JOIN public.notification_calls n ON n.id=a.call_id
+              WHERE a.state='waiting' AND n.transport_status IN ('completed','failed','unknown') AND (n.transport_status<>'unknown' OR p.followup_policy<>'automatic-v2' OR n.submitted_at<clock_timestamp()-interval '7 minutes') ORDER BY a.created_at LIMIT 20 FOR UPDATE OF a SKIP LOCKED`,
           )
         ).rows;
         for (const a of rows) {
-          // Only definitive busy/no-answer evidence is currently mapped from signed provider callbacks.
+          const automatic = a.followup_policy === "automatic-v2";
+          if (automatic && !a.attempt_id) {
+            await c.query(
+              "UPDATE public.message_authorizations SET state='cancelled',evidence='call:not_submitted',updated_at=now() WHERE id=$1",
+              [a.id],
+            );
+            await bump(c, a.incident_id);
+            continue;
+          }
           const evidence =
             a.transport_status === "failed" &&
             ["busy", "no-answer"].includes(a.error_code)
               ? a.error_code === "busy"
                 ? "busy"
                 : "no_answer"
-              : "unknown";
-          const selection = selectFollowup(evidence, false);
+              : automatic &&
+                  a.report?.outcome === "communicated" &&
+                  a.report?.recipientVerified === true
+                ? "communicated"
+                : "unknown";
+          const selection = automatic
+            ? evidence === "communicated"
+              ? "summary"
+              : "missed"
+            : selectFollowup(evidence, false);
           if (selection === "review")
             await c.query(
               "UPDATE public.message_authorizations SET state='review',evidence='provider:unknown',updated_at=now() WHERE id=$1",
@@ -420,7 +446,7 @@ export function createMessageStore(pool: Pool) {
           else {
             await c.query(
               "UPDATE public.message_authorizations SET evidence=$2 WHERE id=$1",
-              [a.id, "provider:" + evidence],
+              [a.id, (automatic ? "automatic:" : "provider:") + evidence],
             );
             await queueSelected(c, a, selection);
           }

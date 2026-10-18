@@ -8,23 +8,21 @@ integration shell for troubleshooting.
 ## Rehearse from the UI
 
 1. Sign in with the provisioned operator account and assigned facility membership.
-2. Select a room and scenario, then choose **Instantiate**. This is an authenticated
+2. Open the collapsed **Scenario controls** at the bottom of the page, select a room/scenario and choose **Instantiate**. This is an authenticated
    server operation, not a reset of browser fixtures. A fresh incident is labeled
    synthetic and recorded durably with a pending explanation job. Gemini processes
    it using the existing worker; the scenario does not guarantee provider success.
 3. **Acknowledge incident** persists the incident action and opens the family call
    review. Responding, resolution and notes also use the existing revision-checked API.
    A false-alarm resolution follows the existing responding → resolved transition.
-4. Prepare the call review. The backend obtains the incident's historically assigned
-   resident/contact, freezes grounded facts and verifies consent. Include messaging
-   if desired. Staff dispatch must be explicitly confirmed before the successful-call
-   text may claim staff have been dispatched.
-5. Review the opening, policy and both possible follow-up messages. Separate unchecked
-   approvals authorize the real call and its potential text follow-up. Acknowledge
-   alone never calls anyone. Provider dispatch flags must also be enabled.
-6. Call transport, message delivery and family replies appear in the same dialog.
-   A completed call does not establish that the incident was spoken. If the backend
-   needs outcome review, explicitly confirm what happened to release the preapproved text.
+4. The family popup automatically prepares frozen incident/contact facts and both
+   possible follow-up texts. Review details as needed, check the single authorization
+   checkbox and choose **Yes, notify family**. This authorizes one real call and its
+   automatic follow-up text; channel consent and provider flags remain required.
+5. Call transport, provider-reported outcome, text delivery and replies appear in
+   the same dialog. Follow-up selection is automatic, including a privacy-safe generic
+   message for unclear terminal outcomes. There is no post-call operator review for
+   new approvals. Staff dispatch is not inferred or asserted by the simple popup.
 
 Ambiguous call-authorization responses are reconciled using persisted history;
 there is no automatic resend or redial. Existing calls are shown instead of issuing
@@ -99,3 +97,9 @@ omission, synthetic fallback labels, unchanged hardware health/history and rollb
 after writes. Realtime acceptance additionally exercises UI scenario creation,
 idempotent replay, a single actual incident INSERT notification, authorized REST
 reads and exclusion of an unrelated identity using disposable Supabase Realtime.
+
+**Reset room alerts** resolves a snapshot of the selected room's active incidents
+using the existing authenticated lifecycle API, including revision checks and an
+explicit reset note. It preserves device monitoring, credentials and all history,
+and does not authorize calls/texts. New detections can create fresh alerts afterward.
+A room reset is separate from the collapsed synthetic Scenario controls.

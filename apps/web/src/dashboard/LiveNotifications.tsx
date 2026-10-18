@@ -77,6 +77,7 @@ export function OperatorLogin({ onClose }: { onClose: () => void }) {
     </Modal>
   );
 }
+type Bundle = { call: CallPreview; message: MessagePreview | null };
 export function LiveCallReview({
   api,
   incidentId,
@@ -88,346 +89,310 @@ export function LiveCallReview({
   onClose: () => void;
   onUpdated: () => void;
 }) {
-  const [call, setCall] = useState<CallPreview | null>(null);
-  const [message, setMessage] = useState<MessagePreview | null>(null);
+  const [bundle, setBundle] = useState<Bundle | null>(null);
   const [calls, setCalls] = useState<NotificationCall[]>([]);
   const [history, setHistory] = useState<MessageHistory | null>(null);
-  const [withMessages, setWithMessages] = useState(true);
-  const [staffDispatched, setStaffDispatched] = useState(false);
-  const [approveCall, setApproveCall] = useState(false);
-  const [approveText, setApproveText] = useState(false);
+  const [approved, setApproved] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [uncertain, setUncertain] = useState(false);
-  const [evidence, setEvidence] = useState<
-    "" | "communicated" | "no_answer" | "voicemail"
-  >("");
-  const [recipientVerified, setRecipientVerified] = useState(false);
-  const [reviewApproved, setReviewApproved] = useState(false);
-  const authorizationKey = useRef(crypto.randomUUID());
+  const [uncertain, setUncertain] = useState(
+    () => !!sessionStorage.getItem("notification-intent:" + incidentId),
+  );
+  const [retry, setRetry] = useState(0);
+  const preview = useRef<Bundle | null>(null);
   const attempted = useRef(false);
-  const currentIncident = useRef(incidentId);
-  currentIncident.current = incidentId;
-  async function refresh() {
-    const id = incidentId;
-    const [result, messages] = await Promise.all([
-      api.calls(id),
-      api.messages(id),
-    ]);
-    if (currentIncident.current !== id) return;
-    setCalls(result.calls);
-    setHistory(messages);
-    if (result.calls.length) {
-      setUncertain(false);
-      sessionStorage.removeItem("notification-intent:" + id);
-    }
-  }
+  const generation = useRef(0);
+  const intentKey = useRef(crypto.randomUUID());
   useEffect(() => {
-    currentIncident.current = incidentId;
-    let stopped = false;
-    const update = () =>
-      void refresh().catch(() => {
-        if (!stopped)
-          setError(
-            "Unable to refresh call/message history. Use Check status before doing anything else.",
+    const epoch = ++generation.current;
+    let polling = false;
+    const alive = () => epoch === generation.current;
+    async function update() {
+      if (polling) return;
+      polling = true;
+      try {
+        const [result, messages, w] = await Promise.all([
+          api.calls(incidentId),
+          api.messages(incidentId),
+          api.workflow(incidentId),
+        ]);
+        if (!alive()) return;
+        setCalls((previous) =>
+          result.calls.length
+            ? result.calls
+            : attempted.current
+              ? previous
+              : [],
+        );
+        setHistory(messages);
+        if (result.calls.length) {
+          sessionStorage.removeItem("notification-intent:" + incidentId);
+          setUncertain(false);
+          setLoading(false);
+          return;
+        }
+        if (sessionStorage.getItem("notification-intent:" + incidentId)) {
+          setUncertain(true);
+          setLoading(false);
+          return;
+        }
+        if (attempted.current) return;
+        const current = preview.current;
+        if (
+          current &&
+          current.call.expected_revision === w.revision &&
+          Date.parse(current.call.expires_at) > Date.now() + 5000 &&
+          (!current.message ||
+            Date.parse(current.message.expires_at) > Date.now() + 5000)
+        ) {
+          setLoading(false);
+          return;
+        }
+        preview.current = null;
+        setBundle(null);
+        setApproved(false);
+        setLoading(true);
+        if (!w.patient_id)
+          throw new Error("No resident assignment is saved for this incident.");
+        const contacts = await api.contacts(facilityId, w.patient_id);
+        const contact = contacts.contacts.find(
+          (c) => c.consent_status === "granted",
+        );
+        if (!contact)
+          throw new Error(
+            "No consented family contact is saved for this incident.",
           );
-      });
-    setUncertain(!!sessionStorage.getItem("notification-intent:" + incidentId));
-    update();
-    const timer = setInterval(update, 4000);
-    return () => {
-      stopped = true;
-      clearInterval(timer);
-      currentIncident.current = "";
-    };
-    // The API identity changes when the authenticated session refreshes.
-  }, [api, incidentId]);
-  async function prepare() {
-    setBusy(true);
-    setError("");
-    setCall(null);
-    setMessage(null);
-    setApproveCall(false);
-    setApproveText(false);
-    try {
-      const existing = await api.calls(incidentId);
-      if (existing.calls.length) {
-        setCalls(existing.calls);
-        throw new Error(
-          "This incident already has a call. Instantiate a new scenario for another rehearsal; nothing will be redialed automatically.",
-        );
+        const call = await api.previewCall(incidentId, contact.id, w.revision);
+        const message =
+          contact.imessage_consent_status === "granted"
+            ? await api.previewMessages(
+                incidentId,
+                contact.id,
+                w.revision,
+                false,
+              )
+            : null;
+        if (!alive()) return;
+        preview.current = { call, message };
+        setBundle(preview.current);
+        setError("");
+        setLoading(false);
+      } catch (e) {
+        if (alive()) {
+          if (
+            e instanceof OperatorError &&
+            [
+              "explanation_not_ready",
+              "incident_revision_conflict",
+              "message_review_changed",
+            ].includes(e.code)
+          ) {
+            setError("");
+            setLoading(true);
+          } else {
+            setError(
+              e instanceof Error
+                ? e.message
+                : "Unable to load family notification",
+            );
+            setLoading(false);
+          }
+        }
+      } finally {
+        polling = false;
       }
-      const workflow = await api.workflow(incidentId);
-      if (!workflow.patient_id)
-        throw new Error(
-          "No unambiguous historical resident assignment. A call cannot be prepared.",
-        );
-      const contacts = await api.contacts(facilityId, workflow.patient_id);
-      const contact = contacts.contacts.find(
-        (c) => c.consent_status === "granted",
-      );
-      if (!contact)
-        throw new Error(
-          "No consented family contact is saved for this incident.",
-        );
-      if (withMessages && contact.imessage_consent_status !== "granted")
-        throw new Error(
-          "This contact has not consented to iMessage. Prepare a call only or configure messaging consent.",
-        );
-      const nextCall = await api.previewCall(
-        incidentId,
-        contact.id,
-        workflow.revision,
-      );
-      const nextMessage = withMessages
-        ? await api.previewMessages(
-            incidentId,
-            contact.id,
-            workflow.revision,
-            staffDispatched,
-          )
-        : null;
-      setCall(nextCall);
-      setMessage(nextMessage);
-      authorizationKey.current = crypto.randomUUID();
-      attempted.current = false;
-    } catch (e) {
-      setError(
-        e instanceof Error ? e.message : "Unable to prepare notification",
-      );
-    } finally {
-      setBusy(false);
     }
-  }
+    void update();
+    const timer = setInterval(() => void update(), 4000);
+    return () => {
+      generation.current++;
+      clearInterval(timer);
+    };
+  }, [api, incidentId, retry]);
   async function authorize() {
-    if (!call || !approveCall || (message && !approveText) || attempted.current)
-      return;
+    if (!bundle || !approved || attempted.current) return;
     attempted.current = true;
     setBusy(true);
     setError("");
-    sessionStorage.setItem(
-      "notification-intent:" + incidentId,
-      authorizationKey.current,
-    );
     try {
+      sessionStorage.setItem(
+        "notification-intent:" + incidentId,
+        intentKey.current,
+      );
       const result = await api.authorize(
         incidentId,
         {
-          preview_id: call.preview_id,
-          context_hash: call.context_hash,
-          expected_revision: call.expected_revision,
+          preview_id: bundle.call.preview_id,
+          context_hash: bundle.call.context_hash,
+          expected_revision: bundle.call.expected_revision,
           explicit_authorization: true,
-          ...(message
+          ...(bundle.message
             ? {
-                message_preview_id: message.preview_id,
-                message_context_hash: message.context_hash,
+                message_preview_id: bundle.message.preview_id,
+                message_context_hash: bundle.message.context_hash,
                 explicit_messaging_authorization: true,
               }
             : {}),
         },
-        authorizationKey.current,
+        intentKey.current,
       );
       setCalls([result.call]);
       sessionStorage.removeItem("notification-intent:" + incidentId);
-      setCall(null);
-      setMessage(null);
+      setBundle(null);
+      preview.current = null;
       onUpdated();
-      await refresh();
     } catch (e) {
       if (
         e instanceof OperatorError &&
         [400, 401, 403, 404, 409, 422].includes(e.status)
       ) {
         sessionStorage.removeItem("notification-intent:" + incidentId);
-        setCall(null);
-        setMessage(null);
         attempted.current = false;
+        preview.current = null;
+        setBundle(null);
+        setApproved(false);
+        intentKey.current = crypto.randomUUID();
         setError(
-          e.message + ". Prepare a fresh review before authorizing again.",
+          "The incident or contact changed. Loading the latest details for a fresh approval.",
         );
+        setRetry((n) => n + 1);
       } else {
         setUncertain(true);
+        setBundle(null);
         setError(
-          (e instanceof Error
-            ? e.message
-            : "Authorization response unavailable") +
-            ". Check status; no automatic resend will occur.",
+          "The authorization response was interrupted. Checking the saved call status; it will not be redialed automatically.",
         );
       }
-      await refresh().catch(() => {});
     } finally {
       setBusy(false);
     }
   }
-  const pendingReview = history?.authorizations.find(
-    (a) => a.state === "review",
-  );
-  const alreadyCalled = calls.length > 0;
+  const sent = calls.length > 0;
   return (
-    <Modal title="Review family call & text" onClose={onClose}>
-      <p className="notice">
-        Fictional resident and family contact. A real call and approved texts go
-        to the registered test phone.
-      </p>
+    <Modal
+      title={sent ? "Family notification" : "Notify family?"}
+      onClose={onClose}
+    >
       {error && (
-        <p role="alert" className="error">
+        <p className="error" role="alert">
           {error}
         </p>
       )}
-      {alreadyCalled ? (
-        <section className="notification-results">
-          <h3>Call status</h3>
+      {sent ? (
+        <>
+          <p>
+            Follow-up selection and delivery are automatic. No post-call review
+            is needed.
+          </p>
           {calls.map((c) => (
             <div className="note" key={c.id}>
-              <strong>{c.transport_status.replaceAll("_", " ")}</strong>
-              <p>
-                {c.notification_success
-                  ? "Incident notification confirmed"
-                  : "Spoken-notification evidence is not confirmed."}
-              </p>
-              {c.callback_requested && (
-                <p>Callback requested — awaiting operator review.</p>
-              )}
+              <strong>Call {c.transport_status.replaceAll("_", " ")}</strong>
               {c.summary && <p>{c.summary}</p>}
+              {c.callback_requested && <p>Family requested a callback.</p>}
               {c.error_code && <p>{c.error_code.replaceAll("_", " ")}</p>}
             </div>
           ))}
-        </section>
+        </>
       ) : uncertain ? (
-        <p className="notice">
-          The previous authorization is being reconciled. Check status before
-          starting another call.
+        <p role="status">
+          Checking the saved notification status… No second call will be placed.
         </p>
-      ) : !call ? (
+      ) : loading ? (
+        <p role="status">
+          Preparing the family notification from the latest incident…
+        </p>
+      ) : bundle ? (
         <>
           <p>
-            Prepare a frozen review from the persisted incident and explanation.
-            Acknowledging an incident alone does not place a call.
+            Call <strong>{bundle.call.recipient.name}</strong> about{" "}
+            <strong>
+              {bundle.call.context.resident_name ?? "the resident"}
+            </strong>{" "}
+            and this incident.
           </p>
-          <label className="checkbox">
-            <input
-              type="checkbox"
-              checked={withMessages}
-              onChange={(e) => setWithMessages(e.target.checked)}
-            />
-            <span>Include a post-call iMessage follow-up.</span>
-          </label>
-          {withMessages && (
-            <label className="checkbox">
-              <input
-                type="checkbox"
-                checked={staffDispatched}
-                onChange={(e) => setStaffDispatched(e.target.checked)}
-              />
-              <span>
-                I confirm staff dispatch for this incident. Include the
-                care-team update in the successful-call text.
-              </span>
-            </label>
-          )}
-          <button
-            className="primary full"
-            disabled={busy}
-            onClick={() => void prepare()}
-          >
-            {busy ? "Preparing…" : "Prepare call & message review"}
-          </button>
-        </>
-      ) : (
-        <>
-          <dl className="facts">
-            <div>
-              <dt>Resident</dt>
-              <dd>{call.context.resident_name ?? "Not available"}</dd>
-            </div>
-            <div>
-              <dt>Recipient</dt>
-              <dd>{call.recipient.name}</dd>
-            </div>
-            <div>
-              <dt>Delivery</dt>
-              <dd>Registered test phone</dd>
-            </div>
-            <div>
-              <dt>Incident status</dt>
-              <dd>{call.context.incident_status}</dd>
-            </div>
-            <div>
-              <dt>Explanation</dt>
-              <dd>{call.context.explanation_source}</dd>
-            </div>
-          </dl>
+          <p>{bundle.call.context.family_summary}</p>
           <p className="small muted">
-            Review expires {new Date(call.expires_at).toLocaleTimeString()}. If
-            it expires, close and prepare a fresh review.
+            Fictional family contact · delivery to the registered test phone.
           </p>
-          <h3>Facts to share</h3>
-          <p>{call.context.family_summary}</p>
-          <h3>Opening</h3>
-          <blockquote>{call.opening}</blockquote>
-          <details>
-            <summary>Conversation policy</summary>
-            <p>{call.policy}</p>
-          </details>
-          {message && (
-            <>
-              <h3>After a communicated incident</h3>
-              <blockquote>{message.candidates.summary}</blockquote>
-              <h3>Missed or incomplete call</h3>
-              <blockquote>{message.candidates.missed}</blockquote>
-            </>
+          {bundle.message ? (
+            <p>
+              We’ll automatically send a follow-up text after the call,
+              including if it is missed or the outcome is unclear.
+            </p>
+          ) : (
+            <p className="notice">
+              Messaging consent is not configured for this contact. This
+              approval places a call only.
+            </p>
           )}
+          <details>
+            <summary>Call details and follow-up messages</summary>
+            <h3>Opening</h3>
+            <p>{bundle.call.opening}</p>
+            {bundle.message && (
+              <>
+                <h3>After the incident is communicated</h3>
+                <p>{bundle.message.candidates.summary}</p>
+                <h3>Missed, incomplete or unclear call</h3>
+                <p>{bundle.message.candidates.missed}</p>
+              </>
+            )}
+            <h3>Conversation policy</h3>
+            <p>{bundle.call.policy}</p>
+          </details>
           <label className="checkbox">
             <input
               type="checkbox"
-              checked={approveCall}
-              onChange={(e) => setApproveCall(e.target.checked)}
+              checked={approved}
+              onChange={(e) => setApproved(e.target.checked)}
             />
             <span>
-              I reviewed the recipient, facts, opening and policy, and authorize
-              one real call.
+              {bundle.message
+                ? "I authorize this call and its automatic follow-up text to the saved family contact."
+                : "I authorize this call to the saved family contact."}
             </span>
           </label>
-          {message && (
-            <label className="checkbox">
-              <input
-                type="checkbox"
-                checked={approveText}
-                onChange={(e) => setApproveText(e.target.checked)}
-              />
-              <span>
-                I reviewed both messages and authorize the selected follow-up
-                after this call.
-              </span>
-            </label>
-          )}
-          {(!call.dispatch_enabled ||
-            (message && !message.dispatch_enabled)) && (
-            <p className="notice">
-              Calling or messaging is disabled in the backend configuration.
-            </p>
+          {(!bundle.call.dispatch_enabled ||
+            (bundle.message && !bundle.message.dispatch_enabled)) && (
+            <p className="notice">Notifications are temporarily unavailable.</p>
           )}
           <button
             className="primary full"
             disabled={
+              !approved ||
               busy ||
-              !approveCall ||
-              (!!message && !approveText) ||
-              !call.dispatch_enabled ||
-              (!!message && !message.dispatch_enabled) ||
-              attempted.current ||
-              Date.parse(call.expires_at) <= Date.now() ||
-              (!!message && Date.parse(message.expires_at) <= Date.now())
+              !bundle.call.dispatch_enabled ||
+              (!!bundle.message && !bundle.message.dispatch_enabled) ||
+              Date.parse(bundle.call.expires_at) <= Date.now() ||
+              (!!bundle.message &&
+                Date.parse(bundle.message.expires_at) <= Date.now())
             }
             onClick={() => void authorize()}
           >
-            {busy ? "Authorizing…" : "Authorize call & approved follow-up"}
+            {busy ? "Notifying…" : "Yes, notify family"}
           </button>
         </>
+      ) : (
+        <button onClick={() => setRetry((n) => n + 1)}>
+          Reload notification details
+        </button>
       )}
-      {history?.messages.length ? (
+      {history?.authorizations.some((a) => a.state === "waiting") && (
+        <p className="small muted">
+          The approved text will be selected automatically after the call
+          outcome arrives.
+        </p>
+      )}
+      {history?.authorizations.some((a) => a.state === "review") && (
+        <p className="small muted">
+          An earlier notification used the previous approval rules and remains
+          held.
+        </p>
+      )}
+      {!!history?.messages.length && (
         <section>
-          <h3>Message delivery</h3>
+          <h3>Text message</h3>
           {history.messages.map((m) => (
             <div className="note" key={m.id}>
               <strong>{m.state}</strong>
@@ -435,81 +400,6 @@ export function LiveCallReview({
               {m.error_code && <p>{m.error_code.replaceAll("_", " ")}</p>}
             </div>
           ))}
-        </section>
-      ) : null}
-      {pendingReview && (
-        <section>
-          <h3>Review call outcome</h3>
-          <p>
-            Confirm what happened before releasing the approved follow-up. A
-            completed call alone does not confirm the incident was spoken.
-          </p>
-          <label>
-            Observed outcome
-            <select
-              value={evidence}
-              onChange={(e) => setEvidence(e.target.value as typeof evidence)}
-            >
-              <option value="">Select an outcome</option>
-              <option value="communicated">Incident was communicated</option>
-              <option value="no_answer">No answer</option>
-              <option value="voicemail">Voicemail</option>
-            </select>
-          </label>
-          {evidence === "communicated" && (
-            <label className="checkbox">
-              <input
-                type="checkbox"
-                checked={recipientVerified}
-                onChange={(e) => setRecipientVerified(e.target.checked)}
-              />
-              <span>The intended recipient was verified.</span>
-            </label>
-          )}
-          <label className="checkbox">
-            <input
-              type="checkbox"
-              checked={reviewApproved}
-              onChange={(e) => setReviewApproved(e.target.checked)}
-            />
-            <span>
-              I confirm this outcome and authorize the preapproved follow-up.
-            </span>
-          </label>
-          <button
-            className="primary full"
-            disabled={
-              busy ||
-              !evidence ||
-              !reviewApproved ||
-              (evidence === "communicated" && !recipientVerified)
-            }
-            onClick={() => {
-              setBusy(true);
-              setError("");
-              void (async () => {
-                try {
-                  const w = await api.workflow(incidentId);
-                  await api.reviewMessage(
-                    pendingReview.id,
-                    w.revision,
-                    evidence as "communicated" | "no_answer" | "voicemail",
-                    recipientVerified,
-                  );
-                  await refresh();
-                  onUpdated();
-                } catch (e) {
-                  setError(
-                    e instanceof Error ? e.message : "Outcome review failed",
-                  );
-                } finally {
-                  setBusy(false);
-                }
-              })();
-            }}
-          >
-            Confirm outcome & send approved text
-          </button>
         </section>
       )}
       {!!history?.replies.length && (
@@ -524,16 +414,6 @@ export function LiveCallReview({
           ))}
         </section>
       )}
-      <button
-        className="full"
-        onClick={() =>
-          void refresh().catch(() =>
-            setError("Status is unavailable. Nothing has been resent."),
-          )
-        }
-      >
-        Check status
-      </button>
     </Modal>
   );
 }

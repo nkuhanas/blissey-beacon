@@ -23,6 +23,11 @@ import type {
   MessageProvider,
   PhotonMessage,
 } from "../src/messages/photon.js";
+import { digest } from "../src/notifications/policy.js";
+import {
+  recoverCallOnce,
+  createCallLookup,
+} from "../src/notifications/recovery.js";
 import { createStore, withTransaction } from "../src/db.js";
 import { createApp } from "../src/app.js";
 const subject = "11111111-1111-4111-8111-111111111111",
@@ -89,8 +94,9 @@ export async function runMessageTests(t: TestContext, pool: Pool) {
   async function prepare(
     purpose: "followup" | "update" = "followup",
     staffDispatchConfirmed = false,
+    automatic = false,
   ) {
-    return messages.preview(
+    const result = await messages.preview(
       subject,
       incidentId,
       {
@@ -110,9 +116,31 @@ export async function runMessageTests(t: TestContext, pool: Pool) {
       },
       route,
     );
+    if (purpose === "followup" && !automatic) {
+      const row = (
+        await pool.query("SELECT * FROM public.message_previews WHERE id=$1", [
+          result.preview_id,
+        ])
+      ).rows[0];
+      const hash = digest({
+        candidates: row.candidates,
+        route: row.route,
+        contact_revision: row.contact_revision,
+        incident_revision: row.incident_revision,
+        purpose: row.purpose,
+        incident_id: row.incident_id,
+        contact_id: row.contact_id,
+      });
+      await pool.query(
+        "UPDATE public.message_previews SET followup_policy='manual-v1',context_hash=$2 WHERE id=$1",
+        [result.preview_id, hash],
+      );
+      return { ...result, followup_policy: "manual-v1", context_hash: hash };
+    }
+    return result;
   }
-  async function joint() {
-    const p = await prepare(),
+  async function joint(automatic = false) {
+    const p = await prepare("followup", false, automatic),
       v = await calls.preview(subject, incidentId, contactId, await revision());
     const authorization = {
       preview_id: v.preview_id,
@@ -992,6 +1020,196 @@ export async function runMessageTests(t: TestContext, pool: Pool) {
             (r) => r.incident_id === null,
           )!.intent,
           "callback_requested",
+        );
+      },
+    );
+    await t.test(
+      "automatic approvals select one post-call thank-you from provider-reported communication without operator review",
+      async () => {
+        await fresh();
+        await grant();
+        await joint(true);
+        const work = (await callDispatch.claim())!;
+        await callDispatch.settle(work, {
+          state: "accepted",
+          conversationId: "auto-complete",
+        });
+        await callDispatch.event("auto-complete-report", {
+          conversationId: "auto-complete",
+          kind: "completed",
+          callbackRequested: false,
+          failureCode: null,
+          outcome: "communicated",
+          recipientVerified: true,
+        });
+        await messages.selectReady();
+        await messages.selectReady();
+        const row = (
+          await pool.query("SELECT * FROM public.notification_messages")
+        ).rows[0];
+        assert.match(row.body, /Thank you for speaking with us/);
+        assert.ok(!row.body.includes("dispatched"));
+        assert.equal(
+          (
+            await pool.query(
+              "SELECT count(*)::int AS n FROM public.notification_messages",
+            )
+          ).rows[0].n,
+          1,
+        );
+        const history = await calls.list(subject, incidentId);
+        assert.equal(history[0]!.notification_success, false);
+        assert.match(history[0]!.summary!, /Provider reported/);
+        let sent = 0;
+        await runMessageOnce(
+          dispatch,
+          {
+            ...provider,
+            send: async () => {
+              sent++;
+              return { state: "accepted", providerId: "auto-message" };
+            },
+          },
+          signal,
+        );
+        await runMessageOnce(dispatch, provider, signal);
+        assert.equal(sent, 1);
+      },
+    );
+    await t.test(
+      "unclear terminal calls get the approved generic text automatically, while unattempted calls never message",
+      async () => {
+        await fresh();
+        await grant();
+        await joint(true);
+        const work = (await callDispatch.claim())!;
+        await callDispatch.settle(work, {
+          state: "accepted",
+          conversationId: "auto-unknown",
+        });
+        await callDispatch.event("auto-unknown-report", {
+          conversationId: "auto-unknown",
+          kind: "completed",
+          callbackRequested: false,
+          failureCode: null,
+          outcome: "unknown",
+          recipientVerified: false,
+        });
+        await messages.selectReady();
+        assert.equal(
+          (
+            await pool.query(
+              "SELECT selection FROM public.message_authorizations",
+            )
+          ).rows[0].selection,
+          "missed",
+        );
+        const body = (
+          await pool.query("SELECT body FROM public.notification_messages")
+        ).rows[0].body;
+        assert.ok(!body.includes("fall"));
+        assert.ok(!body.includes("Room"));
+        await fresh();
+        await grant();
+        await joint(true);
+        await pool.query(
+          "UPDATE public.notification_calls SET transport_status='failed',error_code='authorization_no_longer_valid'",
+        );
+        await messages.selectReady();
+        assert.equal(
+          (await pool.query("SELECT * FROM public.notification_messages"))
+            .rowCount,
+          0,
+        );
+        assert.equal(
+          (await pool.query("SELECT state FROM public.message_authorizations"))
+            .rows[0].state,
+          "cancelled",
+        );
+      },
+    );
+    await t.test(
+      "missing webhook recovery leases provider reads and terminal uncertainty has a bounded generic fallback without redial",
+      async () => {
+        await fresh();
+        await grant();
+        await joint(true);
+        const work = (await callDispatch.claim())!;
+        await callDispatch.settle(work, {
+          state: "accepted",
+          conversationId: "recover-call",
+        });
+        await pool.query(
+          "UPDATE public.notification_calls SET submitted_at=now()-interval '1 minute'",
+        );
+        let fetched = 0;
+        const lookup = createCallLookup({
+          apiKey: "synthetic",
+          agentId: "synthetic-agent",
+          fetcher: async () => {
+            fetched++;
+            return Response.json({
+              agent_id: "synthetic-agent",
+              conversation_id: "recover-call",
+              status: "done",
+              analysis: {
+                data_collection_results: {
+                  recipient_verified: { value: true },
+                  incident_communicated: { value: true },
+                  call_outcome: { value: "communicated" },
+                },
+              },
+            });
+          },
+        });
+        await Promise.all([
+          recoverCallOnce(pool, callDispatch, lookup, signal),
+          recoverCallOnce(pool, callDispatch, lookup, signal),
+        ]);
+        assert.equal(fetched, 1);
+        await messages.selectReady();
+        assert.equal(
+          (
+            await pool.query(
+              "SELECT selection FROM public.message_authorizations",
+            )
+          ).rows[0].selection,
+          "summary",
+        );
+        await fresh();
+        await grant();
+        await joint(true);
+        const lost = (await callDispatch.claim())!;
+        await callDispatch.settle(lost, {
+          state: "unknown",
+          code: "submission_interrupted",
+        });
+        await messages.selectReady();
+        assert.equal(
+          (await pool.query("SELECT * FROM public.notification_messages"))
+            .rowCount,
+          0,
+        );
+        await pool.query(
+          "UPDATE public.notification_calls SET submitted_at=now()-interval '8 minutes'",
+        );
+        await recoverCallOnce(pool, callDispatch, async () => null, signal);
+        await messages.selectReady();
+        assert.equal(
+          (
+            await pool.query(
+              "SELECT selection FROM public.message_authorizations",
+            )
+          ).rows[0].selection,
+          "missed",
+        );
+        assert.equal(
+          (
+            await pool.query(
+              "SELECT count(*)::int AS n FROM public.notification_attempts",
+            )
+          ).rows[0].n,
+          1,
         );
       },
     );

@@ -20,7 +20,7 @@ interface Work {
 async function valid(c: PoolClient, id: string) {
   const row = (
     await c.query(
-      "SELECT m.*,a.approved_by,a.contact_revision,a.candidates,a.selection,a.context_hash,a.evidence,a.call_id,p.incident_revision,p.purpose,p.incident_id AS preview_incident,p.contact_id AS preview_contact,a.created_at AS approved_at FROM public.notification_messages m JOIN public.message_authorizations a ON a.id=m.authorization_id JOIN public.message_previews p ON p.id=a.preview_id WHERE m.id=$1 FOR UPDATE OF m",
+      "SELECT m.*,a.approved_by,a.contact_revision,a.candidates,a.selection,a.context_hash,a.evidence,a.call_id,p.incident_revision,p.purpose,p.followup_policy,p.incident_id AS preview_incident,p.contact_id AS preview_contact,a.created_at AS approved_at FROM public.notification_messages m JOIN public.message_authorizations a ON a.id=m.authorization_id JOIN public.message_previews p ON p.id=a.preview_id WHERE m.id=$1 FOR UPDATE OF m",
       [id],
     )
   ).rows[0];
@@ -68,7 +68,23 @@ async function valid(c: PoolClient, id: string) {
       )
         return false;
     }
+    if (row.followup_policy === "automatic-v2" && row.selection === "summary") {
+      const report = (
+        await c.query(
+          "SELECT normalized FROM public.notification_provider_events WHERE call_id=$1 ORDER BY received_at DESC LIMIT 1",
+          [row.call_id],
+        )
+      ).rows[0]?.normalized;
+      if (
+        report?.outcome !== "communicated" ||
+        report?.recipientVerified !== true
+      )
+        return false;
+    }
     const hash = digest({
+      ...(row.followup_policy === "automatic-v2"
+        ? { followup_policy: row.followup_policy }
+        : {}),
       candidates: row.candidates,
       route: row.route,
       contact_revision: row.contact_revision,
@@ -294,6 +310,7 @@ export function startMessageWorker(
   pool: Pool,
   provider: MessageProvider,
   log: { error: (fields: { code: string }, message: string) => void },
+  recover?: (signal: AbortSignal) => Promise<unknown>,
 ) {
   const controller = new AbortController(),
     store = createMessageStore(pool),
@@ -301,6 +318,7 @@ export function startMessageWorker(
   const running = (async () => {
     while (!controller.signal.aborted) {
       try {
+        if (recover) await recover(controller.signal);
         await store.selectReady();
         await runMessageOnce(dispatch, provider, controller.signal);
       } catch {
