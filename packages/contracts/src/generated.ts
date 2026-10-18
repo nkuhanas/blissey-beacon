@@ -68,6 +68,10 @@ export interface FamilyCallContext {
   explanation_source: "gemini" | "deterministic";
   event_type: "inference_result";
   room_label: string;
+  /**
+   * Frozen fictional patient display label from the incident-time room assignment. Optional only for historical contexts created before family-call-v3.
+   */
+  resident_name?: string;
   detected_at: string;
   family_summary: string;
   resident_condition: "unknown";

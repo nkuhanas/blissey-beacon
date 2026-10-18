@@ -3,8 +3,9 @@
 This slice implements the backend contact/review/authorization path, incident
 workflow actions, a durable single-attempt dispatcher and signed callback intake.
 It keeps the existing v2 inference-event and four-field Gemini explanation schemas.
-All call-provider tests use synthetic numbers/responses. No ElevenLabs/Photon call,
-recipient check or audio playback has been verified.
+Automated call-provider tests use synthetic numbers/responses. One separately
+consented live ElevenLabs/Photon smoke reached the test recipient; see the dated
+record below for conversation issues and the remaining playback-evidence limit.
 
 ## Dispatch stays off
 
@@ -48,7 +49,14 @@ following additions are implemented in the backend source:
 4. `POST /api/operator/incidents/:id/notifications/preview` accepts `contact_id`
    and `expected_revision`. It requires a persisted explanation and consented,
    historically associated contact. The server builds a neutral score-free
-   projection and stores the complete reviewed snapshot for ten minutes. The
+   projection and stores the complete reviewed snapshot for ten minutes. New
+   `family-call-v3` previews include `context.resident_name`, taken from the fictional
+   patient's saved display label at the incident-time room assignment. Show this
+   name with the review, separately from the recipient. The incident summary names
+   the resident after recipient verification; the agent can answer identity questions
+   from frozen facts. Missing/blank or over-120-character names block preparation.
+   Historical contexts may omit this field; existing snapshots are never enriched
+   silently, and the policy change invalidates unsent older authorizations. The
    response includes `preview_id`, hash, expiry, private recipient, context,
    opening, policy/version and `dispatch_enabled`.
 5. `POST /api/operator/incidents/:id/notifications` accepts the preview ID/hash,
@@ -264,6 +272,21 @@ Observed limitations:
   so `notification_success` is not established automatically. Do not replace these
   evidence checks with transcript text or session completion alone.
 - Frontend contact/call controls and result presentation remain pending.
+
+The recipient's primary feedback was that the agent could not identify the patient.
+The original approved context contained no resident name. The follow-up correction
+adds the historical patient's fictional display label to new reviewed contexts and
+the incident summary, with recipient-verification restrictions. Existing call
+records retain their original context; this correction does not place another call.
+
+The correction passed Docker formatting/lint, contract generation, typechecking,
+unit tests, builds and 28 database tests. Regression coverage verifies historical
+assignment, name freezing despite later patient-label edits, and rejection of
+missing/overlong identity. Two additional real-provider text-only simulations
+answered the verified recipient's patient-name question with the supplied fictional
+name while preserving unknown condition, and withheld resident/room details from
+a wrong recipient. The dedicated agent prompt was updated to `family-call-v3`;
+these checks did not place a telephone call or establish live voice retest results.
 
 The full transcript and private provider receipts remain in ignored local
 verification storage, not repository source or the application database. Provider
